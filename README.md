@@ -50,7 +50,8 @@ npm start                 # serves dist/ and the API on $PORT (default 8787)
 | | |
 |---|---|
 | Ask | Type on the typewriter and press Enter (`/` jumps there) |
-| Accept or reject | **Pin it** / **Toss** under a loose note, or ✓ / ✕ on a dashed string (`P` / `X` for the focused note) |
+| Accept or reject | Press and hold a loose note to pin it, or drag any note into the wastebasket that rises while you carry it. **Pin it** / **Toss**, ✓ / ✕ on a dashed string, `P` / `X`, and "pin all" under each reply work too. |
+| Watch it work | While the partner researches, each find goes up on the wall as it's made, and its searches and pages are pencilled into the notepad margin. |
 | Tie a string | Drag from a note's pin to another note, then pick *supports*, *causes*, *contradicts* or *references* (keys `1`–`4`) |
 | Open a note | Click it once to focus it, click again to open its file (`Enter` works too). Edits save as you type. |
 | Move around | Drag empty cork to pan. Scroll or pinch to zoom. `0` shows the whole wall. `Tab` moves through the notes. |
@@ -58,13 +59,13 @@ npm start                 # serves dist/ and the API on $PORT (default 8787)
 | Overview | Zoom out and each note gets a masking-tape label with its title, so the whole case stays readable from a distance. |
 | Timeline | The **Timeline** tab (or `T`) hangs every dated note in order from a cord across the wall. Long silences are marked ("≈ 8 years") and undated notes wait in a tray below. Give a note a date in its file ("24 Nov 1971", "1971-11-24 20:13", "c. 1972") and it takes its place. **Wall** puts everything back where it was. |
 | Photos | Drop photos onto the wall, paste one, or use the paperclip on the typewriter to send photos with your next message so Claude can look at them. Each photo's file has a large print and "Ask the partner about this photo". Photos are downscaled and stored in this browser's IndexedDB. |
-| Cases | The manila folders on the left. Hover one to read it, click it to open it, and "+" starts a new case. |
+| Cases | The five most recent cases are manila folders on the left; hover one to read it, click to open, "+" starts a new case. The steel pull below them (or `C`) opens the filing cabinet with every case: search titles and the evidence inside them, sort, open or shred. |
 
 Everything is saved in your browser's localStorage.
 
 ## How it's built
 
-The wall is a real 3D scene. The lamp, the focus spotlight, soft shadows, cork relief, curled paper and thread are all rendered by WebGL through React Three Fiber, not painted on with CSS. Everything you read at length or type into (the notepad, the dossier, the folders, the on-wall buttons) is ordinary DOM, so it stays sharp and accessible.
+The wall is a real 3D scene. The lamplight, the focus spotlight, soft shadows, cork relief, curled paper and thread are all rendered by WebGL through React Three Fiber, not painted on with CSS. Everything you read at length or type into (the notepad, the dossier, the folders, the on-wall buttons) is ordinary DOM, so it stays sharp and accessible.
 
 ```
 src/
@@ -76,12 +77,12 @@ src/
     CaseTray.tsx        case folders
     Dossier.tsx         note detail folder and string-type picker
   scene/
-    Room.tsx            camera rig, tungsten lamp + focus spotlight, cork, dust, post-processing
+    Room.tsx            camera rig, tungsten light + focus spotlight, cork, dust, post-processing
     NoteMesh.tsx        curled paper sheets, pins, tape, contact shadows, lift-and-settle motion
     Strings3D.tsx       thread tubes along a sagging curve, and relation tags
     Timeline3D.tsx      the timeline cord, tacks and threads
     paint.ts            typesets each sheet onto a canvas: typewriter jitter, handwriting, newsprint, stamps, sketches
-    objects.ts          sheet curl geometry, lathe-turned pins, binder clip, tape, lamp
+    objects.ts          sheet curl geometry, lathe-turned pins, binder clip, tape
     textures.ts         procedural cork (albedo / normal / roughness), paper fibre, string twist
   ai/partner.ts         calls /api/investigate and reads the SSE stream
   ai/offline.ts         scripted partner for when there's no key
@@ -95,7 +96,7 @@ server/
   index.ts              production static and API server
 ```
 
-- **The light is physical.** A hanging tungsten lamp falls off with distance and rakes across the cork. A cooler spotlight glides to whatever you're focused on. Both cast soft shadows: pins, curled corners and string all throw them. A cool, low fill keeps the shadows blue-grey against the warm light. Dust motes show only inside the light beams.
+- **The light is physical.** A tungsten lamp hanging just out of shot falls off with distance and rakes across the cork. A cooler spotlight glides to whatever you're focused on. Both cast soft shadows: pins, curled corners and string all throw them. A cool, low fill keeps the shadows blue-grey against the warm light. Dust motes show only inside the light beams.
 - **Every sheet is made, not styled.** Each sheet is a curved mesh: stickies lift at the free end, typed sheets curl at a corner, newsprint cockles. Its face is typeset onto a 3× canvas with seeded imperfections, so the same note always looks the same.
 - **The camera looks straight at the wall.** Screen↔wall mapping is exact, so panning, zooming, dragging and the DOM overlays line up pixel for pixel.
 - **Claude's wall edits go through one strict tool, `update_wall`.** The server validates the tool input, and the browser validates it again. A `web` note has to cite a URL that the search actually returned.

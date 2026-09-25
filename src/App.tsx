@@ -3,6 +3,7 @@ import { useActiveCase, useStore } from "./store.ts";
 import type { Stage } from "./components/Wall.tsx";
 import { Notepad } from "./components/Notepad.tsx";
 import { CaseTray } from "./components/CaseTray.tsx";
+import { CaseCabinet } from "./components/CaseCabinet.tsx";
 import { Dossier, LinkPicker } from "./components/Dossier.tsx";
 import { UndoSlip } from "./components/UndoSlip.tsx";
 import { ViewTabs } from "./components/ViewTabs.tsx";
@@ -49,6 +50,12 @@ function useWallKeys() {
       }
       if (t.closest("input, textarea, select, [role=dialog]") || e.metaKey || e.ctrlKey || e.altKey) return;
       const s = useStore.getState();
+      if (s.cabinetOpen) return;
+      if (e.key === "c" || e.key === "C") {
+        e.preventDefault();
+        s.setCabinetOpen(true);
+        return;
+      }
       const c = s.activeId ? s.cases[s.activeId] : undefined;
       if (!c || s.pendingLink) return;
       const notes = [...c.notes].sort((a, b) => a.createdAt - b.createdAt);
@@ -96,6 +103,7 @@ export function App() {
       </div>
       <ViewTabs left={stage.cx} />
       <CaseTray />
+      <CaseCabinet />
       <Notepad c={c} />
       <div className="plaque" aria-hidden>
         <span>
@@ -113,6 +121,10 @@ export function App() {
         <span>
           <kbd>T</kbd> timeline
         </span>
+        <span>
+          <kbd>C</kbd> cabinet
+        </span>
+        <span>hold a lead to pin it</span>
         <span>drag a pin to tie string</span>
       </div>
       <UndoSlip left={stage.cx} />

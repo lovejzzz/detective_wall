@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Product type** | Visual knowledge map + AI research partner |
-| **Core metaphor** | A detective's evidence wall in a lamp-lit attic |
+| **Core metaphor** | A detective's evidence wall in a lamp-lit attic (the lamp itself stays out of shot; only its light is in the picture) |
 | **Primary goal** | Explore one question by turning conversation into a map of connected evidence |
 | **Secondary goal** | Keep several investigations ("cases") and return to them over time |
 | **Audience** | Curious people researching something specific: a purchase, a technical question, a piece of history |
@@ -57,7 +57,7 @@ These decide trade-offs whenever the rest of this document doesn't.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ ▓ hanging lamp                                                        │
+│   (warm light falls from a lamp just out of shot)                     │
 │ ┌──┐                                                    ┌───────────┐ │
 │ │▤ │  ← case folders                                    │ notepad   │ │
 │ │▤ │    (filing tray)          CORK WALL                │ (dialogue │ │
@@ -70,7 +70,8 @@ These decide trade-offs whenever the rest of this document doesn't.
 ```
 
 - **Cork wall (center):** an infinite canvas. Drag empty cork to pan. Wheel or pinch to zoom (35%–200%).
-- **Filing tray (left edge):** one manila folder per case. The open case's folder is pulled out. The last slot is a blank folder labelled "New case".
+- **Filing tray (left edge):** a manila folder for each of the five most recent cases (plus the open one, which is pulled out), then a blank "New case" folder, then the steel pull of the filing cabinet.
+- **Filing cabinet (overlay, `C`):** every case, filed as a hanging folder in a steel drawer. You read every tab at once; each folder shows its file number, exhibits, strings, the years its evidence spans and its verdict stamp. Hovering lifts a folder out to show its latest exhibit and a snapshot of its wall. Search matches case titles and the evidence inside them ("found in …"). Sort by recent, file number or title; open, start or shred cases here.
 - **Notepad and typewriter (right edge):** the conversation lives on a legal pad. The user types on a paper strip in a typewriter at the bottom. It folds away to a sliver when the user wants the whole wall.
 - **Dossier (overlay):** opening a note slides a file folder over the wall with its full detail.
 - **Mobile (< 760 px):** the notepad becomes a bottom sheet and the filing tray becomes a folder tab at the top. The wall stays full-bleed.
@@ -99,10 +100,10 @@ Every note shows:
 
 | State | Look | Actions |
 |---|---|---|
-| **Proposed** (from the AI) | Lying loose at a steeper angle, no pin, 75% opacity, pencil "?" in the corner | **Pin it** / **Toss it** |
+| **Proposed** (from the AI) | Lying loose at a steeper angle, no pin, 75% opacity, pencil "?" in the corner | **Pin it** / **Toss it**, or press and hold the note to pin it (a red ring fills under the finger), or drag it into the bin |
 | **Pinned** | Full opacity, pinned, soft drop shadow | Drag, open, link, edit, remove |
 | **Focused** | Spotlight centered on it, its strings brighten, unrelated notes dim to 55% | — |
-| **Dragging** | Lifted: bigger shadow, 1.03× scale, tilts toward the drag direction (±6°, spring-damped) | — |
+| **Dragging** | Lifted: bigger shadow, 1.03× scale, tilts toward the drag direction (±6°, spring-damped). A wire wastebasket rises at the bottom of the wall; dropping the note in it balls it up and tosses it (undoable) | — |
 
 ### 5.3 Dossier (detail view)
 
@@ -208,7 +209,7 @@ update_wall({
 **Starting a case**
 1. The user opens the "New case" folder, or types into the typewriter on an empty wall.
 2. The question is pinned at the wall's center as the first `hypothesis` sticky, and the spotlight lands on it.
-3. The AI replies on the notepad and proposed evidence drifts onto the wall around the question.
+3. While the AI researches, each find goes up on the wall the moment it's made (it calls `pin_lead` between searches), arriving from the viewer's side and settling onto the cork. Then the reply arrives on the notepad, with the strings between the finds.
 4. The user pins or tosses each proposal, and the case grows from there.
 
 **Resuming a case**
@@ -216,7 +217,7 @@ update_wall({
 2. The spotlight rests where the user left it.
 3. The notepad shows the AI's resume line (§8.2 rule 6). No model call is needed for this.
 
-**Switching cases:** click a folder in the tray. The wall cross-fades in 300 ms and each case keeps its own camera position.
+**Switching cases:** click a folder in the tray, or open the cabinet (`C`) for older cases. The wall cross-fades in 300 ms and each case keeps its own camera position.
 
 ---
 
@@ -294,7 +295,7 @@ interface Message {
 | Paper | Curved sheet meshes (stickies lift at the free end, typed sheets curl at a corner, newsprint cockles, polaroids bow). Each sheet's face is typeset onto a 3× canvas texture with seeded imperfections: typewriter baseline wobble and uneven ribbon ink, handwriting drift and pen pressure, rubber stamps with dry-pad voids, pen-drawn sketches. | Text stays sharp at normal zooms, and every sheet looks individually made |
 | Pins, clips, tape | Lathe-turned push pins (clearcoat plastic), brass tacks, a binder clip, translucent masking tape | Small metal and plastic highlights sell the scale |
 | Strings | Tubes along a sagging curve, with a twisted-ply normal map, casting shadows. Proposed strings are dashed graphite. | Thread has thickness and throws a shadow across the paper it crosses |
-| Light | A hanging tungsten lamp (a visible 3D object whose spotlight falls off with distance) plus a focus spotlight that glides to the focused note. Both cast soft shadows. A cool, low fill lights the shadows. | Warm light against cool shadow; "light = attention" happens physically |
+| Light | A tungsten lamp hanging just out of shot, whose light falls off with distance and sways very slightly on its cord, plus a focus spotlight that glides to the focused note. Both cast soft shadows. A cool, low fill lights the shadows. | Warm light against cool shadow; "light = attention" happens physically. The light carries the mood without a prop in the frame |
 | Cork | A procedural albedo, normal and roughness set at real crumb scale | Raking lamp light reveals the relief |
 | Atmosphere | Dust motes visible only inside the light cones, ambient occlusion, gentle bloom on the bulb, film grain, vignette, neutral tone mapping | The air feels like an attic at night |
 | Controls on the wall | Plain DOM overlays (Pin it / Toss, proposed-string tags, popovers), positioned from exact world→screen mapping | Crisp, accessible buttons that never move under the cursor |

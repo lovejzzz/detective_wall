@@ -30,6 +30,10 @@ function Trail({ trail, live = false }: { trail: TrailStep[]; live?: boolean }) 
             <>
               looked up <q>{t.detail}</q>
             </>
+          ) : t.kind === "lead" ? (
+            <>
+              put up <q>{t.detail}</q>
+            </>
           ) : (
             <>read {t.detail}</>
           )}
@@ -41,7 +45,8 @@ function Trail({ trail, live = false }: { trail: TrailStep[]; live?: boolean }) 
 
 function TrailFold({ trail }: { trail: TrailStep[] }) {
   const searches = trail.filter((t) => t.kind === "search").length;
-  const pages = trail.length - searches;
+  const pages = trail.filter((t) => t.kind === "read").length;
+  if (!searches && !pages) return null;
   const parts = [searches && `${searches} ${searches === 1 ? "search" : "searches"}`, pages && `${pages} ${pages === 1 ? "page" : "pages"}`].filter(Boolean);
   return (
     <details className="trail-fold">

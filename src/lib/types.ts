@@ -75,7 +75,8 @@ export interface Message {
 }
 
 export interface TrailStep {
-  kind: "search" | "read";
+  /** A search, a page opened, or a find put up on the wall. */
+  kind: "search" | "read" | "lead";
   detail: string;
 }
 

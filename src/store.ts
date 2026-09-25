@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 import type { Camera, Case, Link, Message, Note, NoteType, Relation, StickyColor, TrailStep } from "./lib/types.ts";
-import type { WallUpdate } from "./lib/contract.ts";
+import type { ProposedNote, WallUpdate } from "./lib/contract.ts";
 import { findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
 import { seedCase } from "./lib/seed.ts";
 import { COMMONS, COOPER_DATES, COOPER_DEMO, coldCase } from "./lib/coldcase.ts";
@@ -27,6 +27,9 @@ interface State {
   dossierId: string | null;
   busyCaseId: string | null;
   notepadOpen: boolean;
+  /** The filing cabinet of every case, pulled open over the wall. */
+  cabinetOpen: boolean;
+  setCabinetOpen(open: boolean): void;
   partner: { mode: PartnerMode; model?: string; provider?: string };
   pendingLink: { from: string; to: string; x: number; y: number } | null;
   hoverNoteId: string | null;
@@ -52,7 +55,17 @@ interface Actions {
   addUserMessage(caseId: string, text: string, photoNoteIds?: string[]): Message;
   applyTurn(
     caseId: string,
-    turn: { reply: string; update: WallUpdate; sources?: { url: string; title: string }[]; trail?: TrailStep[]; offline?: boolean },
+    turn: {
+      reply: string;
+      update: WallUpdate;
+      sources?: { url: string; title: string }[];
+      trail?: TrailStep[];
+      offline?: boolean;
+      /** The turn's id, when its finds already went up mid-research (see addLead). */
+      turnId?: string;
+      /** Refs of finds already on the wall → their note ids. */
+      placed?: Map<string, string>;
+    },
   ): void;
   addAssistantNote(caseId: string, text: string): void;
 
@@ -60,6 +73,8 @@ interface Actions {
   setFocus(noteId: string | null): void;
   moveNote(noteId: string, x: number, y: number): void;
   updateNote(noteId: string, patch: Partial<Pick<Note, "title" | "body" | "type" | "color" | "stamp" | "rotation" | "when" | "approx">>): void;
+  /** Puts one find on the wall while the partner is still researching. Returns its note id. */
+  addLead(caseId: string, lead: { turnId: string; note: ProposedNote; placed: Map<string, string>; anchorId: string | null }): string | null;
   pinNote(noteId: string): void;
   /** Pins every still-proposed note in the list, and the strings between notes that are now pinned. */
   pinAll(noteIds: string[]): void;
@@ -128,6 +143,36 @@ const debouncedStorage: StateStorage = (() => {
 })();
 
 const STICKY_CYCLE: StickyColor[] = ["yellow", "blue", "green", "pink"];
+
+/** A note the partner proposes, placed beside the note it relates to (or the focus). */
+function proposeNote(c: Case, p: ProposedNote, nearId: string | undefined, messageId: string, excerpt: string): Note {
+  const focusNote = c.notes.find((n) => n.id === c.focusNoteId) ?? c.notes[0];
+  const near = (nearId ? c.notes.find((n) => n.id === nearId) : undefined) ?? focusNote;
+  const spot = findFreeSpot(p.type, near ? { x: near.x, y: near.y } : { x: 0, y: 0 }, c.notes, Math.random() * 6);
+  const stickies = c.notes.filter((n) => n.type === "hypothesis").length;
+  return {
+    id: uid(),
+    type: p.type,
+    status: "proposed",
+    title: p.title,
+    body: p.body,
+    x: spot.x,
+    y: spot.y,
+    rotation: naturalTilt(8),
+    ...(p.type === "hypothesis" ? { color: STICKY_CYCLE[stickies % STICKY_CYCLE.length] } : {}),
+    ...(p.confidence ? { confidence: p.confidence } : {}),
+    ...(p.stamp ? { stamp: p.stamp } : {}),
+    ...(p.diagram ? { diagram: p.diagram } : {}),
+    ...(p.when ? { when: p.when, ...(p.approx ? { approx: true } : {}) } : {}),
+    origin: {
+      kind: p.type === "web" || p.url ? "web" : "ai",
+      messageId,
+      ...(p.url ? { url: p.url } : {}),
+      excerpt,
+    },
+    createdAt: Date.now(),
+  };
+}
 
 const titleFrom = (text: string) => (text.length > 90 ? text.slice(0, 89).trimEnd() + "…" : text);
 /** True while a case is still named after its opening question (nobody has renamed it). */
@@ -202,6 +247,10 @@ export const useStore = create<Store>()(
         dossierId: null,
         busyCaseId: null,
         notepadOpen: true,
+        cabinetOpen: false,
+        setCabinetOpen(open) {
+          set({ cabinetOpen: open });
+        },
         partner: { mode: "unknown" },
         pendingLink: null,
         hoverNoteId: null,
@@ -261,50 +310,62 @@ export const useStore = create<Store>()(
           return msg;
         },
 
-        applyTurn(caseId, { reply, update, sources, trail, offline }) {
-          const msgId = uid();
-          if ((update.notes.length || update.links.length) && caseId === get().activeId) get().checkpoint("Partner's proposals");
+        addLead(caseId, { turnId, note: p, placed, anchorId }) {
+          // The first find of a turn marks the undo point for everything the turn proposes.
+          if (!placed.size && caseId === get().activeId) get().checkpoint("Partner's proposals");
+          let id: string | null = null;
+          mutateCase(caseId, (c) => {
+            const resolve = (ref: string) => placed.get(ref) ?? (c.notes.some((n) => n.id === ref) ? ref : undefined);
+            const nearId = (p.near && resolve(p.near)) || (anchorId && c.notes.some((n) => n.id === anchorId) ? anchorId : undefined);
+            const note = proposeNote(c, p, nearId, turnId, "");
+            c.notes.push(note);
+            c.focusNoteId = note.id;
+            id = note.id;
+          });
+          if (id) placed.set(p.ref, id);
+          return id;
+        },
+
+        applyTurn(caseId, { reply, update, sources, trail, offline, turnId, placed }) {
+          const msgId = turnId ?? uid();
+          const early = placed ?? new Map<string, string>();
+          if (!early.size && (update.notes.length || update.links.length) && caseId === get().activeId) get().checkpoint("Partner's proposals");
           let newCaseQuestion: string | undefined;
           mutateCase(caseId, (c) => {
             const refToId = new Map<string, string>();
             const resolve = (ref: string) => refToId.get(ref) ?? (c.notes.some((n) => n.id === ref) ? ref : undefined);
-            const focusNote = c.notes.find((n) => n.id === c.focusNoteId) ?? c.notes[0];
-            const anchorDefault = focusNote ? { x: focusNote.x, y: focusNote.y } : { x: 0, y: 0 };
-            let stickyIdx = c.notes.filter((n) => n.type === "hypothesis").length;
+            const excerpt = firstSentences(reply);
 
             const created: string[] = [];
             for (const p of update.notes) {
-              const id = uid();
-              refToId.set(p.ref, id);
+              const earlyId = early.get(p.ref);
+              if (earlyId) {
+                // Already on the wall from mid-research. If the user tossed it meanwhile, it stays gone.
+                const n = c.notes.find((x) => x.id === earlyId);
+                if (!n) continue;
+                n.origin = { ...n.origin, excerpt };
+                refToId.set(p.ref, earlyId);
+                created.push(earlyId);
+                continue;
+              }
               // Place it by the note it names, or else by whatever this turn ties it to.
               const tiedTo = update.links.map((l) => (l.from === p.ref ? l.to : l.to === p.ref ? l.from : null)).find((r) => r && resolve(r));
               const nearId = p.near ? resolve(p.near) : tiedTo ? resolve(tiedTo) : undefined;
-              const near = nearId ? c.notes.find((n) => n.id === nearId) : undefined;
-              const spot = findFreeSpot(p.type, near ?? anchorDefault, c.notes, Math.random() * 6);
-              c.notes.push({
-                id,
-                type: p.type,
-                status: "proposed",
-                title: p.title,
-                body: p.body,
-                x: spot.x,
-                y: spot.y,
-                rotation: naturalTilt(8),
-                ...(p.type === "hypothesis" ? { color: STICKY_CYCLE[stickyIdx++ % STICKY_CYCLE.length] } : {}),
-                ...(p.confidence ? { confidence: p.confidence } : {}),
-                ...(p.stamp ? { stamp: p.stamp } : {}),
-                ...(p.diagram ? { diagram: p.diagram } : {}),
-                ...(p.when ? { when: p.when, ...(p.approx ? { approx: true } : {}) } : {}),
-                origin: {
-                  kind: p.type === "web" || p.url ? "web" : "ai",
-                  messageId: msgId,
-                  ...(p.url ? { url: p.url } : {}),
-                  excerpt: firstSentences(reply),
-                },
-                createdAt: Date.now(),
-              });
-              created.push(id);
+              const note = proposeNote(c, p, nearId, msgId, excerpt);
+              c.notes.push(note);
+              refToId.set(p.ref, note.id);
+              created.push(note.id);
             }
+            // A find that didn't survive the final check comes back down (unless the user pinned it).
+            const kept = new Set(update.notes.map((p) => p.ref));
+            for (const [ref, id] of early)
+              if (!kept.has(ref)) {
+                const n = c.notes.find((x) => x.id === id);
+                if (n?.status === "proposed") {
+                  c.notes = c.notes.filter((x) => x.id !== id);
+                  c.links = c.links.filter((l) => l.from !== id && l.to !== id);
+                }
+              }
 
             for (const l of update.links) {
               const from = resolve(l.from);

@@ -7,12 +7,13 @@ import {
   isCommonsImageUrl,
   MAX_IMAGES_PER_TURN,
   MAX_IMAGE_B64,
+  NOTE_SCHEMA,
   UPDATE_WALL_SCHEMA,
-  sanitizeWallUpdate,
   type InvestigateRequest,
-  type InvestigateResponse,
-  type WallUpdate,
+  type PartnerEvent,
+  type ProposedNote,
 } from "../src/lib/contract.ts";
+import { ReplyStream, mergeTurn, sanitizeLead } from "./leads.ts";
 
 const MODEL = () => process.env.DW_MODEL || "claude-opus-5";
 const WEB_SEARCH = () => (process.env.DW_WEB_SEARCH ?? "on") !== "off";
@@ -39,6 +40,14 @@ const UPDATE_WALL_TOOL: Anthropic.Beta.BetaTool = {
   input_schema: UPDATE_WALL_SCHEMA as unknown as Anthropic.Beta.BetaTool.InputSchema,
   strict: true,
   eager_input_streaming: true,
+};
+
+const PIN_LEAD_TOOL: Anthropic.Beta.BetaTool = {
+  name: "pin_lead",
+  description:
+    "Put one piece of evidence on the user's wall right now, while you keep researching. Call it right after the search that found it; don't save leads for the end. The user pins or tosses it.",
+  input_schema: NOTE_SCHEMA as unknown as Anthropic.Beta.BetaTool.InputSchema,
+  strict: true,
 };
 
 function buildMessages(req: InvestigateRequest): Anthropic.Beta.BetaMessageParam[] {
@@ -79,27 +88,36 @@ class HttpError extends Error {
 
 let client: Anthropic | null = null;
 
-export type PartnerEvent =
-  | { type: "text"; delta: string }
-  | { type: "status"; kind: "searching" | "reading" | "writing"; detail?: string }
-  | { type: "done"; result: InvestigateResponse }
-  | { type: "error"; message: string; offline?: boolean };
 
 /** Runs one partner turn against Claude, streaming reply text and progress as it arrives. */
 async function investigate(req: InvestigateRequest, emit: (e: PartnerEvent) => void, signal: AbortSignal): Promise<void> {
   client ??= new Anthropic();
   const messages = buildMessages(req);
-  const tools: Anthropic.Beta.BetaToolUnion[] = [UPDATE_WALL_TOOL];
+  const tools: Anthropic.Beta.BetaToolUnion[] = [PIN_LEAD_TOOL, UPDATE_WALL_TOOL];
   if (WEB_SEARCH()) tools.push({ type: "web_search_20260209", name: "web_search", max_uses: 4 });
 
-  const replyParts: string[] = [];
   const sources = new Map<string, string>();
+  const knownIds = new Set(req.notes.map((n) => n.id));
+  const leads: ProposedNote[] = [];
+  // A find goes up the moment it's made. Web leads must cite a page search returned (when it ran).
+  const putUp = (input: unknown) => {
+    const note = sanitizeLead(input, knownIds, leads, sources.size ? sources : null);
+    if (!note) return;
+    leads.push(note);
+    emit({ type: "lead", note });
+  };
+  const reply = new ReplyStream({
+    prose: (delta) => emit({ type: "text", delta }),
+    block: (kind, body) => kind === "lead" && putUp(body),
+  });
   let toolInput: unknown = null;
   let model = MODEL();
   let truncated = false;
+  let textBlocks = 0;
 
-  // web_search can pause a long turn; resume it a couple of times at most.
-  for (let round = 0; round < 3; round++) {
+  // Each pin_lead call is answered at once so research carries on; web_search can also pause a
+  // long turn. Resume for either, within a bound.
+  for (let round = 0; round < 10; round++) {
     const stream = client.beta.messages.stream(
       {
         model: MODEL(),
@@ -116,25 +134,24 @@ async function investigate(req: InvestigateRequest, emit: (e: PartnerEvent) => v
       { signal },
     );
 
-    let lastWasText = false;
     stream.on("streamEvent", (event) => {
       if (event.type === "content_block_start") {
         const b = event.content_block;
-        if (b.type === "text") {
-          // Separate text blocks that are split by searches with a paragraph break.
-          if (replyParts.length > 0 || lastWasText) emit({ type: "text", delta: "\n\n" });
-          lastWasText = true;
-        } else if (b.type === "server_tool_use") emit({ type: "status", kind: "searching" });
-        else if (b.type === "tool_use") emit({ type: "status", kind: "writing" });
+        // Separate text blocks that are split by searches with a paragraph break.
+        if (b.type === "text" && textBlocks++ > 0) reply.push("\n\n");
+        else if (b.type === "server_tool_use") emit({ type: "status", kind: "searching" });
+        else if (b.type === "tool_use" && b.name === "update_wall") emit({ type: "status", kind: "writing" });
       } else if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-        emit({ type: "text", delta: event.delta.text });
+        reply.push(event.delta.text);
       }
     });
     stream.on("contentBlock", (block) => {
-      if (block.type === "server_tool_use" && block.name === "web_search") {
+      if (block.type === "tool_use" && block.name === "pin_lead") putUp(block.input);
+      else if (block.type === "server_tool_use" && block.name === "web_search") {
         const q = (block.input as { query?: unknown })?.query;
         if (typeof q === "string") emit({ type: "status", kind: "searching", detail: q });
       } else if (block.type === "web_search_tool_result" && Array.isArray(block.content)) {
+        for (const r of block.content) if (r.type === "web_search_result") sources.set(r.url, r.title);
         emit({ type: "status", kind: "reading", detail: `${block.content.length} results` });
       }
     });
@@ -155,28 +172,29 @@ async function investigate(req: InvestigateRequest, emit: (e: PartnerEvent) => v
       return;
     }
 
-    for (const block of response.content) {
-      if (block.type === "text" && block.text.trim()) replyParts.push(block.text.trim());
-      else if (block.type === "tool_use" && block.name === "update_wall") toolInput = block.input;
-      else if (block.type === "web_search_tool_result" && Array.isArray(block.content)) {
-        for (const r of block.content) if (r.type === "web_search_result") sources.set(r.url, r.title);
-      }
-    }
+    for (const block of response.content) if (block.type === "tool_use" && block.name === "update_wall") toolInput = block.input;
     if (response.stop_reason === "max_tokens") truncated = true;
-    if (response.stop_reason !== "pause_turn") break;
+    const pins = response.content.filter((b) => b.type === "tool_use" && b.name === "pin_lead");
+    const resume = response.stop_reason === "pause_turn" || (response.stop_reason === "tool_use" && pins.length > 0 && toolInput === null);
+    if (!resume) break;
     messages.push({ role: "assistant", content: response.content as Anthropic.Beta.BetaContentBlockParam[] });
+    if (pins.length)
+      messages.push({
+        role: "user",
+        content: pins.map((b) => ({ type: "tool_result" as const, tool_use_id: (b as Anthropic.Beta.BetaToolUseBlock).id, content: "It's on the wall. Keep going." })),
+      });
   }
+  reply.end();
 
-  const knownIds = new Set(req.notes.map((n) => n.id));
-  // A truncated tool input may parse to a partial object; drop it rather than half-apply it.
-  const update: WallUpdate = truncated ? { notes: [], links: [] } : sanitizeWallUpdate(toolInput, knownIds);
+  // A truncated tool input may parse to a partial object: keep the leads, drop the rest.
+  const update = mergeTurn(leads, truncated ? null : toolInput, knownIds);
   // Web notes must cite a URL that search actually returned (when search ran).
   if (sources.size > 0) update.notes = update.notes.filter((n) => n.type !== "web" || (n.url && sources.has(n.url)));
 
   emit({
     type: "done",
     result: {
-      reply: replyParts.join("\n\n") || "I've put what I found on the wall.",
+      reply: reply.reply || "I've put what I found on the wall.",
       update,
       sources: [...sources].map(([url, title]) => ({ url, title })),
       model,

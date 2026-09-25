@@ -8,7 +8,7 @@ import { tween, reducedMotion } from "../lib/motion.ts";
 import { NoteMesh } from "../scene/NoteMesh.tsx";
 import { Strings3D, stringMid } from "../scene/Strings3D.tsx";
 import { RELATION_INFO } from "../lib/relations.ts";
-import { CameraRig, Cork, Dust, LITE, Lamp, Lens, Lights, type LightRig, type View } from "../scene/Room.tsx";
+import { CameraRig, Cork, Dust, LITE, Lens, Lights, type LightRig, type View } from "../scene/Room.tsx";
 import { fontsReady } from "../scene/paint.ts";
 import { Timeline3D } from "../scene/Timeline3D.tsx";
 import { layoutTimeline } from "../lib/timeline.ts";
@@ -28,10 +28,12 @@ const TRAY_W = 70;
 const clampZ = (z: number) => Math.max(MIN_Z, Math.min(MAX_Z, z));
 
 type Grab =
-  | { kind: "note"; id: string; px: number; py: number; x: number; y: number; moved: boolean; lastX: number; lastT: number }
+  | { kind: "note"; id: string; px: number; py: number; x: number; y: number; moved: boolean; lastX: number; lastT: number; held?: boolean }
   | { kind: "pin"; id: string };
 
 let fontsLoaded = false;
+/** Hold a loose lead this long, without moving, to press its pin in. */
+const HOLD_MS = 520;
 
 export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   const [cam, setCam] = useState<Camera>(c.camera);
@@ -288,13 +290,23 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [openTag, setOpenTag] = useState<string | null>(null);
   const hoverRef = useRef<string | null>(null);
+  // Gestures: hold a lead to pin it; drag any note into the bin to toss it.
+  const [hold, setHold] = useState<{ id: string; x: number; y: number; done?: boolean } | null>(null);
+  const [binHot, setBinHot] = useState(false);
+  const binRef = useRef<HTMLDivElement>(null);
+  const [crumples, setCrumples] = useState<number[]>([]);
+  const local = useCallback((clientX: number, clientY: number) => {
+    const r = viewportRef.current?.getBoundingClientRect();
+    return { x: clientX - (r?.left ?? 0), y: clientY - (r?.top ?? 0) };
+  }, []);
 
   const onGrab = useCallback((id: string, e: ThreeEvent<PointerEvent>) => {
     claimed.current = true;
     const n = useStore.getState().cases[caseIdRef.current]?.notes.find((x) => x.id === id);
     if (!n) return;
     setGrab({ kind: "note", id, px: e.nativeEvent.clientX, py: e.nativeEvent.clientY, x: n.x, y: n.y, moved: false, lastX: e.nativeEvent.clientX, lastT: performance.now() });
-  }, []);
+    if (n.status === "proposed") setHold({ id, ...local(e.nativeEvent.clientX, e.nativeEvent.clientY) });
+  }, [local]);
   const onGrabPin = useCallback((id: string, e: ThreeEvent<PointerEvent>) => {
     claimed.current = true;
     if (useStore.getState().view === "timeline") return; // strings are tied on the wall
@@ -305,6 +317,19 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   useEffect(() => {
     if (!grab) return;
     let tilt = 0;
+    let hot = false;
+    // Holding a loose lead still presses its pin in.
+    const lead = grab.kind === "note" && store().cases[caseIdRef.current]?.notes.find((x) => x.id === grab.id)?.status === "proposed";
+    const holdTimer =
+      lead && grab.kind === "note"
+        ? setTimeout(() => {
+            if (grab.moved) return;
+            grab.held = true;
+            store().pinNote(grab.id);
+            setHold((h) => (h ? { ...h, done: true } : h));
+            setTimeout(() => setHold(null), 420);
+          }, HOLD_MS)
+        : undefined;
     const move = (e: PointerEvent) => {
       if (grab.kind === "pin") {
         setCursor({ x: e.clientX, y: e.clientY });
@@ -312,10 +337,16 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       }
       const dx = e.clientX - grab.px;
       const dy = e.clientY - grab.py;
-      if (!grab.moved && Math.hypot(dx, dy) < 4) return;
+      if (!grab.moved && Math.hypot(dx, dy) < 6) return;
+      if (grab.held) return;
+      clearTimeout(holdTimer);
+      setHold(null);
       if (useStore.getState().view === "timeline") return; // the timeline decides where notes go
       if (!grab.moved) store().checkpoint("Moved a note");
       grab.moved = true;
+      const bin = binRef.current?.getBoundingClientRect();
+      const over = !!bin && e.clientX > bin.left - 24 && e.clientX < bin.right + 24 && e.clientY > bin.top - 40 && e.clientY < bin.bottom + 10;
+      if (over !== hot) setBinHot((hot = over));
       const z = camRef.current.zoom;
       store().moveNote(grab.id, Math.round(grab.x + dx / z), Math.round(grab.y + dy / z));
       if (!reducedMotion()) {
@@ -328,10 +359,22 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       }
     };
     const up = (e: PointerEvent) => {
+      clearTimeout(holdTimer);
+      if (grab.kind === "note" && !grab.held) setHold(null);
       if (grab.kind === "pin") {
         const to = hoverRef.current;
         if (to && to !== grab.id) store().setPendingLink({ from: grab.id, to, x: e.clientX, y: e.clientY });
         setCursor(null);
+      } else if (hot) {
+        // Dropped in the bin: put it back where it was (so undo returns it there), then toss it.
+        store().moveNote(grab.id, grab.x, grab.y);
+        store().tossNote(grab.id);
+        const key = performance.now();
+        setCrumples((cs) => [...cs, key]);
+        setTimeout(() => setCrumples((cs) => cs.filter((k) => k !== key)), 900);
+        setBinHot(false);
+      } else if (grab.held) {
+        // Pinned by holding: nothing more to do.
       } else if (!grab.moved) {
         const s = store();
         const cc = s.cases[caseIdRef.current];
@@ -352,6 +395,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     window.addEventListener("pointerup", up);
     window.addEventListener("keydown", esc);
     return () => {
+      clearTimeout(holdTimer);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("keydown", esc);
@@ -491,7 +535,6 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
           <Strings3D notes={c.notes} links={c.links} lit={hoverNet?.links ?? null} draft={draft} onOpenTag={onOpenTag} />
         )}
         <Dust view={view} rig={rig} />
-        <Lamp view={view} />
         <Lens />
       </Canvas>
 
@@ -508,7 +551,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             return (
               <div key={n.id} className="proposal-anchor" style={{ left: p.x, top: above ? p.y - 40 * tabScale : p.y + 10 * cam.zoom }}>
                 <div className="proposal-tabs" style={{ transform: `scale(${tabScale})`, transformOrigin: "50% 0" }}>
-                  <button className="tab-pin" onClick={() => onPin(n.id)} title="Pin it (P)">
+                  <button className="tab-pin" onClick={() => onPin(n.id)} title="Pin it (P), or press and hold the note">
                     <svg viewBox="0 0 16 16" aria-hidden>
                       <circle cx="8" cy="6" r="4.2" fill="#c62828" />
                       <circle cx="6.8" cy="4.8" r="1.3" fill="#ff9e96" />
@@ -516,7 +559,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                     </svg>
                     Pin it
                   </button>
-                  <button className="tab-toss" onClick={() => onToss(n.id)} title="Toss it (X)">
+                  <button className="tab-toss" onClick={() => onToss(n.id)} title="Toss it (X), or drag the note into the bin">
                     Toss
                   </button>
                 </div>
@@ -637,6 +680,29 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               </div>
             )}
           </>
+        )}
+        {hold && (
+          <svg className={`hold-ring ${hold.done ? "is-done" : ""}`} style={{ left: hold.x, top: hold.y }} viewBox="0 0 60 60" aria-hidden>
+            <circle className="track" cx="30" cy="30" r="25" />
+            <circle className="fill" cx="30" cy="30" r="25" />
+            <circle className="head" cx="30" cy="30" r="6" />
+          </svg>
+        )}
+        {!timeline && (
+          <div
+            ref={binRef}
+            className={`bin ${draggingId || crumples.length ? "is-shown" : ""} ${binHot ? "is-hot" : ""} ${crumples.length ? "is-gulping" : ""}`}
+            style={{ left: stage.cx }}
+            aria-hidden
+          >
+            <span className="bin-label">{binHot ? "let go to toss" : "toss"}</span>
+            <div className="bin-back" />
+            {crumples.map((k) => (
+              <span key={k} className="crumple" />
+            ))}
+            <div className="bin-body" />
+            <div className="bin-rim" />
+          </div>
         )}
         {dropping && (
           <div className="drop-hint" aria-hidden>

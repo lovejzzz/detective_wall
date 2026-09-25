@@ -208,30 +208,6 @@ export function stringCurve(a: THREE.Vector3, b: THREE.Vector3): THREE.CatmullRo
   return new THREE.CatmullRomCurve3(pts);
 }
 
-// ───────────────────────── lamp ─────────────────────────
-
-/** Enamel shade profile (lathe around Y, opening downward). Units ≈ screen px at scale 1. */
-export const LAMP_SHADE = new THREE.LatheGeometry(
-  [
-    [0, 50],
-    [9, 50],
-    [10, 44],
-    [16, 40],
-    [40, 22],
-    [66, 4],
-    [80, -8],
-    [82, -10],
-  ].map(([r, y]) => new THREE.Vector2(r, y)),
-  64,
-);
-
-export const lampMaterials = {
-  enamel: new THREE.MeshPhysicalMaterial({ color: "#1f3a2f", roughness: 0.28, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.1 }),
-  brass: new THREE.MeshStandardMaterial({ color: "#b58b45", metalness: 1, roughness: 0.35 }),
-  bulb: new THREE.MeshStandardMaterial({ color: "#fff3dc", emissive: "#ffcf8a", emissiveIntensity: 7 }),
-  cord: new THREE.MeshStandardMaterial({ color: "#0b0907", roughness: 0.8 }),
-};
-
 let contact: THREE.CanvasTexture | null = null;
 /** A soft, blurred rectangle: the contact shadow a sheet leaves on the cork. */
 export function contactShadow(): THREE.CanvasTexture {

@@ -77,6 +77,15 @@ export interface InvestigateResponse {
   model?: string;
 }
 
+/** What the server streams to the browser during a turn (server-sent events). */
+export type PartnerEvent =
+  | { type: "text"; delta: string }
+  | { type: "status"; kind: "searching" | "reading" | "writing"; detail?: string }
+  /** A find, sent to the wall while the partner is still researching. */
+  | { type: "lead"; note: ProposedNote }
+  | { type: "done"; result: InvestigateResponse }
+  | { type: "error"; message: string; offline?: boolean };
+
 export const UPDATE_WALL_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -153,6 +162,9 @@ export const UPDATE_WALL_SCHEMA = {
     },
   },
 } as const;
+
+/** One evidence note, as the partner proposes it: the item schema of update_wall's notes. */
+export const NOTE_SCHEMA = UPDATE_WALL_SCHEMA.properties.notes.items;
 
 const isStr = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);

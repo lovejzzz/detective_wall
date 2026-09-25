@@ -7,7 +7,7 @@ import { BlendFunction, ToneMappingMode } from "postprocessing";
 import * as THREE from "three";
 import type { Camera } from "../lib/types.ts";
 import { reducedMotion } from "../lib/motion.ts";
-import { LAMP_SHADE, lampMaterials, sharedTextures } from "./objects.ts";
+import { sharedTextures } from "./objects.ts";
 
 const debug = new URLSearchParams(location.search);
 
@@ -75,12 +75,15 @@ interface LightRig {
   spotTarget: THREE.Vector3;
 }
 
-/** Where the lamp hangs for this view: near the top of the stage, a third of the way to the camera. */
+/**
+ * Where the (unseen) lamp hangs for this view: just above the top of the frame, a fifth of the way
+ * to the camera. Only its light is in the picture: a warm pool that falls off down the wall.
+ */
 export function lampPlacement(view: View, viewportH: number) {
   const d = distanceFor(viewportH, view.cam.zoom);
   const z = d * 0.2;
   const pxPerUnit = view.cam.zoom / 0.8; // at that depth
-  const y = -view.cam.y + (view.stage.cy - 40) / pxPerUnit;
+  const y = -view.cam.y + (view.stage.cy + 70) / pxPerUnit;
   return { pos: new THREE.Vector3(view.cam.x, y, z), scale: 1 / pxPerUnit, d };
 }
 
@@ -92,12 +95,14 @@ export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y
   const spotTarget = useMemo(() => new THREE.Object3D(), []);
   const spotAim = useRef(new THREE.Vector3(focus?.x ?? view.cam.x, -(focus?.y ?? view.cam.y), 0));
 
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
     const { pos, d } = lampPlacement(view, size.height);
     const L = lamp.current;
     const S = spot.current;
     if (!L || !S) return;
-    L.position.set(pos.x, pos.y - 10 * (0.8 / view.cam.zoom), pos.z);
+    // The lamp still hangs on its cord out of shot: a slow sway keeps the shadows faintly alive.
+    const sway = reducedMotion() ? 0 : Math.sin(state.clock.elapsedTime * 0.55) * 7 * (0.8 / view.cam.zoom);
+    L.position.set(pos.x + sway, pos.y - 10 * (0.8 / view.cam.zoom), pos.z);
     lampTarget.position.set(view.cam.x, pos.y - (size.height / view.cam.zoom) * 0.42, 0);
     // Light falls off with distance from the bulb: brightest just under the lamp.
     // Normalised to the lamp's distance from the wall so it looks the same at any zoom.
@@ -162,39 +167,6 @@ export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y
         <Lightformer form="ring" intensity={2} color="#ffe2b8" position={[-5, 3, 6]} scale={2} />
       </Environment>
     </>
-  );
-}
-
-/** The hanging enamel lamp. It stays at the top of the stage as you move around the wall. */
-export function Lamp({ view }: { view: View }) {
-  const { size } = useThree();
-  const g = useRef<THREE.Group>(null);
-  const inner = useMemo(() => {
-    const m = new THREE.MeshStandardMaterial({ color: "#f3ead6", roughness: 0.6, emissive: "#ffcf96", emissiveIntensity: 0.9, side: THREE.BackSide });
-    return m;
-  }, []);
-  useFrame((state) => {
-    const { pos, scale } = lampPlacement(view, size.height);
-    if (!g.current) return;
-    g.current.position.copy(pos);
-    g.current.scale.setScalar(scale * 0.82);
-    // A slow sway on its cord.
-    g.current.rotation.z = reducedMotion() ? 0 : Math.sin(state.clock.elapsedTime * 0.55) * 0.012;
-  });
-  return (
-    <group ref={g}>
-      <mesh material={lampMaterials.cord} position={[0, 400, 0]}>
-        <cylinderGeometry args={[1.4, 1.4, 700, 8]} />
-      </mesh>
-      <mesh material={lampMaterials.brass} position={[0, 52, 0]}>
-        <cylinderGeometry args={[9, 11, 14, 24]} />
-      </mesh>
-      <mesh geometry={LAMP_SHADE} material={lampMaterials.enamel} />
-      <mesh geometry={LAMP_SHADE} material={inner} scale={0.985} />
-      <mesh material={lampMaterials.bulb} position={[0, 10, 0]}>
-        <sphereGeometry args={[17, 32, 16]} />
-      </mesh>
-    </group>
   );
 }
 

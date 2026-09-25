@@ -1,16 +1,11 @@
 import { useStore } from "../store.ts";
-import type { InvestigateRequest, InvestigateResponse } from "../lib/contract.ts";
+import type { InvestigateRequest, PartnerEvent, ProposedNote, WallUpdate } from "../lib/contract.ts";
 import { sanitizeWallUpdate } from "../lib/contract.ts";
 import type { Case, TrailStep } from "../lib/types.ts";
 import { offlineTurn, offlinePhotoTurn } from "./offline.ts";
 import { photoBase64, photoIdOf } from "../lib/images.ts";
+import { uid } from "../lib/geometry.ts";
 import { commonsFileOf, resolveCommons } from "../lib/commons.ts";
-
-type PartnerEvent =
-  | { type: "text"; delta: string }
-  | { type: "status"; kind: "searching" | "reading" | "writing"; detail?: string }
-  | { type: "done"; result: InvestigateResponse }
-  | { type: "error"; message: string; offline?: boolean };
 
 export async function checkPartner() {
   try {
@@ -42,14 +37,41 @@ function knownIds(caseId: string, fallback: Case) {
   return new Set((useStore.getState().cases[caseId] ?? fallback).notes.map((n) => n.id));
 }
 
+/** A turn in progress: its finds go up on the wall as they arrive, before the reply is done. */
+interface Turn {
+  caseId: string;
+  id: string;
+  placed: Map<string, string>;
+  anchorId: string | null;
+}
+
+function newTurn(caseId: string): Turn {
+  return { caseId, id: uid(), placed: new Map(), anchorId: useStore.getState().cases[caseId]?.focusNoteId ?? null };
+}
+
+/** Puts one find on the wall mid-research, after checking it against the contract again. */
+function putUp(turn: Turn, c: Case, raw: ProposedNote) {
+  if (turn.placed.has(raw.ref)) return;
+  const known = new Set([...knownIds(turn.caseId, c), ...turn.placed.keys()]);
+  const note = sanitizeWallUpdate({ notes: [raw], links: [] }, known).notes[0];
+  if (!note) return;
+  const s = useStore.getState();
+  if (!s.addLead(turn.caseId, { turnId: turn.id, note, placed: turn.placed, anchorId: turn.anchorId })) return;
+  s.setLive((p) => (p ? { ...p, trail: [...(p.trail ?? []), { kind: "lead" as const, detail: note.title }] } : p));
+}
+
 async function runOffline(caseId: string, c: Case, text: string, photoNoteIds: string[] = []) {
-  await new Promise((r) => setTimeout(r, 650 + Math.random() * 500)); // a beat to "think"
+  const beat = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  await beat(650 + Math.random() * 500); // a beat to "think"
   const turn = photoNoteIds.length ? offlinePhotoTurn(c, photoNoteIds) : offlineTurn(c, text);
-  useStore.getState().applyTurn(caseId, {
-    reply: turn.reply,
-    update: sanitizeWallUpdate(turn.update, knownIds(caseId, c)),
-    offline: true,
-  });
+  const update: WallUpdate = sanitizeWallUpdate(turn.update, knownIds(caseId, c));
+  // Even offline, finds go up one by one, the way they would during real research.
+  const t = newTurn(caseId);
+  for (const note of update.notes) {
+    putUp(t, c, note);
+    await beat(420 + Math.random() * 300);
+  }
+  useStore.getState().applyTurn(caseId, { reply: turn.reply, update, offline: true, turnId: t.id, placed: t.placed });
 }
 
 function toRequest(c: Case): InvestigateRequest {
@@ -145,10 +167,12 @@ export async function ask(caseId: string, text: string, opts: { photoNoteIds?: s
     }
 
     let finished = false;
+    const turn = newTurn(caseId);
     for await (const e of readEvents(res.body)) {
       const s = useStore.getState();
       if (e.type === "text") s.setLive((p) => ({ ...p, text: (p?.text ?? "") + e.delta }));
       else if (e.type === "status") s.setLive((p) => ({ text: p?.text ?? "", status: statusLine(e), trail: extendTrail(p?.trail ?? [], e) }));
+      else if (e.type === "lead") putUp(turn, c, e.note);
       else if (e.type === "error") {
         if (e.offline) s.setPartner({ mode: "offline" });
         s.addAssistantNote(caseId, `(The line went quiet: ${e.message})`);
@@ -156,7 +180,7 @@ export async function ask(caseId: string, text: string, opts: { photoNoteIds?: s
       } else if (e.type === "done") {
         // Re-validate on the client: the wall only ever accepts the contract.
         const update = sanitizeWallUpdate(e.result.update, knownIds(caseId, c));
-        s.applyTurn(caseId, { reply: e.result.reply, update, sources: e.result.sources, trail: s.live?.trail });
+        s.applyTurn(caseId, { reply: e.result.reply, update, sources: e.result.sources, trail: s.live?.trail, turnId: turn.id, placed: turn.placed });
         finished = true;
       }
     }

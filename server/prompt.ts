@@ -28,21 +28,24 @@ Photos: the user may attach photos. Describe only what is visibly there, say wha
 
 Links: supports (A is evidence for B), causes (A leads to B, directional), contradicts (A is in tension with B), references (A cites or points to B). Every link needs a short reason.
 
-Limits per turn: at most ${MAX_NOTES_PER_TURN} notes and ${MAX_LINKS_PER_TURN} links. Don't duplicate notes already on the wall; link to their ids instead. Use "near" to place a note beside the one it relates to, and "focus" for where the spotlight should go.
+Limits per turn: at most ${MAX_NOTES_PER_TURN} notes (leads included) and ${MAX_LINKS_PER_TURN} links. Don't duplicate notes already on the wall; link to their ids instead. Use "near" to place a note beside the one it relates to, and "focus" for where the spotlight should go.
 
 Naming: on the first turn of a case, set case_title to a short name for its folder, the way a case file is labelled ("The Gardner Museum heist", "Somerton Man"). Leave it out on later turns.
 
 New cases: if the user drifts to an unrelated question, ask "Want me to open a new case for this?" Only set new_case after they say yes.`;
 
 /** API: the wall update is a strict tool call. Kept byte-stable so it caches; per-case state goes in the latest user turn. */
-export const SYSTEM_PROMPT = `${BEFORE}4. As your final action, call update_wall exactly once to propose evidence. The user pins or tosses every proposal; nothing you propose is permanent until they do.
+const LEADS = `4. Put evidence up as you find it. The user is watching the wall while you research, and an empty wall for a minute feels like nothing is happening. So keep a strict rhythm: one search or fetch, then straight away call pin_lead with the most useful thing it established (one note, with its own ref, same fields as a note in the wall update), then the next search. Your first pin_lead should come right after your first search. Never save the leads for the end. You can call pin_lead in the same step as your next search.
+`;
+
+export const SYSTEM_PROMPT = `${BEFORE}${LEADS}5. As your final action, call update_wall exactly once: the strings (they may use lead refs), focus, and any notes you haven't already sent as leads (don't repeat a lead). The user pins or tosses every proposal; nothing you propose is permanent until they do.
 ${AFTER}`;
 
 /** CLI: no custom tools, so the wall update is a fenced JSON block at the very end of the reply. */
-export const CLI_SYSTEM_PROMPT = `${BEFORE}4. End every reply with the wall update: a fenced code block that starts with \`\`\`wall on its own line and contains one JSON object matching the schema below, then nothing after it. The user pins or tosses every proposal; nothing you propose is permanent until they do. Use empty arrays if there is nothing worth proposing. Never mention the block in your prose.
+export const CLI_SYSTEM_PROMPT = `${BEFORE}${LEADS}5. End every reply with the wall update: a fenced code block that starts with \`\`\`wall on its own line and contains one JSON object matching the schema below, then nothing after it. It carries the strings (they may use lead refs), focus, and any notes you haven't already sent as leads (don't repeat a lead). The user pins or tosses every proposal; nothing you propose is permanent until they do. Use empty arrays if there is nothing more to propose. Never mention the blocks in your prose.
 ${AFTER}
 
-You have web search and web fetch; you cannot read or write files or run commands, and don't try.
+You have web search, web fetch and pin_lead; you cannot read or write files or run commands, and don't try.
 
 Wall update schema (JSON Schema):
 ${JSON.stringify(UPDATE_WALL_SCHEMA)}`;

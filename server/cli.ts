@@ -9,22 +9,19 @@
 import { spawn, execFile } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { sanitizeWallUpdate, type InvestigateRequest, type InvestigateResponse, type WallUpdate } from "../src/lib/contract.ts";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { NOTE_SCHEMA, type InvestigateRequest, type PartnerEvent, type ProposedNote } from "../src/lib/contract.ts";
+import { ReplyStream, mergeTurn, sanitizeLead } from "./leads.ts";
 import { CLI_SYSTEM_PROMPT, renderWallState } from "./prompt.ts";
 
-type Emit = (e:
-  | { type: "text"; delta: string }
-  | { type: "status"; kind: "searching" | "reading" | "writing"; detail?: string }
-  | { type: "done"; result: InvestigateResponse }
-  | { type: "error"; message: string; offline?: boolean }) => void;
+type Emit = (e: PartnerEvent) => void;
 
 const CLI = () => process.env.DW_CLI_PATH || "claude";
 /** Which model and how hard it thinks. Overridable; the defaults favour careful investigation. */
 export const CLI_MODEL = () => process.env.DW_CLI_MODEL || "claude-opus-5-5";
 export const CLI_EFFORT = () => process.env.DW_CLI_EFFORT || "high";
 const TURN_TIMEOUT_MS = 8 * 60_000;
-const MARKER = "```wall";
 
 let available: Promise<string | null> | null = null;
 /** The installed CLI's version, or null if it isn't on this machine. Checked once. */
@@ -54,6 +51,20 @@ function workdir(): string {
   const dir = join(tmpdir(), "detective-wall-partner");
   mkdirSync(dir, { recursive: true });
   return dir;
+}
+
+/** The pin_lead tool, served to the CLI by a one-tool MCP server (see wall-mcp.mjs). */
+const PIN_LEAD = "mcp__wall__pin_lead";
+let mcpFile: string | null = null;
+function mcpConfigFile(): string {
+  if (!mcpFile) {
+    const schema = join(workdir(), "note-schema.json");
+    writeFileSync(schema, JSON.stringify(NOTE_SCHEMA));
+    const server = join(dirname(fileURLToPath(import.meta.url)), "wall-mcp.mjs");
+    mcpFile = join(workdir(), "mcp.json");
+    writeFileSync(mcpFile, JSON.stringify({ mcpServers: { wall: { command: process.execPath, args: [server, schema] } } }));
+  }
+  return mcpFile;
 }
 
 let promptFile: string | null = null;
@@ -97,22 +108,6 @@ function transcript(req: InvestigateRequest): string {
   );
 }
 
-/** Splits the reply prose from the ```wall block (which may be missing or unterminated). */
-function splitReply(full: string): { reply: string; wall: unknown } {
-  const i = full.indexOf(MARKER);
-  if (i < 0) return { reply: full.trim(), wall: null };
-  const rest = full.slice(i + MARKER.length);
-  const end = rest.indexOf("```");
-  const json = (end >= 0 ? rest.slice(0, end) : rest).trim();
-  let wall: unknown = null;
-  try {
-    wall = JSON.parse(json);
-  } catch {
-    wall = null;
-  }
-  return { reply: full.slice(0, i).trim(), wall };
-}
-
 function friendly(message: string): { message: string; offline?: boolean } {
   if (/log ?in|logged in|authenticat|invalid api key|oauth|credential/i.test(message))
     return { message: "Claude Code isn't logged in on this machine. Run `claude` in a terminal and use /login, then ask again." };
@@ -142,6 +137,8 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
     "--system-prompt-file",
     systemPromptFile(),
     "--strict-mcp-config",
+    "--mcp-config",
+    mcpConfigFile(),
     "--setting-sources",
     "local",
     "--model",
@@ -153,6 +150,7 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
     "--allowedTools",
     "WebSearch",
     "WebFetch",
+    PIN_LEAD,
   ];
 
   const child = spawn(CLI(), args, { cwd: workdir(), env: childEnv(), shell: process.platform === "win32", stdio: ["pipe", "pipe", "pipe"] });
@@ -162,35 +160,22 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
 
   child.stdin.end(JSON.stringify({ type: "user", message: { role: "user", content } }) + "\n");
 
-  // Streaming the prose: hold back anything that might be the start of the ```wall marker.
-  let full = "";
-  let streamed = 0;
-  let hidden = false;
-  let blocks = 0;
-  const pushText = (delta: string) => {
-    full += delta;
-    if (hidden) return;
-    const i = full.indexOf(MARKER);
-    if (i >= 0) {
-      hidden = true;
-      if (i > streamed) emit({ type: "text", delta: full.slice(streamed, i) });
-      streamed = i;
-      emit({ type: "status", kind: "writing" });
-      return;
-    }
-    let safe = full.length;
-    for (let k = Math.min(MARKER.length - 1, full.length); k > 0; k--)
-      if (MARKER.startsWith(full.slice(full.length - k))) {
-        safe = full.length - k;
-        break;
-      }
-    if (safe > streamed) {
-      emit({ type: "text", delta: full.slice(streamed, safe) });
-      streamed = safe;
-    }
-  };
-
   const sources = new Map<string, string>();
+  const knownIds = new Set(req.notes.map((n) => n.id));
+  const leads: ProposedNote[] = [];
+  let blocks = 0;
+  const reply = new ReplyStream({
+    prose: (delta) => emit({ type: "text", delta }),
+    opened: (kind) => kind === "wall" && emit({ type: "status", kind: "writing" }),
+    block: (kind, body) => kind === "lead" && putUp(body),
+  });
+  // A find goes up the moment it's made. A web lead must cite a page searched or fetched this turn.
+  const putUp = (input: unknown) => {
+    const note = sanitizeLead(input, knownIds, leads, sources);
+    if (!note) return;
+    leads.push(note);
+    emit({ type: "lead", note });
+  };
   let result: { is_error?: boolean; result?: string; subtype?: string } | null = null;
   let stderr = "";
   child.stderr.on("data", (d: Buffer) => (stderr = (stderr + d.toString()).slice(-4000)));
@@ -212,11 +197,12 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
       if (e.type === "stream_event") {
         const ev = e.event;
         if (ev?.type === "content_block_start" && ev.content_block?.type === "text") {
-          if (blocks++ > 0 && !hidden) pushText("\n\n");
-        } else if (ev?.type === "content_block_delta" && ev.delta?.type === "text_delta") pushText(ev.delta.text);
+          if (blocks++ > 0) reply.push("\n\n");
+        } else if (ev?.type === "content_block_delta" && ev.delta?.type === "text_delta") reply.push(ev.delta.text);
       } else if (e.type === "assistant") {
         for (const b of e.message?.content ?? []) {
           if (b.type !== "tool_use") continue;
+          if (b.name === PIN_LEAD) putUp(b.input);
           if (b.name === "WebSearch") emit({ type: "status", kind: "searching", detail: String(b.input?.query ?? "") });
           if (b.name === "WebFetch" && typeof b.input?.url === "string") {
             sources.set(b.input.url, b.input.url);
@@ -263,15 +249,15 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
     return emit({ type: "error", ...friendly(why) });
   }
 
-  const { reply, wall } = splitReply(full || r.result || "");
-  const known = new Set(req.notes.map((n) => n.id));
-  const update: WallUpdate = sanitizeWallUpdate(wall, known);
+  if (!blocks && r.result) reply.push(r.result);
+  reply.end();
+  const update = mergeTurn(leads, reply.wall, knownIds);
   // Web notes must cite a page the CLI actually searched or fetched this turn.
   update.notes = update.notes.filter((n) => n.type !== "web" || (n.url && sources.has(n.url)));
   emit({
     type: "done",
     result: {
-      reply: reply || "I've put what I found on the wall.",
+      reply: reply.reply || "I've put what I found on the wall.",
       update,
       sources: [...sources].slice(0, 8).map(([url, title]) => ({ url, title })),
       model: `${CLI_MODEL()} (Claude Code)`,

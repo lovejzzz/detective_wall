@@ -178,13 +178,21 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
     if (!g) return;
     g.position.set(note.x, -note.y, target.current.z);
     g.rotation.set(0, 0, -THREE.MathUtils.degToRad(note.rotation));
+    // Fresh evidence arrives from the viewer's side, as if just handed up to the wall.
+    if (Date.now() - note.createdAt < 1500 && !reducedMotion()) {
+      g.position.z += 150;
+      g.position.y += 26;
+      g.rotation.z += 0.12;
+      g.scale.setScalar(1.08);
+    }
     // Only on mount: afterwards the frame loop eases toward the target.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useFrame((state, dt) => {
     const g = group.current;
     if (!g) return;
-    const k = reducedMotion() ? 1 : 1 - Math.exp(-dt * 14);
+    const arriving = Date.now() - note.createdAt < 1400;
+    const k = reducedMotion() ? 1 : 1 - Math.exp(-dt * (arriving ? 5 : 14));
     // Dragging: x/y follow the pointer exactly. Switching views: the sheet glides to its new place.
     const tx = p.slot ? p.slot.x : note.x;
     const ty = p.slot ? -p.slot.y : -note.y;
