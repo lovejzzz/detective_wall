@@ -17,5 +17,9 @@ function apiDevPlugin(): Plugin {
 
 export default defineConfig(({ mode }) => {
   Object.assign(process.env, loadEnv(mode, process.cwd(), ""));
-  return { plugins: [react(), apiDevPlugin()] };
+  return {
+    plugins: [react(), apiDevPlugin()],
+    // The lazily loaded WebGL wall (three + postprocessing) is one deliberate ~380 kB gzip chunk.
+    build: { chunkSizeWarningLimit: 1400 },
+  };
 });

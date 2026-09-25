@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { useActiveCase, useStore } from "./store.ts";
-import { Wall, type Stage } from "./components/Wall.tsx";
+import type { Stage } from "./components/Wall.tsx";
 import { Notepad } from "./components/Notepad.tsx";
 import { CaseTray } from "./components/CaseTray.tsx";
 import { Dossier, LinkPicker } from "./components/Dossier.tsx";
-import { Dust, Lamp } from "./components/Dust.tsx";
-import { SvgDefs } from "./components/Diagram.tsx";
+
+// The WebGL wall is the heavy part; load it separately so the room's paper objects appear first.
+const Wall = lazy(() => import("./components/Wall.tsx").then((m) => ({ default: m.Wall })));
 
 const NOTEPAD_W = 404;
 const MOBILE = 760;
@@ -72,13 +73,11 @@ export function App() {
 
   return (
     <div className={`room ${notepadOpen ? "pad-open" : "pad-folded"}`}>
-      <SvgDefs />
       <div className="wall-fade" key={c.id}>
-        <Wall c={c} stage={stage} />
+        <Suspense fallback={<div className="wall3d" />}>
+          <Wall c={c} stage={stage} />
+        </Suspense>
       </div>
-      <Dust />
-      <Lamp x={stage.cx} />
-      <div className="vignette" aria-hidden />
       <CaseTray />
       <Notepad c={c} />
       <div className="plaque" aria-hidden>

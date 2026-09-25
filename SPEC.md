@@ -284,19 +284,23 @@ interface Message {
 
 | Layer | Choice | Why |
 |---|---|---|
-| Notes | DOM elements with CSS transforms | Crisp text at every zoom level, real text selection, screen-reader access, cheap editing |
-| Strings | One SVG layer in world space | Exact curves, easy hit-testing on tags, scales with the camera |
-| Light and dust | A full-screen `<canvas>` plus CSS radial masks, `pointer-events: none` | The dynamic lighting mask the brief asked for, without making text a texture |
-| Textures | Procedural noise (cork, paper grain), generated once into cached tiles | No asset downloads, and it stays sharp at any resolution |
+| Scene | A real 3D scene in WebGL (Three.js via React Three Fiber), with a perspective camera looking straight at the wall | Light, shadow and material can only feel physical if they're computed rather than painted on. The straight-on camera keeps screen↔wall mapping exact, so pan, zoom and drag behave like 2D. |
+| Paper | Curved sheet meshes (stickies lift at the free end, typed sheets curl at a corner, newsprint cockles, polaroids bow). Each sheet's face is typeset onto a 3× canvas texture with seeded imperfections: typewriter baseline wobble and uneven ribbon ink, handwriting drift and pen pressure, rubber stamps with dry-pad voids, pen-drawn sketches. | Text stays sharp at normal zooms, and every sheet looks individually made |
+| Pins, clips, tape | Lathe-turned push pins (clearcoat plastic), brass tacks, a binder clip, translucent masking tape | Small metal and plastic highlights sell the scale |
+| Strings | Tubes along a sagging curve, with a twisted-ply normal map, casting shadows. Proposed strings are dashed graphite. | Thread has thickness and throws a shadow across the paper it crosses |
+| Light | A hanging tungsten lamp (a visible 3D object whose spotlight falls off with distance) plus a focus spotlight that glides to the focused note. Both cast soft shadows. A cool, low fill lights the shadows. | Warm light against cool shadow; "light = attention" happens physically |
+| Cork | A procedural albedo, normal and roughness set at real crumb scale | Raking lamp light reveals the relief |
+| Atmosphere | Dust motes visible only inside the light cones, ambient occlusion, gentle bloom on the bulb, film grain, vignette, neutral tone mapping | The air feels like an attic at night |
+| Controls on the wall | Plain DOM overlays (Pin it / Toss, proposed-string tags, popovers), positioned from exact world→screen mapping | Crisp, accessible buttons that never move under the cursor |
 | App | React + TypeScript + Vite, with Zustand for state | A small, typed setup that's easy to work on |
 | AI | A Node endpoint `/api/investigate` that streams a Claude turn as server-sent events, using the `update_wall` tool (strict schema) and server-side web search | Keeps the API key on the server. Streaming makes the partner feel present. The structured tool keeps wall updates deterministic. |
 | Fonts | Self-hosted (Caveat, Special Elite, Old Standard TT, Courier Prime) | No third-party requests, and it works offline |
 | Camera | Frames new evidence when it arrives; flies to focus when it leaves the screen | The user never has to hunt for what the AI just added |
 
 **Performance budgets:**
-- 60 fps pan and zoom with 150 notes on a mid-range laptop
-- first paint under 1.5 s
-- no layout thrash during a drag (transforms only)
+- 60 fps pan and zoom with 150 notes on a laptop with integrated graphics
+- two 2048² shadow maps; device pixel ratio capped at 2; half-resolution ambient occlusion
+- note textures repaint only when their content changes
 
 **Keyboard support:**
 
@@ -315,7 +319,7 @@ interface Message {
 
 | v1.0 | v1.1 | Reason |
 |---|---|---|
-| "Render in WebGL or Canvas" | DOM notes, SVG strings, canvas only for light and dust | Text rendered into WebGL goes blurry when zoomed, can't be selected, and is invisible to screen readers. The hybrid keeps the physical look without those costs. |
+| "Render in WebGL or Canvas" | WebGL for the wall (real lights, shadows, materials); DOM for everything you read at length or type into (notepad, dossier, folders, on-wall buttons) | A first DOM/CSS version couldn't reach the material and lighting quality the concept needs. Long-form reading and editing stay in the DOM for sharpness and accessibility. |
 | AI "requests confirmation before linking" (mechanism unstated) | A formal **proposed → pinned** state for notes *and* strings | Makes the permission rule something the user can see and act on in one click |
 | No conclusion type, though the seed case needs one | Added a `conclusion` index card with stamps | The seed example needed it, and it gives each case a visible "current answer" |
 | Connection types by name only | Four relations, each with a material, a glyph tag, and a direction rule | Colour alone isn't accessible, and causal links need a direction |

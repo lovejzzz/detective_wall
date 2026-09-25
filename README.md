@@ -9,7 +9,7 @@ Every question becomes a case. You talk it through with Claude, and the evidence
 - **Every note remembers where it came from.** Open a note to see the conversation or URL behind it, and every string tied to it.
 - **Light means attention.** A spotlight follows your focus, and what nobody has looked at yet stays in the dark.
 
-![A live turn: streamed reply, proposed notes and strings](docs/live-turn.jpg)
+![Close-up: typed ink, a rubber stamp, push pins and string throwing shadows](docs/closeup.jpg)
 
 The full product spec is in [SPEC.md](SPEC.md).
 
@@ -52,18 +52,24 @@ Everything is saved in your browser's localStorage.
 
 ## How it's built
 
+The wall is a real 3D scene. The lamp, the focus spotlight, soft shadows, cork relief, curled paper and thread are all rendered by WebGL through React Three Fiber, not painted on with CSS. Everything you read at length or type into (the notepad, the dossier, the folders, the on-wall buttons) is ordinary DOM, so it stays sharp and accessible.
+
 ```
 src/
-  App.tsx               room layout, global keys
+  App.tsx               room layout, global keys (the 3D wall is lazy-loaded)
   store.ts              cases, notes, strings, messages (Zustand, persisted)
   components/
-    Wall.tsx            camera (pan / zoom / framing), spotlight, linking
-    NoteCard.tsx        the six paper types, drag with tilt, proposal tabs
-    Strings.tsx         string SVG layer and paper tags
-    Notepad.tsx         legal pad transcript and typewriter
+    Wall.tsx            camera (pan / zoom / framing), grabbing, string tying, DOM overlays
+    Notepad.tsx         legal-pad transcript and typewriter
     CaseTray.tsx        case folders
     Dossier.tsx         note detail folder and string-type picker
-    Dust.tsx            dust motes (canvas) and the hanging lamp
+  scene/
+    Room.tsx            camera rig, tungsten lamp + focus spotlight, cork, dust, post-processing
+    NoteMesh.tsx        curled paper sheets, pins, tape, contact shadows, lift-and-settle motion
+    Strings3D.tsx       thread tubes along a sagging curve, and relation tags
+    paint.ts            typesets each sheet onto a canvas: typewriter jitter, handwriting, newsprint, stamps, sketches
+    objects.ts          sheet curl geometry, lathe-turned pins, binder clip, tape, lamp
+    textures.ts         procedural cork (albedo / normal / roughness), paper fibre, string twist
   ai/partner.ts         calls /api/investigate and reads the SSE stream
   ai/offline.ts         scripted partner for when there's no key
   lib/contract.ts       update_wall tool schema and validator (shared with the server)
@@ -72,9 +78,14 @@ server/
   index.ts              production static and API server
 ```
 
-- **Notes are DOM elements, strings are one SVG layer, and light is CSS gradients plus a dust canvas.** Text stays sharp and selectable at every zoom level and screen readers can reach it, while the room still looks physical.
-- **Claude's wall edits go through one strict tool, `update_wall`.** The server validates the tool input, and the browser validates it again before anything reaches the wall. A `web` note has to cite a URL that the search actually returned.
-- **Textures are procedural** (the cork is generated on a canvas at startup) and the fonts are self-hosted, so the page makes no third-party requests.
+- **The light is physical.** A hanging tungsten lamp falls off with distance and rakes across the cork. A cooler spotlight glides to whatever you're focused on. Both cast soft shadows: pins, curled corners and string all throw them. A cool, low fill keeps the shadows blue-grey against the warm light. Dust motes show only inside the light beams.
+- **Every sheet is made, not styled.** Each sheet is a curved mesh: stickies lift at the free end, typed sheets curl at a corner, newsprint cockles. Its face is typeset onto a 3× canvas with seeded imperfections, so the same note always looks the same.
+- **The camera looks straight at the wall.** Screen↔wall mapping is exact, so panning, zooming, dragging and the DOM overlays line up pixel for pixel.
+- **Claude's wall edits go through one strict tool, `update_wall`.** The server validates the tool input, and the browser validates it again. A `web` note has to cite a URL that the search actually returned.
+- **Textures are procedural and fonts are self-hosted**, so there are no asset downloads and no third-party requests.
+- **Lighter render on small screens.** Phones and small screens skip ambient occlusion and use smaller shadow maps.
+
+Debug switches for tuning the look: `?fx=0` turns off post-processing, `?ao=0` turns off ambient occlusion, `?fill=0` turns off the fill light.
 
 ```bash
 npm test           # contract + geometry unit tests

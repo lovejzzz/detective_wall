@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import type { Case, NoteType, Relation } from "../lib/types.ts";
 import { NOTE_TYPES, RELATIONS, STAMPS, STICKY_COLORS } from "../lib/types.ts";
 import { typeLabel, useStore } from "../store.ts";
-import { RELATION_INFO } from "./Strings.tsx";
+import { RELATION_INFO } from "../lib/relations.ts";
 
 function when(ts: number) {
   return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
