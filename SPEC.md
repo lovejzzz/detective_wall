@@ -296,6 +296,7 @@ interface Message {
 | Controls on the wall | Plain DOM overlays (Pin it / Toss, proposed-string tags, popovers), positioned from exact world→screen mapping | Crisp, accessible buttons that never move under the cursor |
 | App | React + TypeScript + Vite, with Zustand for state | A small, typed setup that's easy to work on |
 | AI | A Node endpoint `/api/investigate` that streams a Claude turn as server-sent events, using the `update_wall` tool (strict schema) and server-side web search | Keeps the API key on the server. Streaming makes the partner feel present. The structured tool keeps wall updates deterministic. |
+| AI, on a subscription | For personal local use, the same endpoint can run each turn through the local Claude Code CLI (`claude -p`, stream-json in and out, web search and fetch only). With no custom tools in headless mode, the wall update arrives as a fenced `wall` JSON block after the prose; the server hides it from the stream and validates it exactly like the `update_wall` input, and drops web notes whose URL the CLI never searched or fetched. | Lets someone with a Claude subscription use the wall without an API key, while keeping the same contract and the same validation |
 | Fonts | Self-hosted (Caveat, Special Elite, Old Standard TT, Courier Prime) | No third-party requests, and it works offline |
 | Camera | Frames new evidence when it arrives; flies to focus when it leaves the screen | The user never has to hunt for what the AI just added |
 

@@ -25,6 +25,8 @@ npm run dev               # http://localhost:5173
 
 Without a key the app still runs, using a clearly labelled **offline partner** that structures the case but can't check facts.
 
+**On your Claude subscription instead of an API key:** if Claude Code is installed and logged in on your machine (`claude` then `/login`), leave `ANTHROPIC_API_KEY` empty and the partner runs each turn through `claude -p` with web search and fetch, billed to your subscription. The notepad reads "Claude · your subscription". This uses whoever is logged in to Claude Code on the machine running the server, so it's for your own local use, not for a deployed site.
+
 Production:
 
 ```bash
@@ -38,6 +40,10 @@ npm start                 # serves dist/ and the API on $PORT (default 8787)
 | `DW_MODEL` | `claude-opus-5` | The model that works the case |
 | `DW_WEB_SEARCH` | `on` | Set to `off` to stop Claude searching the web |
 | `PORT` | `8787` | Port for `npm start` |
+| `DW_PARTNER` | auto | `api`, `claude-cli` or `offline`. Auto: the API with a key, else the CLI if installed, else offline. |
+| `DW_CLI_MODEL` | `claude-opus-5-5` | Model for CLI turns |
+| `DW_CLI_EFFORT` | `high` | Effort for CLI turns (`low` … `max`) |
+| `DW_CLI_PATH` | `claude` | Path to the Claude Code binary |
 
 ## Using the wall
 

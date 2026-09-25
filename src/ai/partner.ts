@@ -16,8 +16,8 @@ export async function checkPartner() {
   try {
     const res = await fetch("/api/status");
     if (!res.ok) throw new Error(String(res.status));
-    const data = (await res.json()) as { mode: "live" | "offline"; model?: string };
-    useStore.getState().setPartner({ mode: data.mode, model: data.model });
+    const data = (await res.json()) as { mode: "live" | "offline"; model?: string; provider?: string };
+    useStore.getState().setPartner({ mode: data.mode, model: data.model, provider: data.provider });
   } catch {
     useStore.getState().setPartner({ mode: "offline" });
   }

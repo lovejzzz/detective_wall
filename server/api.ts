@@ -1,12 +1,12 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import Anthropic from "@anthropic-ai/sdk";
+import { SYSTEM_PROMPT, renderWallState } from "./prompt.ts";
+import { CLI_EFFORT, CLI_MODEL, cliAvailable, investigateViaCli } from "./cli.ts";
 import {
   IMAGE_TYPES,
   isCommonsImageUrl,
   MAX_IMAGES_PER_TURN,
   MAX_IMAGE_B64,
-  MAX_LINKS_PER_TURN,
-  MAX_NOTES_PER_TURN,
   UPDATE_WALL_SCHEMA,
   sanitizeWallUpdate,
   type InvestigateRequest,
@@ -18,34 +18,19 @@ const MODEL = () => process.env.DW_MODEL || "claude-opus-5";
 const WEB_SEARCH = () => (process.env.DW_WEB_SEARCH ?? "on") !== "off";
 const hasCredentials = () => Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 
-// Kept byte-stable so it caches; per-case state goes in the latest user turn.
-const SYSTEM_PROMPT = `You are the user's research partner at a detective evidence wall. Every question is a "case"; the wall holds evidence notes joined by string.
-
-Personality: a curious, playful, sharp colleague. Factual and logic-driven. Say plainly when you are unsure. Never analyse the user's psychology, feelings, or motives. Stick to evidence, sources, reasoning, and new angles.
-
-How to work each turn:
-1. If the question is ambiguous enough that you would be guessing, ask ONE short clarifying question and propose at most one note.
-2. Otherwise answer concisely on the notepad (2–6 short paragraphs or a tight list, plain text, no markdown headings), then end with one or two concrete next leads, e.g. "Next lead: check the maker's flange spec sheet."
-3. Search the web when facts are checkable or recent. Only cite URLs you actually retrieved.
-4. As your final action, call update_wall exactly once to propose evidence. The user pins or tosses every proposal; nothing you propose is permanent until they do.
-
-Note types:
-- hypothesis: a question, hunch or what-if (short, handwritten sticky).
-- fact: a verifiable fact. Set confidence; if it comes from a source, include the url.
-- web: a source you retrieved. url is required; body summarises what it says in your own words.
-- diagram: a mechanism or comparison. Provide diagram.kind ("circles" or "bars" with positive numeric values, or "flow" for an ordered chain) and up to 6 items.
-- conclusion: the current best answer to the case question, with a stamp: LIKELY, CONFIRMED, RULED OUT, or OPEN. Propose one only when the evidence supports it.
-- photo: avoid; the user adds photos.
-
-Dates: set "when" on any note about an event that happened at a known time, as precisely as the record allows (YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM), and "approx" when it is approximate. The user can lay the wall out as a timeline, so dates matter. Leave undated ideas and hunches undated.
-
-Photos: the user may attach photos. Describe only what is visibly there, say what is uncertain, and never identify real people from their faces. When a photo is already on the wall (its note id is given), link to that note rather than duplicating it.
-
-Links: supports (A is evidence for B), causes (A leads to B, directional), contradicts (A is in tension with B), references (A cites or points to B). Every link needs a short reason.
-
-Limits per turn: at most ${MAX_NOTES_PER_TURN} notes and ${MAX_LINKS_PER_TURN} links. Don't duplicate notes already on the wall; link to their ids instead. Use "near" to place a note beside the one it relates to, and "focus" for where the spotlight should go.
-
-New cases: if the user drifts to an unrelated question, ask "Want me to open a new case for this?" Only set new_case after they say yes.`;
+type Provider = "api" | "claude-cli" | "offline";
+/**
+ * Who answers: DW_PARTNER=api | claude-cli | offline. Unset: the API if a key is configured,
+ * else the local Claude Code CLI (your subscription) if it's installed, else the offline partner.
+ */
+async function provider(): Promise<Provider> {
+  const forced = process.env.DW_PARTNER;
+  if (forced === "api") return hasCredentials() ? "api" : "offline";
+  if (forced === "claude-cli") return (await cliAvailable()) ? "claude-cli" : "offline";
+  if (forced === "offline") return "offline";
+  if (hasCredentials()) return "api";
+  return (await cliAvailable()) ? "claude-cli" : "offline";
+}
 
 const UPDATE_WALL_TOOL: Anthropic.Beta.BetaTool = {
   name: "update_wall",
@@ -55,19 +40,6 @@ const UPDATE_WALL_TOOL: Anthropic.Beta.BetaTool = {
   strict: true,
   eager_input_streaming: true,
 };
-
-function renderWallState(req: InvestigateRequest): string {
-  const lines = [`Case question: ${req.caseTitle}`, "", "Notes on the wall (id · type · status · title — body):"];
-  if (req.notes.length === 0) lines.push("(none yet)");
-  for (const n of req.notes) {
-    const body = n.body.length > 220 ? n.body.slice(0, 219) + "…" : n.body;
-    lines.push(`- ${n.id} · ${n.type} · ${n.status}${n.when ? ` · ${n.when}` : ""} · ${n.title} — ${body}${n.url ? ` [${n.url}]` : ""}`);
-  }
-  lines.push("", "Strings:");
-  if (req.links.length === 0) lines.push("(none yet)");
-  for (const l of req.links) lines.push(`- ${l.from} ${l.relation} ${l.to} (${l.status})`);
-  return lines.join("\n");
-}
 
 function buildMessages(req: InvestigateRequest): Anthropic.Beta.BetaMessageParam[] {
   const history = req.messages.slice(-24);
@@ -280,7 +252,7 @@ function describeError(err: unknown): { message: string; offline?: boolean } {
 }
 
 /** Server-sent events: one JSON object per `data:` line. */
-async function streamTurn(body: InvestigateRequest, res: ServerResponse) {
+async function streamTurn(body: InvestigateRequest, res: ServerResponse, via: Provider) {
   res.writeHead(200, {
     "content-type": "text/event-stream; charset=utf-8",
     "cache-control": "no-store",
@@ -294,7 +266,8 @@ async function streamTurn(body: InvestigateRequest, res: ServerResponse) {
   };
   const heartbeat = setInterval(() => !res.writableEnded && res.write(": keep-alive\n\n"), 15_000);
   try {
-    await investigate(body, emit, abort.signal);
+    if (via === "claude-cli") await investigateViaCli(body, emit, abort.signal);
+    else await investigate(body, emit, abort.signal);
   } catch (err) {
     if (!abort.signal.aborted) emit({ type: "error", ...describeError(err) });
   } finally {
@@ -307,13 +280,20 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse): Prom
   const url = new URL(req.url ?? "/", "http://local");
   try {
     if (req.method === "GET" && url.pathname === "/api/status") {
-      return send(res, 200, { mode: hasCredentials() ? "live" : "offline", model: MODEL(), webSearch: WEB_SEARCH() });
+      const via = await provider();
+      return send(res, 200, {
+        mode: via === "offline" ? "offline" : "live",
+        provider: via,
+        model: via === "claude-cli" ? `${CLI_MODEL()} · ${CLI_EFFORT()} effort` : MODEL(),
+        webSearch: WEB_SEARCH(),
+      });
     }
     if (req.method === "POST" && url.pathname === "/api/investigate") {
-      if (!hasCredentials()) return send(res, 503, { error: "offline", message: "No ANTHROPIC_API_KEY configured." });
+      const via = await provider();
+      if (via === "offline") return send(res, 503, { error: "offline", message: "No ANTHROPIC_API_KEY configured and no Claude Code CLI found." });
       const body = await readJson(req);
       if (!isInvestigateRequest(body)) throw new HttpError(400, "Malformed investigate request.");
-      return streamTurn(body, res);
+      return streamTurn(body, res, via);
     }
     return send(res, 404, { error: "not_found" });
   } catch (err) {

@@ -153,7 +153,7 @@ export function Notepad({ c }: { c: Case }) {
   const proposals = c.notes.filter((n) => n.status === "proposed").sort((a, b) => a.createdAt - b.createdAt);
 
   const partnerLabel =
-    partner.mode === "live" ? `Claude · on the line` : partner.mode === "offline" ? "offline partner (demo)" : "dialing…";
+    partner.mode === "live" ? (partner.provider === "claude-cli" ? "Claude · your subscription" : "Claude · on the line") : partner.mode === "offline" ? "offline partner (demo)" : "dialing…";
 
   return (
     <aside className={`notepad ${open ? "is-open" : "is-folded"}`} aria-label="Case notes and conversation">
@@ -166,7 +166,7 @@ export function Notepad({ c }: { c: Case }) {
         <div className="pad-binding" />
         <header className="pad-head">
           <h2 title={c.title}>{c.title}</h2>
-          <div className={`partner-line mode-${partner.mode}`}>
+          <div className={`partner-line mode-${partner.mode}`} title={partner.model}>
             <span className="dot" /> {partnerLabel}
           </div>
           {proposals.length > 0 && (

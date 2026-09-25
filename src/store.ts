@@ -27,7 +27,7 @@ interface State {
   dossierId: string | null;
   busyCaseId: string | null;
   notepadOpen: boolean;
-  partner: { mode: PartnerMode; model?: string };
+  partner: { mode: PartnerMode; model?: string; provider?: string };
   pendingLink: { from: string; to: string; x: number; y: number } | null;
   hoverNoteId: string | null;
   /** When this visit began. */
