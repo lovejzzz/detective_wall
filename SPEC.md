@@ -161,7 +161,11 @@ A curious, playful, sharp colleague who works the case alongside the user. The A
 2. **Propose, don't impose.** Each turn may propose up to 4 notes and up to 4 strings. All of them arrive in the *proposed* state.
 3. **Confirm new cases.** If the conversation drifts to an unrelated question, the AI asks, "Want me to open a new case for this?" It only opens one after a yes.
 4. **Cite or flag.** A `fact` note either cites a source (`origin.url`) or is marked as the AI's own knowledge, with a confidence level: `high`, `medium`, or `low`.
-5. **Suggest next leads.** Every reply ends with one or two concrete next leads ("check X's spec sheet", "look for teardown photos").
+2a. **Triage in one go when it all holds up.** Under each reply, "pin all" pins that turn's leads and ties the strings between them, as one undoable step. Pinning note by note stays available.
+5. **Suggest next leads.** Every reply ends with one or two concrete next leads, each on its own line starting "Next lead:" ("check X's spec sheet", "look for teardown photos"). Each has a "follow ↵" mark that puts it on the typewriter.
+5a. **Answer first, briefly.** The notepad is narrow: the answer in a sentence or two, then the evidence, about 200 words at most. The wall carries the detail, and the notepad lists the pages used.
+5b. **Show the work.** While the partner researches, its trail (each search, each page opened) is pencilled into the notepad margin. Afterwards it folds into "how I got here · N searches, M pages" under the reply.
+5c. **Name the case.** On its first reply the partner gives the case a short folder name ("The Gardner Museum heist"), unless the user has already renamed it.
 6. **Resume warmly and briefly.** When the user reopens a case: "Picking this back up. Last we had: ⟨latest note⟩."
 
 ### 8.3 Structured contract (every AI turn)

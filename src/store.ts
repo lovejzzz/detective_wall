@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
-import type { Camera, Case, Link, Message, Note, NoteType, Relation, StickyColor } from "./lib/types.ts";
+import type { Camera, Case, Link, Message, Note, NoteType, Relation, StickyColor, TrailStep } from "./lib/types.ts";
 import type { WallUpdate } from "./lib/contract.ts";
 import { findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
 import { seedCase } from "./lib/seed.ts";
@@ -35,7 +35,7 @@ interface State {
   /** When each case was last opened before this visit (for the resume line). */
   previousOpen: Record<string, number | undefined>;
   /** The partner's reply while it is still being typed out. */
-  live: { text: string; status?: string } | null;
+  live: { text: string; status?: string; trail?: TrailStep[] } | null;
   /** How the active case is laid out: the free wall, or ordered along a timeline. */
   view: "wall" | "timeline";
   /** Undo/redo stacks per case (this visit only). */
@@ -52,7 +52,7 @@ interface Actions {
   addUserMessage(caseId: string, text: string, photoNoteIds?: string[]): Message;
   applyTurn(
     caseId: string,
-    turn: { reply: string; update: WallUpdate; sources?: { url: string; title: string }[]; offline?: boolean },
+    turn: { reply: string; update: WallUpdate; sources?: { url: string; title: string }[]; trail?: TrailStep[]; offline?: boolean },
   ): void;
   addAssistantNote(caseId: string, text: string): void;
 
@@ -61,6 +61,8 @@ interface Actions {
   moveNote(noteId: string, x: number, y: number): void;
   updateNote(noteId: string, patch: Partial<Pick<Note, "title" | "body" | "type" | "color" | "stamp" | "rotation" | "when" | "approx">>): void;
   pinNote(noteId: string): void;
+  /** Pins every still-proposed note in the list, and the strings between notes that are now pinned. */
+  pinAll(noteIds: string[]): void;
   tossNote(noteId: string): void;
   removeNote(noteId: string): void;
   addLink(from: string, to: string, relation: Relation): void;
@@ -259,7 +261,7 @@ export const useStore = create<Store>()(
           return msg;
         },
 
-        applyTurn(caseId, { reply, update, sources, offline }) {
+        applyTurn(caseId, { reply, update, sources, trail, offline }) {
           const msgId = uid();
           if ((update.notes.length || update.links.length) && caseId === get().activeId) get().checkpoint("Partner's proposals");
           let newCaseQuestion: string | undefined;
@@ -329,6 +331,7 @@ export const useStore = create<Store>()(
               ...(created.length ? { noteIds: created } : {}),
               ...(offline ? { offline: true } : {}),
               ...(sources?.length ? { sources: sources.slice(0, 6) } : {}),
+              ...(trail?.length ? { trail: trail.slice(0, 16) } : {}),
             });
             const focus = update.focus ? resolve(update.focus) : created[0];
             if (focus) c.focusNoteId = focus;
@@ -386,6 +389,21 @@ export const useStore = create<Store>()(
             n.status = "pinned";
             n.rotation = Math.max(-4, Math.min(4, n.rotation * 0.45));
             c.focusNoteId = n.id;
+          });
+        },
+        pinAll(noteIds) {
+          const ids = new Set(noteIds);
+          const c = get().activeId ? get().cases[get().activeId!] : null;
+          const n = c?.notes.filter((x) => ids.has(x.id) && x.status === "proposed").length ?? 0;
+          if (!n) return;
+          act(`Pinned ${n} ${n === 1 ? "lead" : "leads"}`, (c) => {
+            for (const x of c.notes)
+              if (ids.has(x.id) && x.status === "proposed") {
+                x.status = "pinned";
+                x.rotation = Math.max(-4, Math.min(4, x.rotation * 0.45));
+              }
+            const pinned = new Set(c.notes.filter((x) => x.status === "pinned").map((x) => x.id));
+            for (const l of c.links) if (l.status === "proposed" && (ids.has(l.from) || ids.has(l.to)) && pinned.has(l.from) && pinned.has(l.to)) l.status = "pinned";
           });
         },
         tossNote(noteId) {

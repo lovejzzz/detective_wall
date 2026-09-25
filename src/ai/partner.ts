@@ -1,7 +1,7 @@
 import { useStore } from "../store.ts";
 import type { InvestigateRequest, InvestigateResponse } from "../lib/contract.ts";
 import { sanitizeWallUpdate } from "../lib/contract.ts";
-import type { Case } from "../lib/types.ts";
+import type { Case, TrailStep } from "../lib/types.ts";
 import { offlineTurn, offlinePhotoTurn } from "./offline.ts";
 import { photoBase64, photoIdOf } from "../lib/images.ts";
 import { commonsFileOf, resolveCommons } from "../lib/commons.ts";
@@ -27,6 +27,15 @@ function statusLine(e: Extract<PartnerEvent, { type: "status" }>): string {
   if (e.kind === "searching") return e.detail ? `searching “${e.detail}”` : "searching the web";
   if (e.kind === "reading") return e.detail ? `reading ${e.detail}` : "reading sources";
   return "pinning up evidence";
+}
+
+/** The research trail: each search and each page opened, once, in order. Result counts are noise. */
+function extendTrail(trail: TrailStep[], e: Extract<PartnerEvent, { type: "status" }>): TrailStep[] {
+  if (!e.detail || e.kind === "writing") return trail;
+  if (e.kind === "reading" && /^\d+ results?$/.test(e.detail)) return trail;
+  const step: TrailStep = { kind: e.kind === "searching" ? "search" : "read", detail: e.detail };
+  if (trail.some((t) => t.kind === step.kind && t.detail === step.detail)) return trail;
+  return [...trail, step].slice(-24);
 }
 
 function knownIds(caseId: string, fallback: Case) {
@@ -138,8 +147,8 @@ export async function ask(caseId: string, text: string, opts: { photoNoteIds?: s
     let finished = false;
     for await (const e of readEvents(res.body)) {
       const s = useStore.getState();
-      if (e.type === "text") s.setLive((p) => ({ text: (p?.text ?? "") + e.delta }));
-      else if (e.type === "status") s.setLive((p) => ({ text: p?.text ?? "", status: statusLine(e) }));
+      if (e.type === "text") s.setLive((p) => ({ ...p, text: (p?.text ?? "") + e.delta }));
+      else if (e.type === "status") s.setLive((p) => ({ text: p?.text ?? "", status: statusLine(e), trail: extendTrail(p?.trail ?? [], e) }));
       else if (e.type === "error") {
         if (e.offline) s.setPartner({ mode: "offline" });
         s.addAssistantNote(caseId, `(The line went quiet: ${e.message})`);
@@ -147,7 +156,7 @@ export async function ask(caseId: string, text: string, opts: { photoNoteIds?: s
       } else if (e.type === "done") {
         // Re-validate on the client: the wall only ever accepts the contract.
         const update = sanitizeWallUpdate(e.result.update, knownIds(caseId, c));
-        s.applyTurn(caseId, { reply: e.result.reply, update, sources: e.result.sources });
+        s.applyTurn(caseId, { reply: e.result.reply, update, sources: e.result.sources, trail: s.live?.trail });
         finished = true;
       }
     }

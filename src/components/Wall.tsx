@@ -410,7 +410,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   const draggingId = grab?.kind === "note" && grab.moved ? grab.id : null;
   const tagScale = Math.max(0.6, Math.min(1, cam.zoom * 1.25));
   // Far away, the paper's own type is too small to read: tape a marker label over each note.
-  const farOpacity = Math.max(0, Math.min(1, (0.68 - cam.zoom) / 0.14));
+  const farOpacity = Math.max(0, Math.min(1, (0.6 - cam.zoom) / 0.1));
   // Proposed-string tags: nudge apart so they never stack on top of each other.
   const tagSpots = (() => {
     const spots = new Map<string, { x: number; y: number }>();

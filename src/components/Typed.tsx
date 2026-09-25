@@ -44,8 +44,15 @@ function inline(text: string, key: string): ReactNode[] {
   return out;
 }
 
-export function Typed({ text }: { text: string }) {
+/** "Next lead: …", "Second lead: …": the partner's suggestions for where to dig next. */
+const LEAD = /^\s*(?:[–-]\s*)?(?:\*\*)?((?:next|first|second|third|another|one more)\s+lead|lead(?:\s*\d)?)(?:\*\*)?\s*:\s*(?:\*\*)?\s*(.{8,})$/i;
+
+/** Plain words for the typewriter: Markdown marks and link targets stripped. */
+const plainText = (s: string) => s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\*\*?([^*]+)\*\*?/g, "$1").trim();
+
+export function Typed({ text, onLead }: { text: string; onLead?: (lead: string) => void }) {
   const lines = text.split("\n");
+  let inLeads = false; // under a "Next leads" heading, each bullet is a lead
   return (
     <>
       {lines.map((raw, i) => {
@@ -56,10 +63,20 @@ export function Typed({ text }: { text: string }) {
           line = h[1].replace(/^\*\*(.*)\*\*$/, "$1");
           heading = true;
         }
+        const bullet = /^\s*[*•-]\s+/.test(line);
         line = line.replace(/^(\s*)[*•-]\s+/, "$1– ");
+        if (!line.trim()) inLeads = false;
+        let lead = onLead ? LEAD.exec(line)?.[2] : undefined;
+        if (onLead && inLeads && bullet && !lead) lead = line.replace(/^\s*–\s+/, "");
+        if (/^\s*(?:\*\*)?(?:next\s+)?leads(?:\*\*)?:?(?:\*\*)?\s*$/i.test(line)) inLeads = true;
         return (
           <Fragment key={i}>
             {heading ? <u className="t-em">{line}</u> : inline(line, String(i))}
+            {lead && (
+              <button className="t-follow" onClick={() => onLead!(plainText(lead))} title="Put this lead on the typewriter">
+                follow&nbsp;↵
+              </button>
+            )}
             {i < lines.length - 1 && "\n"}
           </Fragment>
         );

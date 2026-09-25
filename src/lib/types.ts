@@ -70,6 +70,13 @@ export interface Message {
   noteIds?: string[];
   offline?: boolean;
   sources?: { url: string; title: string }[];
+  /** How the partner got there: what it searched and which pages it opened, in order. */
+  trail?: TrailStep[];
+}
+
+export interface TrailStep {
+  kind: "search" | "read";
+  detail: string;
 }
 
 export interface Camera {

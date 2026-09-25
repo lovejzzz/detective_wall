@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
-import type { Case, Note } from "../lib/types.ts";
+import type { Case, Note, TrailStep } from "../lib/types.ts";
 import { useStore } from "../store.ts";
 import { ask } from "../ai/partner.ts";
 import { Typed } from "./Typed.tsx";
@@ -17,6 +17,65 @@ export function PhotoThumb({ note, size = 44 }: { note: Note; size?: number }) {
     <span className="photo-thumb" style={{ width: size, height: size * 1.12 }} title={note.title}>
       {url ? <img src={url} alt={note.title} /> : <i />}
     </span>
+  );
+}
+
+/** The research trail, in pencil: what the partner searched and which pages it opened. */
+function Trail({ trail, live = false }: { trail: TrailStep[]; live?: boolean }) {
+  return (
+    <ol className={`trail ${live ? "is-live" : ""}`}>
+      {trail.map((t, i) => (
+        <li key={i} className={`trail-${t.kind}`}>
+          {t.kind === "search" ? (
+            <>
+              looked up <q>{t.detail}</q>
+            </>
+          ) : (
+            <>read {t.detail}</>
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function TrailFold({ trail }: { trail: TrailStep[] }) {
+  const searches = trail.filter((t) => t.kind === "search").length;
+  const pages = trail.length - searches;
+  const parts = [searches && `${searches} ${searches === 1 ? "search" : "searches"}`, pages && `${pages} ${pages === 1 ? "page" : "pages"}`].filter(Boolean);
+  return (
+    <details className="trail-fold">
+      <summary>how I got here · {parts.join(", ")}</summary>
+      <Trail trail={trail} />
+    </details>
+  );
+}
+
+/** A turn's proposals: jump to them on the wall, or pin the lot in one go (undoable). */
+function TurnNotes({ c, noteIds }: { c: Case; noteIds: string[] }) {
+  const notes = noteIds.map((id) => c.notes.find((n) => n.id === id)).filter((n): n is Note => !!n);
+  const waiting = notes.filter((n) => n.status === "proposed");
+  const n = noteIds.length;
+  return (
+    <div className="entry-notes-row">
+      <button
+        className="entry-notes"
+        onClick={() => {
+          const first = (waiting[0] ?? notes[0])?.id;
+          if (first) useStore.getState().setFocus(first);
+        }}
+        title="Show them on the wall"
+      >
+        ↳ {n} {n === 1 ? "note" : "notes"} for the wall
+      </button>
+      {waiting.length > 0 ? (
+        <button className="entry-pinall" onClick={() => useStore.getState().pinAll(waiting.map((x) => x.id))} title="Pin every lead from this reply, with the strings between them">
+          pin {waiting.length === n ? (n === 1 ? "it" : n === 2 ? "both" : `all ${n}`) : `the other ${waiting.length}`}
+        </button>
+      ) : notes.length > 0 ? (
+        <span className="entry-settled">{notes.length === n ? "all on the wall" : `${notes.length} kept`}</span>
+      ) : null}
+    </div>
   );
 }
 
@@ -128,6 +187,17 @@ export function Notepad({ c }: { c: Case }) {
     setAttached([]);
     void ask(c.id, text, { photoNoteIds });
   };
+  // A lead from the partner goes onto the typewriter, ready to send or reword.
+  const followLead = (lead: string) => {
+    setDraft(lead);
+    setOpen(true);
+    requestAnimationFrame(() => {
+      const el = input.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+  };
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
@@ -206,18 +276,9 @@ export function Notepad({ c }: { c: Case }) {
                     ))}
                 </div>
               )}
-              <div className="entry-text">{m.role === "assistant" ? <Typed text={m.text} /> : m.text}</div>
-              {m.noteIds && m.noteIds.length > 0 && m.role === "assistant" && (
-                <button
-                  className="entry-notes"
-                  onClick={() => {
-                    const first = m.noteIds!.find((id) => c.notes.some((n) => n.id === id));
-                    if (first) useStore.getState().setFocus(first);
-                  }}
-                >
-                  ↳ {m.noteIds.length} {m.noteIds.length === 1 ? "note" : "notes"} for the wall
-                </button>
-              )}
+              <div className="entry-text">{m.role === "assistant" ? <Typed text={m.text} onLead={followLead} /> : m.text}</div>
+              {m.trail && m.trail.length > 0 && <TrailFold trail={m.trail} />}
+              {m.noteIds && m.noteIds.length > 0 && m.role === "assistant" && <TurnNotes c={c} noteIds={m.noteIds} />}
               {m.sources && m.sources.length > 0 && (
                 <ul className="entry-sources">
                   {m.sources.slice(0, 4).map((s) => (
@@ -240,6 +301,7 @@ export function Notepad({ c }: { c: Case }) {
           {busy && (
             <div className="entry entry-assistant is-live" aria-live="polite">
               <div className="entry-meta">partner · {live?.status ?? "thinking"}</div>
+              {live?.trail && live.trail.length > 0 && <Trail trail={live.trail} live />}
               <div className="entry-text">
                 {live?.text && <Typed text={live.text} />}
                 <span className="caret" />
