@@ -13,7 +13,7 @@ Every question becomes a case. You talk it through with Claude, and the evidence
 
 ![Close-up: typed ink, a rubber stamp, push pins and string throwing shadows](docs/closeup.jpg)
 
-The demo opens on a real, unsolved case: the 1971 Flight 305 hijacking ("D. B. Cooper"), set up with the documented evidence, the open questions and one lead waiting to be pinned. Without an API key the offline partner walks through three fact-checked leads for it. The full product spec is in [SPEC.md](SPEC.md).
+The demo opens on a real, unsolved case: the 1971 Flight 305 hijacking ("D. B. Cooper"), set up with the documented evidence, the case's real photos (the aircraft, the FBI composite sketch, the recovered ransom bills, loaded from Wikimedia Commons with their credits), the open questions and one lead waiting to be pinned. Without an API key the offline partner walks through three fact-checked leads for it. The full product spec is in [SPEC.md](SPEC.md).
 
 ## Run it
 
@@ -83,6 +83,7 @@ src/
   lib/timeline.ts       timeline layout: date groups, gaps, undated tray
   lib/when.ts           partial dates ("1971", "1971-11-24T20:13"): parse, sort, label
   lib/images.ts         photo import (downscale), IndexedDB storage, base64 for Claude
+  lib/commons.ts        real photos from Wikimedia Commons: URL + author/licence from file metadata
 server/
   api.ts                Claude turn: streaming, web search, update_wall tool
   index.ts              production static and API server

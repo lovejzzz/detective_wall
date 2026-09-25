@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Case, Note, NoteType, Relation } from "../lib/types.ts";
 import { parseWhenInput, whenLabel } from "../lib/when.ts";
 import { photoIdOf, photoURL } from "../lib/images.ts";
+import { commonsFileOf, resolveCommons, type CommonsPhoto } from "../lib/commons.ts";
 import { ask } from "../ai/partner.ts";
 import { NOTE_TYPES, RELATIONS, STAMPS, STICKY_COLORS } from "../lib/types.ts";
 import { typeLabel, useStore } from "../store.ts";
@@ -57,23 +58,54 @@ function WhenField({ note }: { note: Note }) {
   );
 }
 
-/** The photo itself, big, with a way to ask the partner about it. */
+/** The photo itself, big, credited, with a way to ask the partner about it. */
 function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
   const id = photoIdOf(note.imageUrl);
+  const commons = commonsFileOf(note.imageUrl);
+  const sketch = note.imageUrl?.startsWith("sketch:");
   const [url, setUrl] = useState<string | null>(null);
+  const [credit, setCredit] = useState<CommonsPhoto | null>(null);
+  const [failed, setFailed] = useState(false);
   const busy = useStore((s) => s.busyCaseId !== null);
   useEffect(() => {
     setUrl(null);
+    setCredit(null);
+    setFailed(false);
     if (id) void photoURL(id).then(setUrl);
-  }, [id]);
-  if (!id) return null;
+    else if (commons)
+      void resolveCommons(commons, 1400).then((p) => {
+        if (!p) return setFailed(true);
+        setCredit(p);
+        setUrl(p.src);
+      });
+  }, [id, commons]);
+
+  if (sketch)
+    return (
+      <p className="d-illustration">
+        Illustration. No freely licensed photograph of this piece of evidence is available, so it is drawn rather than shown.
+      </p>
+    );
+  if (!id && !commons) return null;
   return (
     <figure className="d-photo">
-      {url ? <img src={url} alt={note.title} /> : <div className="d-photo-empty">Developing…</div>}
+      {url ? (
+        <img src={url} alt={note.title} onError={() => setFailed(true)} />
+      ) : (
+        <div className="d-photo-empty">{failed ? "The print couldn't be loaded (offline?)" : "Developing…"}</div>
+      )}
       <figcaption>
+        {credit && (
+          <span className="d-credit">
+            Photo: {credit.author} · {credit.license} ·{" "}
+            <a href={credit.page} target="_blank" rel="noreferrer">
+              Wikimedia Commons
+            </a>
+          </span>
+        )}
         <button
           className="d-ask"
-          disabled={busy}
+          disabled={busy || failed}
           onClick={() => {
             useStore.getState().openDossier(null);
             void ask(caseId, `What can you tell from the photo “${note.title}”?`, { photoNoteIds: [note.id] });

@@ -1693,3 +1693,22 @@ kbd {
 .d-ask:disabled {
   opacity: 0.45;
 }
+.d-photo figcaption {
+  align-items: center;
+  gap: 12px;
+}
+.d-credit {
+  flex: 1;
+  font: 11.5px/1.35 var(--typed);
+  color: #6d6049;
+}
+.d-credit a {
+  color: #5a4a2c;
+}
+.d-illustration {
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border-left: 3px solid rgba(60, 50, 38, 0.35);
+  font: 12.5px/1.45 var(--typed);
+  color: #6d6049;
+}

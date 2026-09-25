@@ -9,6 +9,13 @@ import { uid } from "./geometry.ts";
 
 export const COOPER_DEMO = "cooper-1971";
 
+/** Real photos of the case on Wikimedia Commons (credit is read from each file's metadata at runtime). */
+export const COMMONS = {
+  plane: "Northwest Airlines Boeing 727-51 N467US.jpg",
+  sketch: "DBCooper.jpg",
+  bills: "Money stolen by D. B. Cooper.jpg",
+};
+
 /** Dates for the demo's evidence, by title: also used to backfill walls saved before dates existed. */
 export const COOPER_DATES: Record<string, { when: string; approx?: boolean }> = {
   "Flight 305 · 24 Nov 1971": { when: "1971-11-24" },
@@ -22,6 +29,7 @@ export const COOPER_DATES: Record<string, { when: string; approx?: boolean }> = 
   "Serial numbers on record": { when: "1971-11-24" },
   "Two parachutes gone": { when: "1971-11-24T22:15" },
   "Copycats, 1972": { when: "1972" },
+  "The Tena Bar bills": { when: "1980-02-10" },
 };
 
 export function coldCase(now = Date.now()): Case {
@@ -98,14 +106,38 @@ export function coldCase(now = Date.now()): Case {
   });
   const plane = note({
     type: "photo",
-    title: "727 · rear airstair",
-    body: "",
+    title: "N467US, the aircraft",
+    body: "The Boeing 727-51 that flew as Flight 305. Its rear airstair could be lowered in flight.",
     x: -250,
     y: -60,
     rotation: -3,
-    imageUrl: "sketch:727",
+    imageUrl: `commons:${COMMONS.plane}`,
+    imageFallback: "sketch:727",
     origin: { kind: "ai" },
     at: 89,
+  });
+  const sketch = note({
+    type: "photo",
+    title: "FBI composite sketch",
+    body: "Drawn from the descriptions of people who saw him on the flight.",
+    x: 70,
+    y: -450,
+    rotation: 2.2,
+    imageUrl: `commons:${COMMONS.sketch}`,
+    origin: { kind: "web", url: "https://commons.wikimedia.org/wiki/File:DBCooper.jpg" },
+    at: 94,
+  });
+  const bills = note({
+    type: "photo",
+    title: "The Tena Bar bills",
+    body: "Part of the ransom recovered from the Columbia River bank in 1980.",
+    x: -280,
+    y: 770,
+    rotation: -2.2,
+    when: "1980-02-10",
+    imageUrl: `commons:${COMMONS.bills}`,
+    origin: { kind: "web", url: "https://commons.wikimedia.org/wiki/File:Money_stolen_by_D._B._Cooper.jpg" },
+    at: 39,
   });
   const knew = note({
     type: "hypothesis",
@@ -236,7 +268,7 @@ export function coldCase(now = Date.now()): Case {
     createdAt: t(at),
   });
 
-  const notes = [q, flight, demands, route, config, plane, knew, tie, particles, metals, tena, money, place, survived, verdict, serials];
+  const notes = [q, sketch, flight, demands, route, config, plane, knew, tie, particles, metals, tena, bills, money, place, survived, verdict, serials];
   const links = [
     link(flight, demands, "causes", "The bomb threat bought the ransom", 92),
     link(route, flight, "references", "The route, in order", 91),
@@ -247,6 +279,8 @@ export function coldCase(now = Date.now()): Case {
     link(particles, metals, "supports", "Unalloyed titanium is unusual", 55),
     link(metals, q, "references", "An angle on who he was", 54),
     link(tena, money, "references", "$5,800 of $200,000", 38),
+    link(bills, tena, "references", "The bills themselves", 39),
+    link(sketch, q, "references", "The face the FBI circulated", 94),
     link(place, tena, "contradicts", "Doesn't fit the drop zone", 36),
     link(tena, survived, "references", "The money surfaced; he never did", 30),
     link(survived, verdict, "supports", "Fate unknown", 28),
@@ -268,7 +302,7 @@ export function coldCase(now = Date.now()): Case {
     title: "The Flight 305 hijacker (“D. B. Cooper”)",
     createdAt: t(95),
     updatedAt: t(5),
-    camera: { x: -178, y: 15, zoom: 0.5 },
+    camera: { x: -178, y: 170, zoom: 0.5 },
     focusNoteId: q.id,
     notes,
     links,

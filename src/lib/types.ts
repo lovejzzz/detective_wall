@@ -35,8 +35,14 @@ export interface Note {
   confidence?: Confidence;
   stamp?: Stamp;
   diagram?: DiagramSpec;
-  /** Photo notes: "idb:<id>" for a photo stored in this browser, or "sketch:<kind>" for built-in art. */
+  /**
+   * Photo notes: "idb:<id>" (a photo stored in this browser), "commons:<File name.jpg>"
+   * (a real photo on Wikimedia Commons, credited from its own metadata), or "sketch:<kind>"
+   * (a drawn illustration).
+   */
   imageUrl?: string;
+  /** What to show when the photo can't be loaded (e.g. offline): a "sketch:<kind>". */
+  imageFallback?: string;
   /** When the evidence happened: "1971", "1971-11", "1971-11-24" or "1971-11-24T20:00". */
   when?: string;
   /** The date is approximate. */

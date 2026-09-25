@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   IMAGE_TYPES,
+  isCommonsImageUrl,
   MAX_IMAGES_PER_TURN,
   MAX_IMAGE_B64,
   MAX_LINKS_PER_TURN,
@@ -78,7 +79,11 @@ function buildMessages(req: InvestigateRequest): Anthropic.Beta.BetaMessageParam
   const images: Anthropic.Beta.BetaContentBlockParam[] = [];
   for (const img of (req.images ?? []).slice(0, MAX_IMAGES_PER_TURN)) {
     if (img.noteId) images.push({ type: "text", text: `Photo on the wall as note ${img.noteId}:` });
-    images.push({ type: "image", source: { type: "base64", media_type: img.media_type, data: img.data } });
+    images.push(
+      "url" in img
+        ? { type: "image", source: { type: "url", url: img.url } }
+        : { type: "image", source: { type: "base64", media_type: img.media_type, data: img.data } },
+    );
   }
   messages.push({
     role: "user",
@@ -229,6 +234,7 @@ function validImages(v: unknown): boolean {
     v.length <= MAX_IMAGES_PER_TURN &&
     v.every((i) => {
       const r = i as Record<string, unknown>;
+      if (r && "url" in r) return isCommonsImageUrl(r.url) && (r.noteId === undefined || typeof r.noteId === "string");
       return (
         !!r &&
         IMAGE_TYPES.includes(r.media_type as never) &&

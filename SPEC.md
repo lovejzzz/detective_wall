@@ -387,7 +387,7 @@ A real, unsolved case makes the best demo: it has hard facts, open questions, co
 - One proposed note ("Serial numbers on record") and its proposed string are left waiting, so the pin/toss flow is visible on first run.
 - The notepad opens with a short onboarding line instead of a resume line.
 - With no API key, the offline partner runs three scripted, fact-checked leads for this case (the missing parachutes, the "Cooper vane", the 1972 copycat wave), then falls back to the generic partner.
-- Evidence photos are drawn procedurally, so the page makes no image requests.
+- **Real case photos** come from Wikimedia Commons: the aircraft (N467US), the FBI composite sketch, and the recovered Tena Bar bills. The browser loads them at runtime; the Commons API and media server allow cross-origin use, so the photos can be painted into WebGL textures. Each photo's author and licence are read from the file's own Commons metadata and shown in its file. Commons photos are sent to Claude by URL (only `upload.wikimedia.org` URLs are accepted). When a photo can't load (offline), the aircraft falls back to a drawn illustration and the others say "print loads online". No freely licensed photo of the tie was found, so it stays a drawing and its file says so.
 
 ### 14.2 Second case: "Vazen M43 lens → Panasonic S9?"
 

@@ -49,7 +49,7 @@ export interface InvestigateRequest {
   links: { from: string; to: string; relation: Relation; status: string }[];
   messages: { role: "user" | "assistant"; text: string }[];
   /** Photos attached to the latest user message (base64, already downscaled by the browser). */
-  images?: { media_type: ImageMediaType; data: string; noteId?: string }[];
+  images?: ({ media_type: ImageMediaType; data: string; noteId?: string } | { url: string; noteId?: string })[];
 }
 
 export type ImageMediaType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
@@ -57,6 +57,16 @@ export const IMAGE_TYPES: ImageMediaType[] = ["image/jpeg", "image/png", "image/
 export const MAX_IMAGES_PER_TURN = 3;
 /** Base64 length cap per image (~3.7 MB decoded), comfortably under the API's per-image limit. */
 export const MAX_IMAGE_B64 = 5_000_000;
+/** Photos sent by URL must come from Wikimedia Commons' media server. */
+export const isCommonsImageUrl = (u: unknown): u is string => {
+  if (typeof u !== "string") return false;
+  try {
+    const url = new URL(u);
+    return url.protocol === "https:" && url.hostname === "upload.wikimedia.org";
+  } catch {
+    return false;
+  }
+};
 
 export interface InvestigateResponse {
   reply: string;

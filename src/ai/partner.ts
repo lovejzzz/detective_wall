@@ -4,6 +4,7 @@ import { sanitizeWallUpdate } from "../lib/contract.ts";
 import type { Case } from "../lib/types.ts";
 import { offlineTurn, offlinePhotoTurn } from "./offline.ts";
 import { photoBase64, photoIdOf } from "../lib/images.ts";
+import { commonsFileOf, resolveCommons } from "../lib/commons.ts";
 
 type PartnerEvent =
   | { type: "text"; delta: string }
@@ -86,9 +87,17 @@ async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<Par
 async function attachments(c: Case, photoNoteIds: string[]): Promise<NonNullable<InvestigateRequest["images"]>> {
   const out: NonNullable<InvestigateRequest["images"]> = [];
   for (const noteId of photoNoteIds.slice(0, 3)) {
-    const id = photoIdOf(c.notes.find((n) => n.id === noteId)?.imageUrl);
-    const img = id ? await photoBase64(id) : null;
-    if (img) out.push({ ...img, noteId });
+    const imageUrl = c.notes.find((n) => n.id === noteId)?.imageUrl;
+    const id = photoIdOf(imageUrl);
+    const commons = commonsFileOf(imageUrl);
+    if (id) {
+      const img = await photoBase64(id);
+      if (img) out.push({ ...img, noteId });
+    } else if (commons) {
+      // Real case photos are sent by URL; Claude fetches them from Wikimedia Commons directly.
+      const p = await resolveCommons(commons);
+      if (p) out.push({ url: p.src, noteId });
+    }
   }
   return out;
 }

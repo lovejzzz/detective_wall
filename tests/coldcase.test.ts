@@ -42,3 +42,24 @@ describe("Flight 305 demo case", () => {
     expect(titles[3]).not.toBe("Copycats, 1972");
   });
 });
+
+describe("real case photos", () => {
+  it("come from Wikimedia Commons, with a drawn fallback where one exists", async () => {
+    const { COMMONS } = await import("../src/lib/coldcase.ts");
+    const c = coldCase(0);
+    const photos = c.notes.filter((n) => n.type === "photo");
+    const commons = photos.filter((n) => n.imageUrl?.startsWith("commons:")).map((n) => n.imageUrl!.slice(8));
+    expect(commons.sort()).toEqual(Object.values(COMMONS).sort());
+    expect(photos.find((n) => n.imageUrl === `commons:${COMMONS.plane}`)?.imageFallback).toBe("sketch:727");
+    // the tie has no free photo, so it stays an illustration
+    expect(photos.some((n) => n.imageUrl === "sketch:tie")).toBe(true);
+  });
+
+  it("only Commons' media server is accepted for URL-sourced images", async () => {
+    const { isCommonsImageUrl } = await import("../src/lib/contract.ts");
+    expect(isCommonsImageUrl("https://upload.wikimedia.org/wikipedia/commons/a/ab/X.jpg")).toBe(true);
+    expect(isCommonsImageUrl("http://upload.wikimedia.org/x.jpg")).toBe(false);
+    expect(isCommonsImageUrl("https://evil.example/upload.wikimedia.org/x.jpg")).toBe(false);
+    expect(isCommonsImageUrl("https://upload.wikimedia.org.evil.example/x.jpg")).toBe(false);
+  });
+});

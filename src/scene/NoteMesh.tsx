@@ -5,6 +5,7 @@ import type { Note } from "../lib/types.ts";
 import { NOTE_SIZE } from "../lib/geometry.ts";
 import { reducedMotion } from "../lib/motion.ts";
 import { photoIdOf, photoURL } from "../lib/images.ts";
+import { commonsFileOf, loadCommonsImage } from "../lib/commons.ts";
 import { paintKey, paintNote } from "./paint.ts";
 import { PUSHPIN, TACK, binderClip, contactShadow, liftAtPin, paperGeometry, pinMaterials, sharedTextures, tapeMaterial } from "./objects.ts";
 
@@ -25,24 +26,32 @@ interface Props extends NoteHandlers {
   slot?: { x: number; y: number; rotation: number };
 }
 
-/** Loads a stored photo (IndexedDB) for a photo note. Painting waits for it, then repaints. */
+/**
+ * Loads a photo note's picture: from this browser's IndexedDB, or a real case photo from
+ * Wikimedia Commons. Painting doesn't wait: the sheet shows its fallback, then repaints.
+ */
 function usePhoto(note: Note): HTMLImageElement | undefined {
   const id = photoIdOf(note.imageUrl);
+  const commons = commonsFileOf(note.imageUrl);
   const [img, setImg] = useState<HTMLImageElement | undefined>(undefined);
   useEffect(() => {
-    if (!id) return;
+    setImg(undefined);
     let alive = true;
-    void photoURL(id).then((url) => {
-      if (!url || !alive) return;
-      const el = new Image();
-      el.onload = () => alive && setImg(el);
-      el.src = url;
-    });
+    if (id) {
+      void photoURL(id).then((url) => {
+        if (!url || !alive) return;
+        const el = new Image();
+        el.onload = () => alive && setImg(el);
+        el.src = url;
+      });
+    } else if (commons) {
+      void loadCommonsImage(commons).then((r) => alive && r && setImg(r.img));
+    }
     return () => {
       alive = false;
     };
-  }, [id]);
-  return id ? img : undefined;
+  }, [id, commons]);
+  return id || commons ? img : undefined;
 }
 
 function useNoteTexture(note: Note, fontsVersion: number) {

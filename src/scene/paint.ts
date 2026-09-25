@@ -608,9 +608,9 @@ function paintPhoto(g: Ctx, n: Note, w: number, h: number, rand: Rand, image?: H
   const px = 12 * u;
   const pw = w - px * 2;
   const ph = 174 * u;
-  if (n.imageUrl?.startsWith("sketch:")) {
-    paintSketchPhoto(g, n.imageUrl.slice(7), px, px, pw, ph, rand);
-  } else if (image && image.complete && image.naturalWidth) {
+  const sketch = n.imageUrl?.startsWith("sketch:") ? n.imageUrl : n.imageFallback?.startsWith("sketch:") ? n.imageFallback : undefined;
+  if (image && image.complete && image.naturalWidth) {
+    // Cover the frame; tall pictures (faces, posters) keep their upper part, where the subject is.
     const s = Math.max(pw / image.naturalWidth, ph / image.naturalHeight);
     const iw = image.naturalWidth * s;
     const ih = image.naturalHeight * s;
@@ -618,15 +618,31 @@ function paintPhoto(g: Ctx, n: Note, w: number, h: number, rand: Rand, image?: H
     g.beginPath();
     g.rect(px, px, pw, ph);
     g.clip();
-    g.filter = "sepia(0.18) contrast(1.04) saturate(0.9)";
-    g.drawImage(image, px + (pw - iw) / 2, px + (ph - ih) / 2, iw, ih);
+    g.filter = "sepia(0.2) contrast(1.05) saturate(0.85)";
+    g.drawImage(image, px + (pw - iw) / 2, px + (ph - ih) * (ih > iw ? 0.25 : 0.5), iw, ih);
+    g.filter = "none";
+    // a print's slight sheen and falloff
+    const vig = g.createRadialGradient(px + pw / 2, px + ph / 2, Math.min(pw, ph) * 0.35, px + pw / 2, px + ph / 2, Math.max(pw, ph) * 0.8);
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(0,0,0,0.3)");
+    g.fillStyle = vig;
+    g.fillRect(px, px, pw, ph);
     g.restore();
+  } else if (sketch) {
+    paintSketchPhoto(g, sketch.slice(7), px, px, pw, ph, rand);
   } else {
     const grd = g.createLinearGradient(px, px, px + pw, px + ph);
     grd.addColorStop(0, "#3d3b36");
     grd.addColorStop(1, "#191816");
     g.fillStyle = grd;
     g.fillRect(px, px, pw, ph);
+    if (n.imageUrl?.startsWith("commons:")) {
+      g.fillStyle = "rgba(235,228,212,0.55)";
+      g.font = `${10 * u}px ${TYPED}`;
+      g.textAlign = "center";
+      g.fillText("print loads online", px + pw / 2, px + ph / 2);
+      g.textAlign = "start";
+    }
   }
   // emulsion edge
   g.strokeStyle = "rgba(0,0,0,0.25)";
@@ -891,7 +907,7 @@ export function paintNote(n: Note, texel = TEXEL, photo?: HTMLImageElement): HTM
 
 /** The content that affects how a note looks; used as a cache key. */
 export function paintKey(n: Note) {
-  return [n.type, n.title, n.body, n.color, n.stamp, n.confidence, n.origin.url, JSON.stringify(n.diagram ?? null), n.imageUrl].join("|");
+  return [n.type, n.title, n.body, n.color, n.stamp, n.confidence, n.origin.url, JSON.stringify(n.diagram ?? null), n.imageUrl, n.imageFallback].join("|");
 }
 
 export const RELATION_STYLE: Record<Relation, { glyph: string; color: string; name: string }> = {

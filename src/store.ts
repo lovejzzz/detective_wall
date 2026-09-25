@@ -4,7 +4,7 @@ import type { Camera, Case, Link, Message, Note, NoteType, Relation, StickyColor
 import type { WallUpdate } from "./lib/contract.ts";
 import { findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
 import { seedCase } from "./lib/seed.ts";
-import { COOPER_DATES, COOPER_DEMO, coldCase } from "./lib/coldcase.ts";
+import { COMMONS, COOPER_DATES, COOPER_DEMO, coldCase } from "./lib/coldcase.ts";
 
 export type PartnerMode = "unknown" | "live" | "offline";
 
@@ -565,6 +565,26 @@ export function ensureCases() {
     if (c.demo !== COOPER_DEMO || !c.notes.some((n) => !n.when && COOPER_DATES[n.title])) continue;
     const notes = c.notes.map((n) => (!n.when && COOPER_DATES[n.title] ? { ...n, ...COOPER_DATES[n.title] } : n));
     useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...s2.cases[c.id], notes } } }));
+  }
+  // Walls saved before the demo had real photos: swap in the aircraft photo, add the sketch and the bills.
+  for (const c of Object.values(useStore.getState().cases)) {
+    if (c.demo !== COOPER_DEMO || c.notes.some((n) => n.imageUrl === `commons:${COMMONS.sketch}`)) continue;
+    const fresh = coldCase();
+    const pick = (file: string) => fresh.notes.find((n) => n.imageUrl === `commons:${file}`)!;
+    const q = c.notes.find((n) => n.type === "hypothesis" && n.title.startsWith("Who was"));
+    const tena = c.notes.find((n) => n.title === "Ransom cash on a river beach");
+    const added = [pick(COMMONS.sketch), pick(COMMONS.bills)].filter((n) => !c.notes.some((x) => x.id === n.id));
+    const notes = [
+      ...c.notes.map((n) =>
+        n.imageUrl === "sketch:727" ? { ...n, ...pick(COMMONS.plane), id: n.id, x: n.x, y: n.y, rotation: n.rotation, createdAt: n.createdAt, status: n.status } : n,
+      ),
+      ...added,
+    ];
+    const newLinks: Link[] = [];
+    const [sk, bl] = added;
+    if (q && sk) newLinks.push({ id: uid(), from: sk.id, to: q.id, relation: "references", reason: "The face the FBI circulated", status: "pinned", createdBy: "ai", createdAt: Date.now() });
+    if (tena && bl) newLinks.push({ id: uid(), from: bl.id, to: tena.id, relation: "references", reason: "The bills themselves", status: "pinned", createdBy: "ai", createdAt: Date.now() });
+    useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...s2.cases[c.id], notes, links: [...s2.cases[c.id].links, ...newLinks] } } }));
   }
   try {
     localStorage.setItem("detective-wall/demo-cooper", "1");
