@@ -403,11 +403,12 @@ function paintConclusion(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
   for (let y = top + rule; y < h - 4 * u; y += rule) g.fillRect(0, y, w, 1 * u);
   const m = 20 * u;
   typewrite(g, "CONCLUSION", m, 26 * u, { size: 10.5 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#5a5245", letterSpacing: 2.6 * u });
-  const tl = typewrite(g, n.title, m, top + rule - 5 * u, { size: 16.5 * u, lineH: rule, maxW: w - m * 2 - 70 * u, maxLines: 2, rand });
+  const tl = typewrite(g, n.title, m, top + rule - 5 * u, { size: 16.5 * u, lineH: rule, maxW: w - m * 2, maxLines: 2, rand });
   typewrite(g, n.body, m, top + rule * (tl + 1) - 5 * u, { size: 12.6 * u, lineH: rule, maxW: w - m * 2, maxLines: 5 - tl + 1, rand, color: "#24201a" });
   if (n.stamp) {
     const col = { "RULED OUT": "#b3261e", CONFIRMED: "#2e7d32", LIKELY: "#1f5aa0", OPEN: "#80601c" }[n.stamp];
-    stamp(g, n.stamp, w - 70 * u, 30 * u, 13 * u, col, -0.2 + gauss(rand) * 0.04, rand);
+    // Stamped in the header band, clear of the typed title.
+    stamp(g, n.stamp, w - 62 * u, 21 * u, 10.5 * u, col, -0.08 + gauss(rand) * 0.03, rand);
   }
 }
 
@@ -607,7 +608,9 @@ function paintPhoto(g: Ctx, n: Note, w: number, h: number, rand: Rand, image?: H
   const px = 12 * u;
   const pw = w - px * 2;
   const ph = 174 * u;
-  if (image && image.complete && image.naturalWidth) {
+  if (n.imageUrl?.startsWith("sketch:")) {
+    paintSketchPhoto(g, n.imageUrl.slice(7), px, px, pw, ph, rand);
+  } else if (image && image.complete && image.naturalWidth) {
     const s = Math.max(pw / image.naturalWidth, ph / image.naturalHeight);
     const iw = image.naturalWidth * s;
     const ih = image.naturalHeight * s;
@@ -630,6 +633,224 @@ function paintPhoto(g: Ctx, n: Note, w: number, h: number, rand: Rand, image?: H
   g.lineWidth = 1 * u;
   g.strokeRect(px, px, pw, ph);
   handwrite(g, n.title, px, h - 22 * u, { size: 21 * u, weight: 600, lineH: 20 * u, maxW: pw, maxLines: 1, color: "#1b1f2c", rand, align: "center" });
+}
+
+// ───────────────────────── evidence photos ─────────────────────────
+
+/**
+ * Built-in evidence "photographs", drawn rather than downloaded: a black-and-white press
+ * print with grain, toning, soft focus and a vignette. Kinds: "727", "tie".
+ */
+function paintSketchPhoto(g: Ctx, kind: string, x: number, y: number, w: number, h: number, rand: Rand) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w);
+  c.height = Math.round(h);
+  const p = c.getContext("2d")!;
+  if (kind === "727") draw727(p, c.width, c.height, rand);
+  else if (kind === "tie") drawTie(p, c.width, c.height, rand);
+  else {
+    p.fillStyle = "#2a2926";
+    p.fillRect(0, 0, c.width, c.height);
+  }
+  // Print finish: soft focus, silver toning, grain, vignette.
+  g.save();
+  g.beginPath();
+  g.rect(x, y, w, h);
+  g.clip();
+  g.filter = "blur(0.7px) grayscale(1) sepia(0.28) contrast(1.08)";
+  g.drawImage(c, x, y);
+  g.filter = "none";
+  const img = g.getImageData(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+  for (let i = 0; i < img.data.length; i += 4) {
+    const n = (rand() - 0.5) * 34;
+    img.data[i] += n;
+    img.data[i + 1] += n;
+    img.data[i + 2] += n;
+  }
+  g.putImageData(img, Math.round(x), Math.round(y));
+  const vig = g.createRadialGradient(x + w / 2, y + h / 2, Math.min(w, h) * 0.3, x + w / 2, y + h / 2, Math.max(w, h) * 0.75);
+  vig.addColorStop(0, "rgba(0,0,0,0)");
+  vig.addColorStop(1, "rgba(0,0,0,0.55)");
+  g.fillStyle = vig;
+  g.fillRect(x, y, w, h);
+  // a couple of fine scratches
+  g.strokeStyle = "rgba(255,255,255,0.18)";
+  g.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    const sx = x + rand() * w;
+    g.beginPath();
+    g.moveTo(sx, y + rand() * h * 0.3);
+    g.lineTo(sx + (rand() - 0.5) * 20, y + h * (0.5 + rand() * 0.5));
+    g.stroke();
+  }
+  g.restore();
+}
+
+/** Side view of a Boeing 727 on the apron at dusk, rear airstair lowered. */
+function draw727(p: Ctx, w: number, h: number, rand: Rand) {
+  const sky = p.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, "#9c9a94");
+  sky.addColorStop(0.62, "#d7d3c8");
+  sky.addColorStop(0.64, "#4a4844");
+  sky.addColorStop(1, "#262522");
+  p.fillStyle = sky;
+  p.fillRect(0, 0, w, h);
+  // apron lights on the horizon
+  for (let i = 0; i < 9; i++) {
+    p.fillStyle = "rgba(255,250,230,0.8)";
+    p.beginPath();
+    p.arc(rand() * w, h * 0.635, 1 + rand() * 1.2, 0, Math.PI * 2);
+    p.fill();
+  }
+  const s = w / 100; // drawing units: the plane spans ~92 units
+  const ox = w * 0.04;
+  const gy = h * 0.8; // ground line for the wheels
+  const fy = gy - 14 * s; // fuselage centreline
+  const fh = 6.2 * s;
+  const X = (v: number) => ox + v * s;
+  p.fillStyle = "#151514";
+  p.strokeStyle = "#151514";
+  // fuselage with rounded nose and tapering tail
+  p.beginPath();
+  p.moveTo(X(4), fy + fh * 0.1);
+  p.bezierCurveTo(X(4), fy - fh * 0.7, X(9), fy - fh / 2, X(14), fy - fh / 2);
+  p.lineTo(X(74), fy - fh / 2);
+  p.bezierCurveTo(X(82), fy - fh / 2, X(88), fy - fh * 0.9, X(92), fy - fh * 1.2);
+  p.lineTo(X(92), fy - fh * 0.5);
+  p.bezierCurveTo(X(86), fy + fh * 0.1, X(80), fy + fh / 2, X(72), fy + fh / 2);
+  p.lineTo(X(12), fy + fh / 2);
+  p.bezierCurveTo(X(7), fy + fh / 2, X(4), fy + fh * 0.4, X(4), fy + fh * 0.1);
+  p.fill();
+  // T-tail: swept fin with the stabiliser on top
+  p.beginPath();
+  p.moveTo(X(74), fy - fh / 2);
+  p.lineTo(X(84), fy - fh / 2 - 17 * s);
+  p.lineTo(X(91), fy - fh / 2 - 17 * s);
+  p.lineTo(X(92), fy - fh * 1.1);
+  p.closePath();
+  p.fill();
+  p.beginPath();
+  p.moveTo(X(80), fy - fh / 2 - 17 * s);
+  p.lineTo(X(96), fy - fh / 2 - 18.5 * s);
+  p.lineTo(X(96), fy - fh / 2 - 17.2 * s);
+  p.lineTo(X(82), fy - fh / 2 - 16 * s);
+  p.closePath();
+  p.fill();
+  // rear engines: side pod and the centre intake at the fin root
+  p.beginPath();
+  p.ellipse(X(76), fy - fh * 0.15, 5.5 * s, 1.9 * s, 0, 0, Math.PI * 2);
+  p.fill();
+  p.beginPath();
+  p.ellipse(X(73.5), fy - fh / 2 - 1.3 * s, 3 * s, 1.5 * s, 0, 0, Math.PI * 2);
+  p.fill();
+  // wing, seen almost edge-on
+  p.beginPath();
+  p.moveTo(X(34), fy + fh * 0.3);
+  p.lineTo(X(56), fy + fh * 0.25 + 1.2 * s);
+  p.lineTo(X(60), fy + fh * 0.2 + 1.6 * s);
+  p.lineTo(X(40), fy + fh * 0.45);
+  p.closePath();
+  p.fill();
+  // landing gear
+  p.lineWidth = 0.9 * s;
+  for (const gx of [12, 44, 48]) {
+    p.beginPath();
+    p.moveTo(X(gx), fy + fh / 2);
+    p.lineTo(X(gx), gy - 1.2 * s);
+    p.stroke();
+    p.beginPath();
+    p.arc(X(gx), gy - 1.2 * s, 1.3 * s, 0, Math.PI * 2);
+    p.fill();
+  }
+  // the rear airstair, lowered to the ground under the tail
+  p.lineWidth = 1.1 * s;
+  p.beginPath();
+  p.moveTo(X(80), fy + fh * 0.25);
+  p.lineTo(X(91), gy);
+  p.stroke();
+  p.lineWidth = 0.5 * s;
+  for (let i = 1; i < 6; i++) {
+    const t = i / 6;
+    const sx = X(80 + 11 * t);
+    const sy = fy + fh * 0.25 + (gy - fy - fh * 0.25) * t;
+    p.beginPath();
+    p.moveTo(sx - 1.2 * s, sy);
+    p.lineTo(sx + 1.2 * s, sy);
+    p.stroke();
+  }
+  // cabin windows catch the last light
+  p.fillStyle = "rgba(235,230,215,0.55)";
+  for (let wx = 16; wx < 70; wx += 2.6) p.fillRect(X(wx), fy - fh * 0.12, 0.9 * s, 0.9 * s);
+  p.fillRect(X(6.5), fy - fh * 0.28, 2.4 * s, 0.9 * s);
+  // wet tarmac reflection
+  p.globalAlpha = 0.18;
+  p.save();
+  p.translate(0, gy * 2);
+  p.scale(1, -1);
+  p.drawImage(p.canvas, 0, 0, w, gy, 0, 0, w, gy);
+  p.restore();
+  p.globalAlpha = 1;
+}
+
+/** A black clip-on tie with its clip, lying on a woven seat cushion. */
+function drawTie(p: Ctx, w: number, h: number, rand: Rand) {
+  // woven upholstery
+  p.fillStyle = "#6f6b64";
+  p.fillRect(0, 0, w, h);
+  for (let yy = 0; yy < h; yy += 3) {
+    p.fillStyle = `rgba(0,0,0,${0.08 + rand() * 0.08})`;
+    p.fillRect(0, yy, w, 1);
+  }
+  for (let xx = 0; xx < w; xx += 3) {
+    p.fillStyle = `rgba(255,255,255,${0.03 + rand() * 0.05})`;
+    p.fillRect(xx, 0, 1, h);
+  }
+  // seat seam
+  p.fillStyle = "rgba(0,0,0,0.35)";
+  p.fillRect(0, h * 0.18, w, 2);
+  p.save();
+  p.translate(w * 0.5, h * 0.52);
+  p.rotate(-0.42);
+  const L = h * 0.9;
+  const drawShape = () => {
+    p.beginPath();
+    // knot
+    p.moveTo(-w * 0.06, -L * 0.48);
+    p.lineTo(w * 0.06, -L * 0.48);
+    p.lineTo(w * 0.045, -L * 0.36);
+    p.lineTo(-w * 0.045, -L * 0.36);
+    p.closePath();
+    // blade widening to a point
+    p.moveTo(-w * 0.04, -L * 0.35);
+    p.lineTo(w * 0.04, -L * 0.35);
+    p.lineTo(w * 0.1, L * 0.36);
+    p.lineTo(0, L * 0.46);
+    p.lineTo(-w * 0.1, L * 0.36);
+    p.closePath();
+  };
+  // shadow
+  p.save();
+  p.translate(4, 6);
+  p.filter = "blur(4px)";
+  p.fillStyle = "rgba(0,0,0,0.5)";
+  drawShape();
+  p.fill();
+  p.restore();
+  p.filter = "none";
+  const silk = p.createLinearGradient(-w * 0.1, 0, w * 0.1, 0);
+  silk.addColorStop(0, "#0c0c0c");
+  silk.addColorStop(0.45, "#2e2e2e");
+  silk.addColorStop(0.6, "#161616");
+  silk.addColorStop(1, "#0a0a0a");
+  p.fillStyle = silk;
+  drawShape();
+  p.fill();
+  // clip: a thin bar with a pale mother-of-pearl inlay
+  p.fillStyle = "#b9b6ae";
+  p.fillRect(-w * 0.13, -L * 0.1, w * 0.26, h * 0.035);
+  p.fillStyle = "#e8e4da";
+  p.fillRect(-w * 0.05, -L * 0.1 + h * 0.006, w * 0.1, h * 0.022);
+  p.restore();
 }
 
 // ───────────────────────── public ─────────────────────────
@@ -663,7 +884,7 @@ export function paintNote(n: Note, texel = TEXEL): HTMLCanvasElement {
       break;
     case "photo": {
       let img: HTMLImageElement | undefined;
-      if (n.imageUrl) {
+      if (n.imageUrl && !n.imageUrl.startsWith("sketch:")) {
         img = images.get(n.imageUrl);
         if (!img) {
           img = new Image();

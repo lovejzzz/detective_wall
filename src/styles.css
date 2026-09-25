@@ -264,6 +264,19 @@ kbd {
   font-size: 16px;
 }
 
+/* "Click again to open" hint under the focused note. */
+.open-hint {
+  translate: -50% 0;
+  padding: 3px 9px 2px;
+  font: 600 17px/1 var(--hand);
+  color: #f3e7cc;
+  background: rgba(20, 13, 8, 0.72);
+  border-radius: 2px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: fade 0.2s ease-out;
+}
+
 /* Empty case */
 .empty-card {
   position: relative;
@@ -327,6 +340,10 @@ kbd {
 }
 .fold-tab span {
   rotate: 180deg;
+}
+.fold-tab b {
+  writing-mode: horizontal-tb;
+  font: 18px/1 var(--typed);
 }
 
 .pad {

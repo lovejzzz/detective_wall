@@ -1,4 +1,4 @@
-import { memo, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Note } from "../lib/types.ts";
@@ -40,23 +40,52 @@ function Pin({ note, onGrabPin }: { note: Note; onGrabPin: Props["onGrabPin"] })
   const y = h / 2 - 18;
   const z = liftAtPin(note.type) + 0.4;
   const clip = useMemo(() => (note.type === "photo" ? binderClip() : null), [note.type]);
+  const [hot, setHot] = useState(false);
   const onDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
     onGrabPin(note.id, e);
   };
-  if (clip) return <primitive object={clip} position={[0, h / 2 - 4, z]} onPointerDown={onDown} />;
+  // A pin is a small target: give it a generous invisible grab zone and say what it does.
+  const hit = (
+    <mesh
+      position={[0, clip ? h / 2 - 6 : y, z + 6]}
+      onPointerDown={onDown}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        setHot(true);
+        document.body.style.cursor = "crosshair";
+      }}
+      onPointerOut={() => {
+        setHot(false);
+        document.body.style.cursor = "";
+      }}
+    >
+      <sphereGeometry args={[clip ? 22 : 17, 12, 8]} />
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+    </mesh>
+  );
+  if (clip)
+    return (
+      <>
+        <primitive object={clip} position={[0, h / 2 - 4, z]} scale={hot ? 1.08 : 1} />
+        {hit}
+      </>
+    );
   const tack = note.type === "fact";
   // Tilt the pin a touch, as if pushed in by thumb.
   const tilt = ((note.id.charCodeAt(0) % 7) - 3) * 0.03;
   return (
-    <mesh
-      geometry={tack ? TACK : PUSHPIN}
-      material={tack ? pinMaterials.brass : pinMaterials.red}
-      position={[0, y, z]}
-      rotation={[tilt, -tilt * 0.6, 0]}
-      castShadow
-      onPointerDown={onDown}
-    />
+    <>
+      <mesh
+        geometry={tack ? TACK : PUSHPIN}
+        material={tack ? pinMaterials.brass : pinMaterials.red}
+        position={[0, y, z]}
+        rotation={[tilt, -tilt * 0.6, 0]}
+        scale={hot ? 1.18 : 1}
+        castShadow
+      />
+      {hit}
+    </>
   );
 }
 

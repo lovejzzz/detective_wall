@@ -78,7 +78,7 @@ function Tag({ link, from, to, onOpen }: { link: Link; from: THREE.Vector3; to: 
   const readable = flipped ? angle - Math.sign(angle) * Math.PI : angle;
   const tilt = THREE.MathUtils.clamp(readable, -0.42, 0.42);
   return (
-    <group position={[mid.x, mid.y - 7, mid.z + 1.2]} rotation={[0.18, 0, tilt]}>
+    <group position={[mid.x, mid.y - 9, mid.z + 1.2]} rotation={[0.18, 0, tilt]}>
       <mesh
         castShadow
         onPointerDown={(e) => {
@@ -86,7 +86,7 @@ function Tag({ link, from, to, onOpen }: { link: Link; from: THREE.Vector3; to: 
           onOpen(link.id);
         }}
       >
-        <planeGeometry args={[34, 20]} />
+        <planeGeometry args={[46, 27]} />
         <meshStandardMaterial map={tagTexture(link.relation, flipped)} roughness={0.85} side={THREE.DoubleSide} />
       </mesh>
     </group>

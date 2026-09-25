@@ -70,10 +70,18 @@ export function Notepad({ c }: { c: Case }) {
 
   // Resuming a case: a short, local welcome-back line (SPEC §8.2 rule 6, no model call).
   const latestPinned = [...c.notes].filter((n) => n.status === "pinned").sort((a, b) => b.createdAt - a.createdAt)[0];
-  const resumeLine =
-    c.messages.length > 0 && latestPinned && !busy && Date.now() - c.updatedAt > 10 * 60_000
-      ? `Picking this back up. Last we had: “${latestPinned.title}”.`
-      : null;
+  const previousOpen = useStore((s) => s.previousOpen[c.id]);
+  const visitStart = useStore((s) => s.visitStart);
+  const firstVisit = previousOpen === undefined;
+  // Once you've said something this visit, the onboarding/resume line has done its job.
+  const spokeThisVisit = c.messages.some((m) => m.createdAt >= visitStart);
+  const resumeLine = busy || spokeThisVisit
+    ? null
+    : firstVisit && c.demo
+      ? "This is a real, unsolved case, set up as a demo. Ask me anything on the typewriter below. Drag from a pin to tie a string. Click a note once to light it, and again to open its file."
+      : !firstVisit && c.messages.length > 0 && latestPinned && Date.now() - (previousOpen ?? 0) > 10 * 60_000
+        ? `Picking this back up. Last we had: “${latestPinned.title}”.`
+        : null;
 
   const proposals = c.notes.filter((n) => n.status === "proposed").sort((a, b) => a.createdAt - b.createdAt);
 
@@ -83,7 +91,8 @@ export function Notepad({ c }: { c: Case }) {
   return (
     <aside className={`notepad ${open ? "is-open" : "is-folded"}`} aria-label="Case notes and conversation">
       <button className="fold-tab" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Fold the notepad away" : "Open the notepad"}>
-        {open ? "›" : "‹"} <span>Notes</span>
+        <span>Notes</span>
+        <b aria-hidden>{open ? "›" : "‹"}</b>
       </button>
 
       <div className="pad">

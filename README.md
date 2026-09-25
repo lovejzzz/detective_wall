@@ -2,7 +2,7 @@
 
 Every question becomes a case. You talk it through with Claude, and the evidence ends up pinned to a cork wall in a lamp-lit attic: sticky notes, typed facts, newspaper clippings, graph-paper sketches, and red string between them.
 
-![The seed case on the wall](docs/wall.jpg)
+![The demo case: the unsolved 1971 Flight 305 hijacking](docs/wall.jpg)
 
 - **Claude is your partner.** It streams its reply onto a legal pad, searches the web when facts are checkable, and proposes evidence for the wall.
 - **You hold the pen.** Everything Claude suggests arrives loose, with a pencil "?". Nothing sticks until you pin it.
@@ -11,7 +11,7 @@ Every question becomes a case. You talk it through with Claude, and the evidence
 
 ![Close-up: typed ink, a rubber stamp, push pins and string throwing shadows](docs/closeup.jpg)
 
-The full product spec is in [SPEC.md](SPEC.md).
+The demo opens on a real, unsolved case: the 1971 Flight 305 hijacking ("D. B. Cooper"), set up with the documented evidence, the open questions and one lead waiting to be pinned. Without an API key the offline partner walks through three fact-checked leads for it. The full product spec is in [SPEC.md](SPEC.md).
 
 ## Run it
 

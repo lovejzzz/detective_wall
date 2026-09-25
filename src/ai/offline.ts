@@ -31,7 +31,63 @@ const ANGLES = [
   { title: "Compare with a known case", body: (t: string) => `Find something similar to ${t} whose answer is already settled and check what differs.` },
 ];
 
+/**
+ * The Flight 305 demo gets a short scripted run of real leads, so the demo shows the
+ * partner working even with no API key. Facts stay within the widely documented record.
+ */
+const COOPER_SCRIPT: { reply: string; update: (c: Case) => WallUpdate }[] = [
+  {
+    reply:
+      "(Offline, so I'm working from the case file rather than searching.)\n\nThe parachutes are a good thread. He asked for four: two back, two front. When the plane landed in Reno at 10:15 pm, Cooper, the money and two of the parachutes were gone. Which two he took, and what that says about his experience, has been argued over ever since.\n\nNext lead: what the airline industry changed afterwards.",
+    update: (c) => {
+      const demands = c.notes.find((n) => n.title === "The demands");
+      const survived = c.notes.find((n) => n.title === "Did he survive?");
+      return {
+        notes: [
+          { ref: "n1", type: "fact", title: "Two parachutes gone", body: "After landing in Reno at 10:15 pm the crew found Cooper, the money and two of the four parachutes gone.", confidence: "high", ...(demands ? { near: demands.id } : {}) },
+          { ref: "n2", type: "hypothesis", title: "Which two did he take?", body: "The choice of chutes says something about whether he knew what he was doing." },
+        ],
+        links: [
+          ...(demands ? [{ from: demands.id, to: "n1", relation: "causes" as const, reason: "He asked for four; two left with him" }] : []),
+          { from: "n1", to: "n2", relation: "references", reason: "The open question" },
+          ...(survived ? [{ from: "n2", to: survived.id, relation: "references" as const, reason: "Experience bears on survival" }] : []),
+        ],
+        focus: "n1",
+      };
+    },
+  },
+  {
+    reply:
+      "After Flight 305, Boeing 727s were fitted with a simple device, known as the “Cooper vane”, that stops the rear airstair from being lowered in flight. The escape route he used was closed off because of him.\n\nNext lead: the wave of copycat hijackings in 1972.",
+    update: (c) => {
+      const plane = c.notes.find((n) => n.title.startsWith("727"));
+      return {
+        notes: [{ ref: "n1", type: "fact", title: "The “Cooper vane”", body: "Boeing 727s were later fitted with a vane that prevents the rear airstair from being lowered in flight.", confidence: "high", ...(plane ? { near: plane.id } : {}) }],
+        links: plane ? [{ from: "n1", to: plane.id, relation: "references", reason: "The stair he used" }] : [],
+        focus: "n1",
+      };
+    },
+  },
+  {
+    reply:
+      "Cooper started a wave. In 1972 there were 31 hijackings in US airspace, and in 15 of them the hijacker demanded parachutes. Flight 305 is still the one nobody has solved.\n\nThat's as far as I can take it offline. Connect Claude (an API key) and I can search the record properly.",
+    update: (c) => {
+      const verdict = c.notes.find((n) => n.type === "conclusion");
+      return {
+        notes: [{ ref: "n1", type: "fact", title: "Copycats, 1972", body: "31 hijackings in US airspace in 1972; in 15 the hijacker demanded parachutes. Cooper vanes and airport metal detectors ended the pattern.", confidence: "medium" }],
+        links: verdict ? [{ from: "n1", to: verdict.id, relation: "references", reason: "Why this one stands out" }] : [],
+        focus: "n1",
+      };
+    },
+  },
+];
+
 export function offlineTurn(c: Case, userText: string): { reply: string; update: WallUpdate } {
+  if (c.demo === "cooper-1971") {
+    const step = c.messages.filter((m) => m.role === "assistant" && m.offline).length;
+    const scripted = COOPER_SCRIPT[step];
+    if (scripted) return { reply: scripted.reply, update: scripted.update(c) };
+  }
   const terms = keyTerms(userText);
   const subject = terms.slice(0, 2).join(" ") || "this";
   const turn = c.messages.filter((m) => m.role === "assistant").length;

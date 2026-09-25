@@ -91,7 +91,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const s = toScreen(n, k);
       const hw = (NOTE_SIZE[n.type].w / 2) * k.zoom;
       const hh = (NOTE_SIZE[n.type].h / 2) * k.zoom;
-      const left = stage.cx - stage.w / 2;
+      const left = stage.cx - stage.w / 2 + 70; // clear of the case folders
       return s.x - hw > left + 24 && s.x + hw < left + stage.w - 24 && s.y - hh > 90 && s.y + hh + 44 < stage.h - 24;
     },
     [toScreen, stage],
@@ -106,15 +106,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     seen.current.ids = new Set(c.notes.map((n) => n.id));
     const k = camRef.current;
     if (fresh.some((n) => n.status === "proposed")) {
-      // Frame the new evidence together with whatever it's tied to.
-      const freshIds = new Set(fresh.map((n) => n.id));
-      const tied = new Set<string>();
-      for (const l of c.links) {
-        if (freshIds.has(l.from)) tied.add(l.to);
-        if (freshIds.has(l.to)) tied.add(l.from);
+      // Bring the new evidence into view, but never zoom out past reading distance.
+      if (!fresh.every((n) => inView(n, k))) {
+        const f = framing(fresh, Math.max(k.zoom, 0.7));
+        flyTo({ ...f, zoom: Math.max(f.zoom, Math.min(k.zoom, 0.6)) }, 900);
       }
-      const all = c.notes.filter((n) => freshIds.has(n.id) || tied.has(n.id));
-      if (!all.every((n) => inView(n, k))) flyTo(framing(all, Math.max(k.zoom, 0.55)), 900);
       return;
     }
     if (focusNote && !inView(focusNote, k)) flyTo({ x: focusNote.x, y: focusNote.y, zoom: k.zoom });
@@ -322,6 +318,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     spotTarget: new THREE.Vector3(),
   });
   const draggingId = grab?.kind === "note" && grab.moved ? grab.id : null;
+  const tagScale = Math.max(0.6, Math.min(1, cam.zoom * 1.25));
+  const tabScale = Math.max(0.75, Math.min(1, cam.zoom * 1.35));
 
   return (
     <div
@@ -367,15 +365,16 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
         <Lens />
       </Canvas>
 
-      {/* Paper controls over the scene. The camera looks straight at the wall, so world → screen is exact. */}
+      {/* Paper controls over the scene. The camera looks straight at the wall, so world → screen is exact.
+          They shrink with the wall so they never swamp the notes. */}
       <div className="wall-overlay">
         {c.notes
           .filter((n) => n.status === "proposed")
           .map((n) => {
             const p = toScreen({ x: n.x, y: n.y + NOTE_SIZE[n.type].h / 2 });
             return (
-              <div key={n.id} className="proposal-anchor" style={{ left: p.x, top: p.y + 14 }}>
-                <div className="proposal-tabs">
+              <div key={n.id} className="proposal-anchor" style={{ left: p.x, top: p.y + 10 * cam.zoom }}>
+                <div className="proposal-tabs" style={{ transform: `scale(${tabScale})`, transformOrigin: "50% 0" }}>
                   <button className="tab-pin" onClick={() => onPin(n.id)} title="Pin it (P)">
                     <svg viewBox="0 0 16 16" aria-hidden>
                       <circle cx="8" cy="6" r="4.2" fill="#c62828" />
@@ -404,7 +403,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             const tilt = Math.max(-0.42, Math.min(0.42, flipped ? m.angle - Math.sign(m.angle) * Math.PI : m.angle));
             return (
               <div key={l.id} className="tag-anchor" style={{ left: p.x, top: p.y }}>
-                <div className={`tag3d is-proposed rel-${l.relation}`} style={{ transform: `rotate(${-tilt}rad)` }}>
+                <div className={`tag3d is-proposed rel-${l.relation}`} style={{ transform: `rotate(${-tilt}rad) scale(${tagScale})` }}>
                   <span className="tag-q">{info.name.toLowerCase()}?</span>
                   <button onClick={() => onPinLink(l.id)} aria-label="Accept string" title={`Tie it: ${a.title} ${info.blurb} ${b.title}`}>
                     ✓
@@ -440,6 +439,17 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             </div>
           );
         })}
+        {(() => {
+          // Discoverability: the second click opens the file, so say so on the focused note.
+          const n = c.notes.find((x) => x.id === hoverNoteId);
+          if (!n || grab || n.id !== c.focusNoteId || n.status !== "pinned") return null;
+          const p = toScreen({ x: n.x, y: n.y + NOTE_SIZE[n.type].h / 2 });
+          return (
+            <div className="proposal-anchor open-hint" style={{ left: p.x, top: p.y + 10 }}>
+              click to open the file ›
+            </div>
+          );
+        })()}
         {c.notes.length === 0 && (
           <div className="tag-anchor" style={{ left: toScreen({ x: 0, y: 0 }).x, top: toScreen({ x: 0, y: 0 }).y }}>
             <div className="empty-card">

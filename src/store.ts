@@ -4,6 +4,7 @@ import type { Camera, Case, Message, Note, NoteType, Relation, StickyColor } fro
 import type { WallUpdate } from "./lib/contract.ts";
 import { findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
 import { seedCase } from "./lib/seed.ts";
+import { COOPER_DEMO, coldCase } from "./lib/coldcase.ts";
 
 export type PartnerMode = "unknown" | "live" | "offline";
 
@@ -19,6 +20,10 @@ interface State {
   partner: { mode: PartnerMode; model?: string };
   pendingLink: { from: string; to: string; x: number; y: number } | null;
   hoverNoteId: string | null;
+  /** When this visit began. */
+  visitStart: number;
+  /** When each case was last opened before this visit (for the resume line). */
+  previousOpen: Record<string, number | undefined>;
   /** The partner's reply while it is still being typed out. */
   live: { text: string; status?: string } | null;
 }
@@ -152,6 +157,8 @@ export const useStore = create<Store>()(
         pendingLink: null,
         hoverNoteId: null,
         live: null,
+        previousOpen: {},
+        visitStart: Date.now(),
 
         newCase(question) {
           const c = blankCase(question?.trim() || "Untitled case");
@@ -159,7 +166,9 @@ export const useStore = create<Store>()(
           return c.id;
         },
         switchCase(id) {
-          if (get().cases[id]) set({ activeId: id, dossierId: null, pendingLink: null });
+          if (!get().cases[id]) return;
+          set({ activeId: id, dossierId: null, pendingLink: null });
+          markOpened(id);
         },
         deleteCase(id) {
           set((s) => {
@@ -217,7 +226,9 @@ export const useStore = create<Store>()(
             for (const p of update.notes) {
               const id = uid();
               refToId.set(p.ref, id);
-              const nearId = p.near ? resolve(p.near) : undefined;
+              // Place it by the note it names, or else by whatever this turn ties it to.
+              const tiedTo = update.links.map((l) => (l.from === p.ref ? l.to : l.to === p.ref ? l.from : null)).find((r) => r && resolve(r));
+              const nearId = p.near ? resolve(p.near) : tiedTo ? resolve(tiedTo) : undefined;
               const near = nearId ? c.notes.find((n) => n.id === nearId) : undefined;
               const spot = findFreeSpot(p.type, near ?? anchorDefault, c.notes, Math.random() * 6);
               c.notes.push({
@@ -392,15 +403,47 @@ export const useStore = create<Store>()(
   ),
 );
 
-/** Opens the seed case on first run (or once every case is deleted) and repairs a stale active id. */
+/** Records that a case was opened now, remembering the previous time for this visit. */
+function markOpened(id: string) {
+  const s = useStore.getState();
+  const c = s.cases[id];
+  if (!c) return;
+  if (!(id in s.previousOpen)) useStore.setState({ previousOpen: { ...s.previousOpen, [id]: c.lastOpenedAt } });
+  useStore.setState((st) => ({ cases: { ...st.cases, [id]: { ...st.cases[id], lastOpenedAt: Date.now() } } }));
+}
+
+/**
+ * First run (or once every case is deleted): file the demo cases and open the cold case.
+ * Existing walls get the cold case added once, in front, so returning users see the new demo too.
+ */
 export function ensureCases() {
   const s = useStore.getState();
   if (s.order.length === 0) {
+    const cold = coldCase();
     const seed = seedCase();
-    useStore.setState({ cases: { [seed.id]: seed }, order: [seed.id], activeId: seed.id });
-  } else if (!s.activeId || !s.cases[s.activeId]) {
-    useStore.setState({ activeId: s.order[0] });
+    useStore.setState({ cases: { [cold.id]: cold, [seed.id]: seed }, order: [cold.id, seed.id], activeId: cold.id });
+  } else {
+    const hasDemo = Object.values(s.cases).some((c) => c.demo === COOPER_DEMO);
+    let seeded = false;
+    try {
+      seeded = localStorage.getItem("detective-wall/demo-cooper") === "1";
+    } catch {
+      /* storage unavailable */
+    }
+    if (!hasDemo && !seeded) {
+      const cold = coldCase();
+      useStore.setState({ cases: { ...s.cases, [cold.id]: cold }, order: [cold.id, ...s.order], activeId: cold.id });
+    } else if (!s.activeId || !s.cases[s.activeId]) {
+      useStore.setState({ activeId: s.order[0] });
+    }
   }
+  try {
+    localStorage.setItem("detective-wall/demo-cooper", "1");
+  } catch {
+    /* storage unavailable */
+  }
+  const active = useStore.getState().activeId;
+  if (active) markOpened(active);
 }
 
 export const useActiveCase = () => useStore((s) => (s.activeId ? s.cases[s.activeId] : undefined));

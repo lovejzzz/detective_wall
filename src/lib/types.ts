@@ -77,4 +77,8 @@ export interface Case {
   notes: Note[];
   links: Link[];
   messages: Message[];
+  /** Set on built-in demo cases; enables the scripted offline partner for that case. */
+  demo?: string;
+  /** When the case was last opened, for the "picking this back up" line. */
+  lastOpenedAt?: number;
 }

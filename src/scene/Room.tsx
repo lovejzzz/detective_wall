@@ -80,7 +80,7 @@ export function lampPlacement(view: View, viewportH: number) {
   const d = distanceFor(viewportH, view.cam.zoom);
   const z = d * 0.2;
   const pxPerUnit = view.cam.zoom / 0.8; // at that depth
-  const y = -view.cam.y + (view.stage.cy - 58) / pxPerUnit;
+  const y = -view.cam.y + (view.stage.cy - 40) / pxPerUnit;
   return { pos: new THREE.Vector3(view.cam.x, y, z), scale: 1 / pxPerUnit, d };
 }
 
@@ -177,7 +177,7 @@ export function Lamp({ view }: { view: View }) {
     const { pos, scale } = lampPlacement(view, size.height);
     if (!g.current) return;
     g.current.position.copy(pos);
-    g.current.scale.setScalar(scale);
+    g.current.scale.setScalar(scale * 0.82);
     // A slow sway on its cord.
     g.current.rotation.z = reducedMotion() ? 0 : Math.sin(state.clock.elapsedTime * 0.55) * 0.012;
   });

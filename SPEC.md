@@ -354,7 +354,33 @@ interface Message {
 
 ---
 
-## 14. Seed case: "Vazen M43 lens → Panasonic S9?"
+## 14. Seed cases
+
+### 14.1 Demo case: the Flight 305 hijacker ("D. B. Cooper"), opened first
+
+A real, unsolved case makes the best demo: it has hard facts, open questions, contradictions, and nobody was hurt. On 24 November 1971 a passenger who bought his ticket as "Dan Cooper" hijacked Northwest Orient Flight 305 (Portland → Seattle), collected $200,000 and four parachutes, and jumped from the Boeing 727's rear airstair over southwest Washington. It is the only unsolved hijacking of a US commercial airliner.
+
+**Rules for real cases:**
+- Only widely documented facts.
+- Web notes cite their source.
+- Uncertain points are marked `confidence: medium`.
+- Suspects and private individuals are never named. The wall is about evidence, not accusing people.
+
+**The wall** (16 notes, 14 strings):
+
+| Thread | Notes |
+|---|---|
+| The flight | Flight 305 fact, the demands, how he wanted it flown (flaps 15°, gear down, below 10,000 ft), a flow sketch of the night, and a press-print photo of a 727 with its rear airstair lowered |
+| The man | The clip-on tie left on seat 18E (photo), the 2017 particle analysis (cerium, strontium sulfide, unalloyed titanium) as a web clipping, and two hunches: "He knew this aircraft?" and "Worked around aerospace metals?" |
+| The money | The 1980 Tena Bar find (about $5,800, serials matched), a bar sketch of $200,000 paid against $5,800 found, and "The wrong place?" (about 18–20 miles from the suspected drop zone), which **contradicts** the easy explanation |
+| The verdict | "Did he survive?" and the conclusion card, stamped **OPEN**: the FBI suspended its active investigation in 2016 |
+
+- One proposed note ("Serial numbers on record") and its proposed string are left waiting, so the pin/toss flow is visible on first run.
+- The notepad opens with a short onboarding line instead of a resume line.
+- With no API key, the offline partner runs three scripted, fact-checked leads for this case (the missing parachutes, the "Cooper vane", the 1972 copycat wave), then falls back to the generic partner.
+- Evidence photos are drawn procedurally, so the page makes no image requests.
+
+### 14.2 Second case: "Vazen M43 lens → Panasonic S9?"
 
 The question: *can a Vazen 1.8× anamorphic lens made for Micro Four Thirds be used on a Panasonic Lumix S9 (full-frame, L-mount)?*
 
