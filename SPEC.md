@@ -1,0 +1,378 @@
+# Detective Wall — Product Specification v1.1
+
+> Refined from the v1.0 brief. The brief sets the creative direction; this document makes the engineering calls. Changes are called out in **§12 What changed from v1.0 and why**.
+
+| | |
+|---|---|
+| **Product type** | Visual knowledge map + AI research partner |
+| **Core metaphor** | A detective's evidence wall in a lamp-lit attic |
+| **Primary goal** | Explore one question by turning conversation into a map of connected evidence |
+| **Secondary goal** | Keep several investigations ("cases") and return to them over time |
+| **Audience** | Curious people researching something specific: a purchase, a technical question, a piece of history |
+
+---
+
+## 1. Concept
+
+Detective Wall turns every question into a **case**. As the user and the AI talk, the case's wall fills in:
+
+| Conversation | Becomes on the wall |
+|---|---|
+| A thought, hunch, or question from the user | Handwritten sticky note |
+| A verifiable fact | Typed sheet |
+| A mechanism, structure, or comparison | Sketch on graph paper |
+| A source from the web | Newspaper-style clipping, taped up |
+| A reference image | Polaroid |
+| An answer the evidence supports | Index card with a rubber stamp |
+| A relationship between two notes | A length of string between their pins |
+
+**Tone:** evidence and reasoning only. The AI never analyses the user's psychology or motives. It deals in facts, sources, logic, and angles the user hasn't tried yet.
+
+---
+
+## 2. Principles
+
+These decide trade-offs whenever the rest of this document doesn't.
+
+1. **The room is the interface.** Every control is an object in the scene: folders, a notepad, a typewriter, pins, string. Nothing looks like a toolbar.
+2. **The user holds the pen.** The AI can *propose* notes and strings. Only the user pins them. Nothing becomes permanent without a click from the user.
+3. **Every note can say where it came from.** Every note records the message or URL that produced it, and the user can see that record at any time.
+4. **Light means attention.** The spotlight marks the current focus, and the dark means ground nobody has looked at yet. It must never hide anything the user needs to read.
+5. **Imperfect, not messy.** Notes sit at slight angles with worn edges and paper texture, but the layout stays readable at a glance.
+
+---
+
+## 3. Use cases
+
+| Use case | Flow | Success looks like |
+|---|---|---|
+| Research a topic | Ask → AI answers and proposes evidence → user pins what's useful | A readable map that answers the question and shows why |
+| Explore new angles | AI suggests sub-questions and relationships | The user finds at least one angle they hadn't thought of |
+| Run several investigations | Each case has its own wall, filed in a drawer | The user can switch cases in two clicks without losing their place |
+| Trace reasoning | Open any note → see its origin, timestamp, and connections | The user can tell why a note exists and where it came from |
+
+---
+
+## 4. Scene and layout
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│ ▓ hanging lamp                                                        │
+│ ┌──┐                                                    ┌───────────┐ │
+│ │▤ │  ← case folders                                    │ notepad   │ │
+│ │▤ │    (filing tray)          CORK WALL                │ (dialogue │ │
+│ │▤ │                   (infinite, pan + zoom)           │  log)     │ │
+│ └──┘            ◐ spotlight follows the focused note    │           │ │
+│                                                         │ typewriter│ │
+│                                                         │ ▭▭▭▭▭▭▭▭▭ │ │
+│ ░ vignette / dark edges = unexplored ░                  └───────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+- **Cork wall (center):** an infinite canvas. Drag empty cork to pan. Wheel or pinch to zoom (35%–200%).
+- **Filing tray (left edge):** one manila folder per case. The open case's folder is pulled out. The last slot is a blank folder labelled "New case".
+- **Notepad and typewriter (right edge):** the conversation lives on a legal pad. The user types on a paper strip in a typewriter at the bottom. It folds away to a sliver when the user wants the whole wall.
+- **Dossier (overlay):** opening a note slides a file folder over the wall with its full detail.
+- **Mobile (< 760 px):** the notepad becomes a bottom sheet and the filing tray becomes a folder tab at the top. The wall stays full-bleed.
+
+---
+
+## 5. Evidence notes
+
+### 5.1 Types
+
+| Type | Object | Type style | Pin | Typical content |
+|---|---|---|---|---|
+| `hypothesis` | Square sticky note (yellow, plus pink/blue/green variants) | Handwritten | Red push-pin | Hunches, questions, what-ifs |
+| `fact` | Typed A-series sheet, slightly curled | Typewriter | Brass tack | Specs, figures, definitions |
+| `diagram` | Graph paper with an inline SVG sketch | Handwritten labels | Two push-pins | Mechanisms, comparisons, structure |
+| `web` | Clipping with torn edges, two strips of masking tape | Serif headline, sans body, URL footer | Tape (no pin) | Articles, docs, forum threads |
+| `photo` | Polaroid, glossy highlight, slight bend | Handwritten caption | Clip | Reference images |
+| `conclusion` | Index card with a red rubber stamp (`LIKELY`, `CONFIRMED`, `RULED OUT`, `OPEN`) | Typewriter, stamp | Push-pin | The current answer to the case question |
+
+Every note shows:
+- a title of 60 characters or fewer
+- body text of 280 characters or fewer on the wall (the full text is in the dossier)
+- a small origin mark (✎ user, ◆ AI, ⌁ web)
+
+### 5.2 States
+
+| State | Look | Actions |
+|---|---|---|
+| **Proposed** (from the AI) | Lying loose at a steeper angle, no pin, 75% opacity, pencil "?" in the corner | **Pin it** / **Toss it** |
+| **Pinned** | Full opacity, pinned, soft drop shadow | Drag, open, link, edit, remove |
+| **Focused** | Spotlight centered on it, its strings brighten, unrelated notes dim to 55% | — |
+| **Dragging** | Lifted: bigger shadow, 1.03× scale, tilts toward the drag direction (±6°, spring-damped) | — |
+
+### 5.3 Dossier (detail view)
+
+Opening a note (click, or `Enter` on a focused note) slides in a manila folder with:
+- the full content and editable title/body (edit in place, no save button)
+- **Origin:** the dialogue excerpt that produced the note, with its timestamp and who said it. For web notes, the URL and the date it was retrieved.
+- **Connections:** each linked note with the relationship type. Clicking one jumps the spotlight to that note.
+- **Actions:** change type, change sticky colour, set the conclusion stamp, remove from wall.
+
+---
+
+## 6. Connection strings
+
+| Relation | String | Tag glyph | Meaning |
+|---|---|---|---|
+| `supports` | Red wool | ✓ | A is evidence for B |
+| `causes` | Black waxed thread, arrow tag | → | A leads to or produces B (directional) |
+| `contradicts` | Blue thread, knotted | ✕ | A is in tension with B |
+| `references` | Natural twine, dashed | ↗ | A cites or points to B |
+
+- Strings hang with a slight catenary sag, pin to pin. Longer strings sag more.
+- Every string has a small paper tag at its midpoint showing the glyph, so colour is never the only signal. Clicking a tag shows the relation in words, the AI's one-line reason (if any), and a "Cut string" action.
+- **Proposed strings** are drawn as dashed pencil lines. Their tag reads `link?` and offers ✓ / ✕.
+- **Manual linking:** drag from a note's pin to another note, then pick the relation from a small pop-up of four tags. `Esc` cancels.
+- **Focus:** focusing a note highlights its strings and neighbours. Everything else dims.
+
+---
+
+## 7. Lighting and atmosphere
+
+| Element | Behaviour |
+|---|---|
+| Overhead lamp | A warm tungsten wash (about 2700 K), brightest at the top center, falling off toward the edges |
+| Spotlight | A radial pool (radius about 340 px on screen) that eases to the focused note in 600 ms. It stays at the last focus when idle. |
+| Darkness | A vignette at the viewport edges, plus a dim veil over wall regions with no pinned notes. Any note inside the veil stays at least 35% visible. |
+| Dust | 40–70 slow particles, drawn only inside the light cones, drifting on a gentle noise field |
+| Sound (planned for v1.2, off by default) | Paper rustle when pinning, soft thud on a push-pin, a typewriter clack per keystroke, an occasional floorboard creak. Toggled by a small wind-up clock in the corner. |
+
+**Accessibility floor:**
+- Text contrast is at least 4.5:1 under the spotlight and at least 3:1 anywhere in the dim areas.
+- `prefers-reduced-motion` turns off dust, drag tilt, and the spotlight ease. Focus changes still move the light instantly.
+
+---
+
+## 8. AI research partner
+
+### 8.1 Personality
+A curious, playful, sharp colleague who works the case alongside the user. The AI:
+- stays factual and grounded in logic
+- says when it isn't sure
+- never offers psychological analysis and never comments on the user's motives
+
+### 8.2 Behaviour rules
+
+1. **Ask before assuming.** If the question is ambiguous, ask one clarifying question before filling the wall.
+2. **Propose, don't impose.** Each turn may propose up to 4 notes and up to 4 strings. All of them arrive in the *proposed* state.
+3. **Confirm new cases.** If the conversation drifts to an unrelated question, the AI asks, "Want me to open a new case for this?" It only opens one after a yes.
+4. **Cite or flag.** A `fact` note either cites a source (`origin.url`) or is marked as the AI's own knowledge, with a confidence level: `high`, `medium`, or `low`.
+5. **Suggest next leads.** Every reply ends with one or two concrete next leads ("check X's spec sheet", "look for teardown photos").
+6. **Resume warmly and briefly.** When the user reopens a case: "Picking this back up. Last we had: ⟨latest note⟩."
+
+### 8.3 Structured contract (every AI turn)
+
+The model replies in prose **and** calls one tool, `update_wall`:
+
+```ts
+update_wall({
+  notes: Array<{
+    ref: string                 // temporary id so links in this turn can point at it
+    type: "hypothesis" | "fact" | "diagram" | "web" | "photo" | "conclusion"
+    title: string               // ≤ 60 chars
+    body: string                // ≤ 600 chars
+    url?: string                // required for type "web"
+    confidence?: "high" | "medium" | "low"
+    stamp?: "LIKELY" | "CONFIRMED" | "RULED OUT" | "OPEN"   // conclusion only
+    diagram?: { kind: "bars" | "circles" | "flow"; items: Array<{ label: string; value?: number }> }
+    near?: string               // id or ref of a note to place it near
+  }>,
+  links: Array<{
+    from: string; to: string    // note ids or refs
+    relation: "supports" | "causes" | "contradicts" | "references"
+    reason: string              // ≤ 120 chars, shown on the string's tag
+  }>,
+  focus?: string                // note id or ref for the spotlight
+  new_case?: { question: string }  // only after the user has agreed
+})
+```
+
+- **The partner is Claude.** The server calls the Claude Messages API (`claude-opus-5`, adaptive thinking, server-side refusal fallbacks) through the official Anthropic SDK.
+- **The reply streams.** The server relays it to the browser as server-sent events, and the words type themselves onto the notepad as they arrive. Progress lines ("searching '…'", "reading 8 results", "pinning up evidence") appear in pencil above the text.
+- Web research uses Claude's server-side web search. A `web` note must cite a URL that the search actually returned, or it is dropped.
+- The server validates every tool input, and the client validates it again. Anything invalid is dropped rather than guessed at.
+- If no API key is configured, an **offline partner** answers with scripted, clearly labelled demo behaviour, so the scene still works end to end.
+
+---
+
+## 9. Key flows
+
+**Starting a case**
+1. The user opens the "New case" folder, or types into the typewriter on an empty wall.
+2. The question is pinned at the wall's center as the first `hypothesis` sticky, and the spotlight lands on it.
+3. The AI replies on the notepad and proposed evidence drifts onto the wall around the question.
+4. The user pins or tosses each proposal, and the case grows from there.
+
+**Resuming a case**
+1. The app opens the last active case, restoring the camera where the user left it.
+2. The spotlight rests where the user left it.
+3. The notepad shows the AI's resume line (§8.2 rule 6). No model call is needed for this.
+
+**Switching cases:** click a folder in the tray. The wall cross-fades in 300 ms and each case keeps its own camera position.
+
+---
+
+## 10. Data model
+
+```ts
+type NoteType = "hypothesis" | "fact" | "diagram" | "web" | "photo" | "conclusion";
+type Relation = "supports" | "causes" | "contradicts" | "references";
+
+interface Case {
+  id: string;                  // UUID v4
+  title: string;               // the case question
+  createdAt: number;           // epoch ms
+  updatedAt: number;
+  camera: { x: number; y: number; zoom: number };
+  focusNoteId: string | null;
+  notes: Note[];
+  links: Link[];
+  messages: Message[];
+}
+
+interface Note {
+  id: string;                  // UUID v4
+  type: NoteType;
+  status: "proposed" | "pinned";
+  title: string;
+  body: string;
+  x: number; y: number;        // world coords, note center
+  rotation: number;            // degrees, −4..4 for pinned notes
+  color?: "yellow" | "pink" | "blue" | "green";   // hypothesis only
+  confidence?: "high" | "medium" | "low";
+  stamp?: "LIKELY" | "CONFIRMED" | "RULED OUT" | "OPEN";
+  diagram?: DiagramSpec;
+  imageUrl?: string;           // photo only
+  origin: {
+    kind: "user" | "ai" | "web" | "seed";
+    messageId?: string;
+    url?: string;
+    excerpt?: string;          // the sentence(s) that produced it
+  };
+  createdAt: number;
+}
+
+interface Link {
+  id: string;
+  from: string; to: string;    // note ids
+  relation: Relation;
+  status: "proposed" | "pinned";
+  reason?: string;
+  createdBy: "user" | "ai";
+  createdAt: number;
+}
+
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  createdAt: number;
+  noteIds?: string[];          // notes this message produced
+}
+```
+
+- **Storage (v1.0):** versioned `localStorage` (`detective-wall/v1`), written with a 300 ms debounce. Moving to IndexedDB is planned for v1.5, when photos land.
+- **Export (v2.0):** JSON (lossless), plus a PNG or SVG snapshot of the wall.
+
+---
+
+## 11. Technical approach
+
+| Layer | Choice | Why |
+|---|---|---|
+| Notes | DOM elements with CSS transforms | Crisp text at every zoom level, real text selection, screen-reader access, cheap editing |
+| Strings | One SVG layer in world space | Exact curves, easy hit-testing on tags, scales with the camera |
+| Light and dust | A full-screen `<canvas>` plus CSS radial masks, `pointer-events: none` | The dynamic lighting mask the brief asked for, without making text a texture |
+| Textures | Procedural noise (cork, paper grain), generated once into cached tiles | No asset downloads, and it stays sharp at any resolution |
+| App | React + TypeScript + Vite, with Zustand for state | A small, typed setup that's easy to work on |
+| AI | A Node endpoint `/api/investigate` that streams a Claude turn as server-sent events, using the `update_wall` tool (strict schema) and server-side web search | Keeps the API key on the server. Streaming makes the partner feel present. The structured tool keeps wall updates deterministic. |
+| Fonts | Self-hosted (Caveat, Special Elite, Old Standard TT, Courier Prime) | No third-party requests, and it works offline |
+| Camera | Frames new evidence when it arrives; flies to focus when it leaves the screen | The user never has to hunt for what the AI just added |
+
+**Performance budgets:**
+- 60 fps pan and zoom with 150 notes on a mid-range laptop
+- first paint under 1.5 s
+- no layout thrash during a drag (transforms only)
+
+**Keyboard support:**
+
+| Keys | Action |
+|---|---|
+| `Tab` / `Shift+Tab` | Cycle notes (moves the spotlight) |
+| `Enter` | Open the focused note's dossier |
+| `Esc` | Close the dossier or cancel a link |
+| `P` / `X` | Pin / toss a focused proposal |
+| `/` | Jump to the typewriter |
+| `0` | Reset the camera |
+
+---
+
+## 12. What changed from v1.0 and why
+
+| v1.0 | v1.1 | Reason |
+|---|---|---|
+| "Render in WebGL or Canvas" | DOM notes, SVG strings, canvas only for light and dust | Text rendered into WebGL goes blurry when zoomed, can't be selected, and is invisible to screen readers. The hybrid keeps the physical look without those costs. |
+| AI "requests confirmation before linking" (mechanism unstated) | A formal **proposed → pinned** state for notes *and* strings | Makes the permission rule something the user can see and act on in one click |
+| No conclusion type, though the seed case needs one | Added a `conclusion` index card with stamps | The seed example needed it, and it gives each case a visible "current answer" |
+| Connection types by name only | Four relations, each with a material, a glyph tag, and a direction rule | Colour alone isn't accessible, and causal links need a direction |
+| "Dark = unknown" with no limits | A dimming floor, contrast minimums, reduced-motion behaviour | Keeps the mood without hiding content |
+| No conversation surface described | Notepad and typewriter as diegetic chat | "Environment = UI" needed somewhere to actually talk |
+| Zoom and pan deferred to v1.5 | Basic pan and zoom in v1.0 | An "infinite wall" can't be infinite without them |
+| Manual string linking deferred to v1.2 | Drag pin-to-pin in v1.0 | Users need to link notes the moment the AI can |
+| No AI output contract | The `update_wall` tool schema (§8.3) | Engineers need a deterministic, testable interface |
+| Seed facts left open | Seed case checked against published specs (§14) | Seed data is the first thing everyone sees and should be correct |
+| AI "adds evidence" (vendor unstated) | Claude, streaming its reply over SSE, with web search | Makes the partner feel like someone working the case in real time |
+| Strings: no layering rule | Strings run over paper, pin to pin, the way real ones do. Tags sit above the strings. | Authenticity. Layout and camera framing keep text readable. |
+
+---
+
+## 13. Roadmap
+
+| Phase | Scope |
+|---|---|
+| **v1.0** | Case walls and switching, six note types, proposed/pinned flow, dossier, strings (AI-proposed plus manual drag), pan and zoom, lighting and dust, AI partner with offline fallback, localStorage |
+| v1.2 | Rearrange strings (re-pin an end), editable string reasons, undo/redo, optional room sound |
+| v1.5 | Search and filter (dims non-matches), photo upload, IndexedDB, minimap |
+| v2.0 | Collaboration (shared case, live cursors as flashlights), export as JSON/PNG/SVG, share a read-only wall |
+
+### v1.0 acceptance criteria
+- [ ] Asking a question on an empty wall creates a case, pins the question, and moves the spotlight to it.
+- [ ] AI proposals appear unpinned. Pinning or tossing each takes one click, and nothing is pinned without the user.
+- [ ] Every note's dossier shows its origin, timestamp, and connections.
+- [ ] Strings render with a type-specific material and a glyph tag, and focusing a note highlights its network.
+- [ ] Reloading the page restores every case, the camera, the focus, and the conversation.
+- [ ] The app works with no API key, using the labelled offline partner.
+- [ ] With reduced motion on, nothing drifts, tilts, or eases.
+
+---
+
+## 14. Seed case: "Vazen M43 lens → Panasonic S9?"
+
+The question: *can a Vazen 1.8× anamorphic lens made for Micro Four Thirds be used on a Panasonic Lumix S9 (full-frame, L-mount)?*
+
+| Note | Type | Content |
+|---|---|---|
+| Q | `hypothesis` | "Vazen M43 anamorphic → Panasonic S9?" |
+| Flange distances | `fact` | Micro Four Thirds flange distance is 19.25 mm. L-mount is 20.0 mm. The M43 lens has to sit *closer* to the sensor than the L-mount's own flange allows. |
+| Adapter reality | `fact` | An adapter can only add distance. Mounting a shorter-flange lens on a longer-flange body needs corrective glass (which usually loses infinity focus and quality) or doesn't work at all. |
+| Speed Booster direction | `web` | Focal reducers (e.g. Metabones Speed Booster) shrink a *large* image circle onto a *smaller* sensor. M43 → full-frame needs the opposite, and no mainstream product does that. |
+| Image circle | `diagram` | Circles: M43 image-circle diagonal ≈ 21.6 mm, APS-C crop ≈ 28.4 mm, full frame ≈ 43.3 mm |
+| Crop mode? | `hypothesis` | "Would the S9's APS-C crop mode help?" → it doesn't fix the flange problem, and APS-C is still larger than the M43 circle. |
+| Verdict | `conclusion`, stamp `RULED OUT` | Not practical: the flange geometry blocks a simple adapter and the image circle can't cover the sensor. Options: shoot on an M43 body, or look at full-frame anamorphic lenses in L-mount. |
+
+**Strings:**
+- Flange distances **supports** Adapter reality
+- Adapter reality **supports** Verdict
+- Speed Booster direction **supports** Verdict
+- Image circle **supports** Verdict
+- Crop mode? **contradicts** Q (it undercuts the hope that crop mode rescues the plan)
+- Image circle **references** Crop mode?
+
+---
+
+## 15. Audience for this document
+Product managers, AI engineers, frontend and graphics developers, and UX designers. Each section above is written to be handed to one of those roles on its own.

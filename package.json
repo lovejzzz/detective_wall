@@ -1,0 +1,37 @@
+{
+  "name": "detective-wall",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Turn every question into a case: an AI research partner on a lamp-lit evidence wall.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p . && vite build",
+    "start": "tsx server/index.ts",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "@fontsource/caveat": "^5.3.0",
+    "@fontsource/courier-prime": "^5.3.0",
+    "@fontsource/old-standard-tt": "^5.3.0",
+    "@fontsource/special-elite": "^5.3.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
+  }
+}
