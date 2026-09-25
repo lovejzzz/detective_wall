@@ -24,6 +24,7 @@ export interface Stage {
 
 const MIN_Z = 0.35;
 const MAX_Z = 2.2;
+const TRAY_W = 70;
 const clampZ = (z: number) => Math.max(MIN_Z, Math.min(MAX_Z, z));
 
 type Grab =
@@ -95,13 +96,14 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     );
   }, []);
   const framing = useCallback(
-    (pts: Note[], maxZoom: number): Camera => {
-      const xs = pts.flatMap((n) => [n.x - NOTE_SIZE[n.type].w / 2, n.x + NOTE_SIZE[n.type].w / 2]);
+    (pts: Note[], maxZoom: number, extraX: number[] = []): Camera => {
+      const xs = [...pts.flatMap((n) => [n.x - NOTE_SIZE[n.type].w / 2, n.x + NOTE_SIZE[n.type].w / 2]), ...extraX];
       const ys = pts.flatMap((n) => [n.y - NOTE_SIZE[n.type].h / 2, n.y + NOTE_SIZE[n.type].h / 2 + 44]);
       const bw = Math.max(...xs) - Math.min(...xs) + 120;
       const bh = Math.max(...ys) - Math.min(...ys) + 200;
-      const zoom = clampZ(Math.min(stage.w / bw, stage.h / bh, maxZoom));
-      return { x: (Math.max(...xs) + Math.min(...xs)) / 2, y: (Math.max(...ys) + Math.min(...ys)) / 2 - 20, zoom };
+      // The case folders take the stage's left 70px: frame what's left of it.
+      const zoom = clampZ(Math.min((stage.w - TRAY_W) / bw, stage.h / bh, maxZoom));
+      return { x: (Math.max(...xs) + Math.min(...xs)) / 2 - TRAY_W / 2 / zoom, y: (Math.max(...ys) + Math.min(...ys)) / 2 - 20, zoom };
     },
     [stage.w, stage.h],
   );
@@ -110,7 +112,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const s = toScreen(n, k);
       const hw = (NOTE_SIZE[n.type].w / 2) * k.zoom;
       const hh = (NOTE_SIZE[n.type].h / 2) * k.zoom;
-      const left = stage.cx - stage.w / 2 + 70; // clear of the case folders
+      const left = stage.cx - stage.w / 2 + TRAY_W; // clear of the case folders
       return s.x - hw > left + 24 && s.x + hw < left + stage.w - 24 && s.y - hh > 90 && s.y + hh + 44 < stage.h - 24;
     },
     [toScreen, stage],
@@ -154,9 +156,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const onLine = placed.filter((n) => timeline?.slots.get(n.id)?.row !== "aside");
       const pts = onLine.length ? onLine : placed;
       if (pts.length) {
-        const f = framing(pts, 0.8);
+        // The cord's ends carry the date tags, so frame them too.
+        const ends = timeline ? [timeline.cord.x0 - 20, timeline.cord.x1 + 20] : [];
+        const f = framing(pts, 0.8, ends);
         const zoom = Math.max(f.zoom, 0.46);
-        const left = Math.min(...pts.map((n) => n.x - NOTE_SIZE[n.type].w / 2));
+        const left = Math.min(...pts.map((n) => n.x - NOTE_SIZE[n.type].w / 2), ...ends.slice(0, 1));
         const fits = f.zoom >= 0.46;
         flyTo({ zoom, y: f.y, x: fits ? f.x : left + (stage.w / 2 - 110) / zoom }, 900);
       }
@@ -600,7 +604,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             {timeline.stops.map((st, i) => {
               const p = toScreen({ x: st.x, y: 0 });
               return (
-                <div key={`stop-${i}`} className="tl-stop" style={{ left: p.x, top: p.y, transform: `translate(-6px, -50%) scale(${tagScale})` }}>
+                <div key={`stop-${i}`} className="tl-stop" style={{ left: p.x, top: p.y, transform: `scale(${tagScale}) translate(calc(-100% - 11px), -50%)` }}>
                   {st.label}
                 </div>
               );
@@ -608,7 +612,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             {timeline.times.map((t, i) => {
               const p = toScreen({ x: t.x, y: 0 });
               return (
-                <div key={`time-${i}`} className={`tl-time ${t.above ? "is-above" : ""}`} style={{ left: p.x, top: p.y, transform: `translate(-50%, ${t.above ? "-150%" : "60%"}) scale(${tagScale})` }}>
+                <div key={`time-${i}`} className={`tl-time ${t.above ? "is-above" : ""}`} style={{ left: p.x, top: p.y, transform: `translate(-50%, ${t.above ? "-190%" : "95%"}) scale(${tagScale})` }}>
                   {t.label}
                 </div>
               );

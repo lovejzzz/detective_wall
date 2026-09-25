@@ -41,6 +41,8 @@ export interface WallUpdate {
   links: ProposedLink[];
   focus?: string;
   new_case?: { question: string };
+  /** First turn only: a short name for the case folder. */
+  case_title?: string;
 }
 
 export interface InvestigateRequest {
@@ -138,6 +140,10 @@ export const UPDATE_WALL_SCHEMA = {
       },
     },
     focus: { type: "string", description: "Id or ref of the note the spotlight should move to." },
+    case_title: {
+      type: "string",
+      description: "First turn of a case only: a short name for its folder, like a label on a case file (at most 40 characters, e.g. 'The Gardner Museum heist').",
+    },
     new_case: {
       type: "object",
       additionalProperties: false,
@@ -238,5 +244,6 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
     const q = (raw.new_case as Record<string, unknown>).question;
     if (isStr(q)) out.new_case = { question: clip(q.trim(), 120) };
   }
+  if (isStr(raw.case_title)) out.case_title = clip(raw.case_title.trim().replace(/\s+/g, " "), 48);
   return out;
 }

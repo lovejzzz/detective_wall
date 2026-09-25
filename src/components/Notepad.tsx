@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from
 import type { Case, Note } from "../lib/types.ts";
 import { useStore } from "../store.ts";
 import { ask } from "../ai/partner.ts";
+import { Typed } from "./Typed.tsx";
 import { importPhoto, isPhotoFile, photoIdOf, photoURL } from "../lib/images.ts";
 import { findFreeSpot } from "../lib/geometry.ts";
 
@@ -205,7 +206,7 @@ export function Notepad({ c }: { c: Case }) {
                     ))}
                 </div>
               )}
-              <div className="entry-text">{m.text}</div>
+              <div className="entry-text">{m.role === "assistant" ? <Typed text={m.text} /> : m.text}</div>
               {m.noteIds && m.noteIds.length > 0 && m.role === "assistant" && (
                 <button
                   className="entry-notes"
@@ -240,7 +241,7 @@ export function Notepad({ c }: { c: Case }) {
             <div className="entry entry-assistant is-live" aria-live="polite">
               <div className="entry-meta">partner · {live?.status ?? "thinking"}</div>
               <div className="entry-text">
-                {live?.text}
+                {live?.text && <Typed text={live.text} />}
                 <span className="caret" />
               </div>
             </div>

@@ -80,6 +80,19 @@ describe("timeline layout", () => {
     for (const n of dated) expect(t.slots.get(n.id)!.row).not.toBe("aside");
     expect(t.stops[0].label).toBe("24 Nov 1971");
   });
+
+  it("alternates single events across the cord so a long line stays compact, in order", () => {
+    const days = ["1948-11-30", "1948-12-01", "1949-01-14", "1949-06-17", "1949-07", "1949-08"];
+    const t = layoutTimeline(days.map((d, i) => note(`n${i}`, d)));
+    const slots = days.map((_, i) => t.slots.get(`n${i}`)!);
+    expect(slots.map((s) => s.row)).toEqual(["above", "below", "above", "below", "above", "below"]);
+    const anchors = slots.map((s) => s.anchor.x);
+    for (let i = 1; i < anchors.length; i++) expect(anchors[i]).toBeGreaterThan(anchors[i - 1]);
+    // every date tag gets its own room on the cord
+    for (let i = 1; i < t.stops.length; i++) expect(t.stops[i].x - t.stops[i - 1].x).toBeGreaterThanOrEqual(170);
+    // well short of hanging every note side by side (248 wide + 34 apart)
+    expect(t.cord.x1 - t.cord.x0).toBeLessThan(days.length * 282 * 0.85);
+  });
 });
 
 describe("dates in the tool contract", () => {
@@ -96,5 +109,11 @@ describe("dates in the tool contract", () => {
     );
     expect(out.notes[0]).toMatchObject({ when: "1971-11-24T20:00", approx: true });
     expect(out.notes[1].when).toBeUndefined();
+  });
+
+  it("keeps a short case name and clips a long one", () => {
+    expect(sanitizeWallUpdate({ notes: [], links: [], case_title: "  The Gardner   Museum heist " }, new Set()).case_title).toBe("The Gardner Museum heist");
+    expect(sanitizeWallUpdate({ notes: [], links: [], case_title: "x".repeat(80) }, new Set()).case_title!.length).toBe(48);
+    expect(sanitizeWallUpdate({ notes: [], links: [], case_title: " " }, new Set()).case_title).toBeUndefined();
   });
 });

@@ -189,10 +189,17 @@ kbd {
   --rel: #9c8457;
 }
 .tag3d button {
+  position: relative;
   border: 0;
   background: none;
   padding: 2px 5px;
   font: 14px/1 var(--typed);
+}
+/* a finger-sized hit area around the small printed marks */
+.tag3d button::after {
+  content: "";
+  position: absolute;
+  inset: -9px -4px;
 }
 .tag3d button:first-of-type {
   color: #2e7d32;
@@ -455,6 +462,25 @@ kbd {
 .entry-assistant .entry-text {
   font: 14px/28px var(--typed);
   color: #24211c;
+}
+/* typewriter emphasis: underlined, since the machine has no bold */
+.entry-text .t-em {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.entry-text em {
+  font-style: normal;
+  letter-spacing: 0.06em;
+}
+.entry-text a {
+  color: #3c3322;
+  text-decoration: underline dotted #8a7a5a;
+  text-underline-offset: 3px;
+}
+.entry-text a:hover {
+  color: #a61e17;
+  text-decoration-color: currentColor;
 }
 .entry.is-resume .entry-text {
   color: #5a4f3c;
@@ -1443,7 +1469,8 @@ kbd {
   white-space: nowrap;
 }
 .tl-stop {
-  padding: 5px 10px 4px 14px;
+  transform-origin: 0 0;
+  padding: 5px 15px 4px 10px;
   font: 14px/1 var(--typed);
   letter-spacing: 0.04em;
   color: #2b261e;
@@ -1451,8 +1478,8 @@ kbd {
   box-shadow:
     0 1px 1px rgba(0, 0, 0, 0.3),
     0 8px 12px -6px rgba(0, 0, 0, 0.7);
-  clip-path: polygon(9px 0, 100% 0, 100% 100%, 9px 100%, 0 50%);
-  translate: 0 -26px;
+  /* a paper tag threaded on the cord, pointing at the event it dates */
+  clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 0 100%);
 }
 .tl-time {
   transform-origin: 50% 50%;

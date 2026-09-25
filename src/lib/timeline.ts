@@ -28,6 +28,8 @@ export interface TimelineLayout {
 
 const GAP_Y = 64; // between the cord and the nearest edge of a note (room for the date tags)
 const COL_GAP = 34;
+/** Room on the cord for a date tag, which sits just before its first event. */
+const STOP_GAP = 170;
 
 function gapLabel(years: number): string {
   if (years >= 1.5) return `≈ ${Math.round(years)} years`;
@@ -52,12 +54,24 @@ export function layoutTimeline(notes: Note[]): TimelineLayout {
   const stops: TimelineLayout["stops"] = [];
   const times: TimelineLayout["times"] = [];
   const gaps: TimelineLayout["gaps"] = [];
-  let x = 0;
+
+  // Notes hang on whichever side of the cord has room first, so consecutive events alternate
+  // above and below and the line stays about half as long. Each side keeps its own free edge;
+  // anchors never go backwards in time, and each date gets room on the cord for its tag.
+  const free = { above: 0, below: 0 };
+  let maxAnchor = -Infinity;
+  let lastSide: "above" | "below" = "below";
   let prevYears: number | null = null;
 
-  const place = (n: Note, cx: number, row: "above" | "below" | "aside", yOffset = 0) => {
-    const { h } = NOTE_SIZE[n.type];
-    const y = row === "above" ? -(GAP_Y + h / 2) : GAP_Y + h / 2 + yOffset;
+  const place = (n: Note, minAnchor: number) => {
+    const { w, h } = NOTE_SIZE[n.type];
+    const leftOf = (side: "above" | "below") => Math.max(free[side], minAnchor - w / 2);
+    const a = leftOf("above");
+    const b = leftOf("below");
+    const row: "above" | "below" = a < b ? "above" : b < a ? "below" : lastSide === "above" ? "below" : "above";
+    const left = row === "above" ? a : b;
+    const cx = left + w / 2;
+    const y = row === "above" ? -(GAP_Y + h / 2) : GAP_Y + h / 2;
     const attachY = row === "above" ? y + h / 2 - 6 : y - h / 2 + 18;
     slots.set(n.id, {
       x: cx,
@@ -67,35 +81,30 @@ export function layoutTimeline(notes: Note[]): TimelineLayout {
       attach: { x: cx, y: attachY },
       row,
     });
+    free[row] = left + w + COL_GAP;
+    maxAnchor = Math.max(maxAnchor, cx);
+    lastSide = row;
+    return { cx, row };
   };
 
   groups.forEach((group) => {
     const years = whenYears(group[0].when!);
-    if (prevYears !== null) {
-      const gap = years - prevYears;
-      if (gap > 0.4) {
-        x += 70;
-        gaps.push({ x, label: gapLabel(gap) });
-        x += 110;
-      } else x += 50;
+    let minAnchor = maxAnchor + STOP_GAP;
+    if (prevYears !== null && years - prevYears > 0.4) {
+      const gx = maxAnchor + 90;
+      gaps.push({ x: gx, label: gapLabel(years - prevYears) });
+      minAnchor = gx + 70 + STOP_GAP;
     }
-    stops.push({ x, label: whenLabel(whenDay(group[0].when!), group.every((n) => n.approx)) });
-    // Columns of two: above the cord, then below it.
-    for (let i = 0; i < group.length; i += 2) {
-      const pair = group.slice(i, i + 2);
-      const colW = Math.max(...pair.map((n) => NOTE_SIZE[n.type].w));
-      const cx = x + colW / 2;
-      pair.forEach((n, k) => {
-        place(n, cx, k === 0 ? "above" : "below");
-        if (precisionOf(n.when!) === "time") times.push({ x: cx, label: `${n.approx ? "c. " : ""}${n.when!.split("T")[1]}`, above: k === 0 });
-      });
-      x += colW + COL_GAP;
-    }
-    x -= COL_GAP;
+    group.forEach((n, i) => {
+      const { cx, row } = place(n, i === 0 ? minAnchor : maxAnchor);
+      if (i === 0) stops.push({ x: cx, label: whenLabel(whenDay(n.when!), group.every((g) => g.approx)) });
+      if (precisionOf(n.when!) === "time") times.push({ x: cx, label: `${n.approx ? "c. " : ""}${n.when!.split("T")[1]}`, above: row === "above" });
+    });
     prevYears = years;
   });
 
-  const cord = { x0: -60, x1: Math.max(x, 0) + 60 };
+  const firstLeft = stops.length ? Math.min(...stops.map((st) => st.x)) - STOP_GAP : 0;
+  const cord = { x0: Math.min(-60, firstLeft), x1: Math.max(free.above, free.below, 0) - COL_GAP + 60 };
 
   // Undated evidence waits in a tray below the line, so the line itself stays compact to frame.
   let aside: TimelineLayout["aside"] = null;

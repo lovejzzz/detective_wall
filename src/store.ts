@@ -127,6 +127,13 @@ const debouncedStorage: StateStorage = (() => {
 
 const STICKY_CYCLE: StickyColor[] = ["yellow", "blue", "green", "pink"];
 
+const titleFrom = (text: string) => (text.length > 90 ? text.slice(0, 89).trimEnd() + "…" : text);
+/** True while a case is still named after its opening question (nobody has renamed it). */
+function isAutoTitle(c: Case): boolean {
+  const q = c.messages.find((m) => m.role === "user")?.text.trim();
+  return c.title === "Untitled case" || !q || c.title === q || c.title === titleFrom(q);
+}
+
 function blankCase(title: string): Case {
   const now = Date.now();
   return {
@@ -244,7 +251,7 @@ export const useStore = create<Store>()(
               c.notes.push(note);
               c.focusNoteId = note.id;
               msg.noteIds = [note.id];
-              if (c.title === "Untitled case") c.title = text.length > 90 ? text.slice(0, 89).trimEnd() + "…" : text;
+              if (c.title === "Untitled case") c.title = titleFrom(text);
             }
             c.messages.push(msg);
           });
@@ -326,6 +333,9 @@ export const useStore = create<Store>()(
             const focus = update.focus ? resolve(update.focus) : created[0];
             if (focus) c.focusNoteId = focus;
             newCaseQuestion = update.new_case?.question;
+            // The partner names a new case once, on its first reply, unless the user already has.
+            if (update.case_title && !c.messages.some((m) => m.role === "assistant" && m.id !== msgId) && isAutoTitle(c))
+              c.title = update.case_title;
           });
           if (newCaseQuestion) get().newCase(newCaseQuestion);
         },

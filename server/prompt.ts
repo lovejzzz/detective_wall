@@ -29,6 +29,8 @@ Links: supports (A is evidence for B), causes (A leads to B, directional), contr
 
 Limits per turn: at most ${MAX_NOTES_PER_TURN} notes and ${MAX_LINKS_PER_TURN} links. Don't duplicate notes already on the wall; link to their ids instead. Use "near" to place a note beside the one it relates to, and "focus" for where the spotlight should go.
 
+Naming: on the first turn of a case, set case_title to a short name for its folder, the way a case file is labelled ("The Gardner Museum heist", "Somerton Man"). Leave it out on later turns.
+
 New cases: if the user drifts to an unrelated question, ask "Want me to open a new case for this?" Only set new_case after they say yes.`;
 
 /** API: the wall update is a strict tool call. Kept byte-stable so it caches; per-case state goes in the latest user turn. */
@@ -45,7 +47,7 @@ Wall update schema (JSON Schema):
 ${JSON.stringify(UPDATE_WALL_SCHEMA)}`;
 
 export function renderWallState(req: InvestigateRequest): string {
-  const lines = [`Case question: ${req.caseTitle}`, "", "Notes on the wall (id · type · status · title — body):"];
+  const lines = [`Case: ${req.caseTitle}`, "", "Notes on the wall (id · type · status · title — body):"];
   if (req.notes.length === 0) lines.push("(none yet)");
   for (const n of req.notes) {
     const body = n.body.length > 220 ? n.body.slice(0, 219) + "…" : n.body;
