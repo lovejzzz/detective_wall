@@ -1,12 +1,22 @@
 import { create } from "zustand";
 import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
-import type { Camera, Case, Message, Note, NoteType, Relation, StickyColor } from "./lib/types.ts";
+import type { Camera, Case, Link, Message, Note, NoteType, Relation, StickyColor } from "./lib/types.ts";
 import type { WallUpdate } from "./lib/contract.ts";
 import { findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
 import { seedCase } from "./lib/seed.ts";
 import { COOPER_DEMO, coldCase } from "./lib/coldcase.ts";
 
 export type PartnerMode = "unknown" | "live" | "offline";
+
+/** What undo restores: the wall itself. The conversation log is a record and is never rewritten. */
+interface Snapshot {
+  notes: Note[];
+  links: Link[];
+  focusNoteId: string | null;
+  label: string;
+}
+
+const HISTORY_LIMIT = 80;
 
 interface State {
   cases: Record<string, Case>;
@@ -26,6 +36,10 @@ interface State {
   previousOpen: Record<string, number | undefined>;
   /** The partner's reply while it is still being typed out. */
   live: { text: string; status?: string } | null;
+  /** Undo/redo stacks per case (this visit only). */
+  history: Record<string, { past: Snapshot[]; future: Snapshot[] }>;
+  /** The last undoable thing that happened, for the undo slip. */
+  lastAction: { label: string; at: number; destructive: boolean } | null;
 }
 
 interface Actions {
@@ -59,6 +73,12 @@ interface Actions {
   setPendingLink(p: State["pendingLink"]): void;
   setHoverNote(id: string | null): void;
   setLive(live: State["live"] | ((prev: State["live"]) => State["live"])): void;
+
+  /** Saves the wall so the next change can be undone. */
+  checkpoint(label: string, destructive?: boolean): void;
+  undo(): void;
+  redo(): void;
+  dismissLastAction(): void;
 }
 
 export type Store = State & Actions;
@@ -146,7 +166,21 @@ export const useStore = create<Store>()(
         set({ cases: { ...get().cases, [caseId]: draft } });
       };
 
+      const snap = (c: Case, label: string): Snapshot => ({ notes: c.notes, links: c.links, focusNoteId: c.focusNoteId, label });
+      const noteTitle = (id: string) => {
+        const { activeId, cases } = get();
+        const t = activeId ? cases[activeId]?.notes.find((n) => n.id === id)?.title : undefined;
+        return t ? `“${t.length > 40 ? t.slice(0, 39) + "…" : t}”` : "a note";
+      };
+      /** Checkpoints the active case, then mutates it. */
+      const act = (label: string, fn: (c: Case) => Case | void, destructive = false) => {
+        get().checkpoint(label, destructive);
+        mutateActive(fn);
+      };
+
       return {
+        history: {},
+        lastAction: null,
         cases: {},
         order: [],
         activeId: null,
@@ -214,6 +248,7 @@ export const useStore = create<Store>()(
 
         applyTurn(caseId, { reply, update, sources, offline }) {
           const msgId = uid();
+          if ((update.notes.length || update.links.length) && caseId === get().activeId) get().checkpoint("Partner's proposals");
           let newCaseQuestion: string | undefined;
           mutateCase(caseId, (c) => {
             const refToId = new Map<string, string>();
@@ -312,6 +347,8 @@ export const useStore = create<Store>()(
           });
         },
         updateNote(noteId, patch) {
+          // Text edits are checkpointed once per editing session by the dossier; the rest here.
+          if (patch.type || patch.color || patch.stamp) get().checkpoint(`Changed ${noteTitle(noteId)}`);
           mutateActive((c) => {
             const n = c.notes.find((x) => x.id === noteId);
             if (!n) return;
@@ -321,7 +358,7 @@ export const useStore = create<Store>()(
           });
         },
         pinNote(noteId) {
-          mutateActive((c) => {
+          act(`Pinned ${noteTitle(noteId)}`, (c) => {
             const n = c.notes.find((x) => x.id === noteId);
             if (!n) return;
             n.status = "pinned";
@@ -330,18 +367,22 @@ export const useStore = create<Store>()(
           });
         },
         tossNote(noteId) {
-          mutateActive((c) => {
-            c.notes = c.notes.filter((n) => n.id !== noteId);
-            c.links = c.links.filter((l) => l.from !== noteId && l.to !== noteId);
-            if (c.focusNoteId === noteId) c.focusNoteId = c.notes.at(-1)?.id ?? null;
-          });
+          act(
+            `Took down ${noteTitle(noteId)}`,
+            (c) => {
+              c.notes = c.notes.filter((n) => n.id !== noteId);
+              c.links = c.links.filter((l) => l.from !== noteId && l.to !== noteId);
+              if (c.focusNoteId === noteId) c.focusNoteId = c.notes.at(-1)?.id ?? null;
+            },
+            true,
+          );
           if (get().dossierId === noteId) set({ dossierId: null });
         },
         removeNote(noteId) {
           get().tossNote(noteId);
         },
         addLink(from, to, relation) {
-          mutateActive((c) => {
+          act("Tied a string", (c) => {
             const existing = c.links.find((x) => (x.from === from && x.to === to) || (x.from === to && x.to === from));
             if (existing) {
               Object.assign(existing, { from, to, relation, status: "pinned", createdBy: "user" });
@@ -352,7 +393,7 @@ export const useStore = create<Store>()(
         },
         pinLink(linkId) {
           // Accepting a string accepts the notes at both ends.
-          mutateActive((c) => {
+          act("Tied a string", (c) => {
             const l = c.links.find((x) => x.id === linkId);
             if (!l) return;
             l.status = "pinned";
@@ -364,7 +405,7 @@ export const useStore = create<Store>()(
           });
         },
         tossLink(linkId) {
-          mutateActive((c) => void (c.links = c.links.filter((l) => l.id !== linkId)));
+          act("Cut a string", (c) => void (c.links = c.links.filter((l) => l.id !== linkId)), true);
         },
         removeLink(linkId) {
           get().tossLink(linkId);
@@ -388,6 +429,51 @@ export const useStore = create<Store>()(
         },
         setHoverNote(hoverNoteId) {
           if (get().hoverNoteId !== hoverNoteId) set({ hoverNoteId });
+        },
+        checkpoint(label, destructive = false) {
+          const { activeId, cases, history } = get();
+          const c = activeId ? cases[activeId] : undefined;
+          if (!c || !activeId) return;
+          const h = history[activeId] ?? { past: [], future: [] };
+          const top = h.past[h.past.length - 1];
+          // Nothing changed since the last checkpoint (e.g. focusing a field twice): don't add an empty step.
+          if (top && top.notes === c.notes && top.links === c.links) {
+            if (destructive) set({ lastAction: { label, at: Date.now(), destructive } });
+            return;
+          }
+          set({
+            history: { ...history, [activeId]: { past: [...h.past, snap(c, label)].slice(-HISTORY_LIMIT), future: [] } },
+            lastAction: { label, at: Date.now(), destructive },
+          });
+        },
+        undo() {
+          const { activeId, cases, history } = get();
+          const c = activeId ? cases[activeId] : undefined;
+          const h = activeId ? history[activeId] : undefined;
+          if (!c || !activeId || !h?.past.length) return;
+          const prev = h.past[h.past.length - 1];
+          set({
+            cases: { ...cases, [activeId]: { ...c, notes: prev.notes, links: prev.links, focusNoteId: prev.focusNoteId, updatedAt: Date.now() } },
+            history: { ...history, [activeId]: { past: h.past.slice(0, -1), future: [...h.future, snap(c, prev.label)] } },
+            lastAction: null,
+            dossierId: null,
+            pendingLink: null,
+          });
+        },
+        redo() {
+          const { activeId, cases, history } = get();
+          const c = activeId ? cases[activeId] : undefined;
+          const h = activeId ? history[activeId] : undefined;
+          if (!c || !activeId || !h?.future.length) return;
+          const next = h.future[h.future.length - 1];
+          set({
+            cases: { ...cases, [activeId]: { ...c, notes: next.notes, links: next.links, focusNoteId: next.focusNoteId, updatedAt: Date.now() } },
+            history: { ...history, [activeId]: { past: [...h.past, snap(c, next.label)], future: h.future.slice(0, -1) } },
+            lastAction: null,
+          });
+        },
+        dismissLastAction() {
+          set({ lastAction: null });
         },
         setLive(live) {
           set((s) => ({ live: typeof live === "function" ? live(s.live) : live }));

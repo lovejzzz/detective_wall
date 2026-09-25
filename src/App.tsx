@@ -4,6 +4,7 @@ import type { Stage } from "./components/Wall.tsx";
 import { Notepad } from "./components/Notepad.tsx";
 import { CaseTray } from "./components/CaseTray.tsx";
 import { Dossier, LinkPicker } from "./components/Dossier.tsx";
+import { UndoSlip } from "./components/UndoSlip.tsx";
 
 // The WebGL wall is the heavy part; load it separately so the room's paper objects appear first.
 const Wall = lazy(() => import("./components/Wall.tsx").then((m) => ({ default: m.Wall })));
@@ -31,6 +32,20 @@ function useWallKeys() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
+      // Undo / redo for the wall. Inside text fields the browser's own undo applies.
+      if ((e.metaKey || e.ctrlKey) && !t.closest("input, textarea, select")) {
+        const k = e.key.toLowerCase();
+        if (k === "z" && !e.shiftKey) {
+          e.preventDefault();
+          useStore.getState().undo();
+          return;
+        }
+        if ((k === "z" && e.shiftKey) || k === "y") {
+          e.preventDefault();
+          useStore.getState().redo();
+          return;
+        }
+      }
       if (t.closest("input, textarea, select, [role=dialog]") || e.metaKey || e.ctrlKey || e.altKey) return;
       const s = useStore.getState();
       const c = s.activeId ? s.cases[s.activeId] : undefined;
@@ -95,6 +110,7 @@ export function App() {
         </span>
         <span>drag a pin to tie string</span>
       </div>
+      <UndoSlip left={stage.cx} />
       <Dossier c={c} />
       <LinkPicker />
     </div>

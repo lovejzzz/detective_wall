@@ -312,6 +312,7 @@ interface Message {
 | `P` / `X` | Pin / toss a focused proposal |
 | `/` | Jump to the typewriter |
 | `0` | Reset the camera |
+| `⌘Z` / `Ctrl+Z`, `⇧⌘Z` / `Ctrl+Y` | Undo / redo a change to the wall (the conversation log is never rewritten) |
 
 ---
 
@@ -339,9 +340,11 @@ interface Message {
 | Phase | Scope |
 |---|---|
 | **v1.0** | Case walls and switching, six note types, proposed/pinned flow, dossier, strings (AI-proposed plus manual drag), pan and zoom, lighting and dust, AI partner with offline fallback, localStorage |
-| v1.2 | Rearrange strings (re-pin an end), editable string reasons, undo/redo, optional room sound |
+| v1.2 | Rearrange strings (re-pin an end), editable string reasons, optional room sound |
 | v1.5 | Search and filter (dims non-matches), photo upload, IndexedDB, minimap |
 | v2.0 | Collaboration (shared case, live cursors as flashlights), export as JSON/PNG/SVG, share a read-only wall |
+
+**Moved into v1.0 after review:** undo/redo with an undo slip, and overview labels (masking tape with the title in marker) that fade in once the paper's own type gets too small to read. Both came out of a UX pass on the demo case.
 
 ### v1.0 acceptance criteria
 - [ ] Asking a question on an empty wall creates a case, pins the question, and moves the spotlight to it.

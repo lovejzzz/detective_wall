@@ -46,6 +46,8 @@ npm start                 # serves dist/ and the API on $PORT (default 8787)
 | Tie a string | Drag from a note's pin to another note, then pick *supports*, *causes*, *contradicts* or *references* (keys `1`–`4`) |
 | Open a note | Click it once to focus it, click again to open its file (`Enter` works too). Edits save as you type. |
 | Move around | Drag empty cork to pan. Scroll or pinch to zoom. `0` shows the whole wall. `Tab` moves through the notes. |
+| Undo | `⌘Z` / `Ctrl+Z` undoes the last change to the wall (take down, cut, tie, pin, move, edit, the partner's proposals); `⇧⌘Z` / `Ctrl+Y` redoes it. Anything taken down leaves a slip with an Undo button. |
+| Overview | Zoom out and each note gets a masking-tape label with its title, so the whole case stays readable from a distance. |
 | Cases | The manila folders on the left. Hover one to read it, click it to open it, and "+" starts a new case. |
 
 Everything is saved in your browser's localStorage.

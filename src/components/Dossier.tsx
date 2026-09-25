@@ -70,11 +70,13 @@ export function Dossier({ c }: { c: Case }) {
             value={note.title}
             maxLength={120}
             onChange={(e) => s.updateNote(note.id, { title: e.target.value })}
+            onFocus={() => s.checkpoint("Edited a note")}
             aria-label="Title"
           />
           <textarea
             className="d-body"
             value={note.body}
+            onFocus={() => s.checkpoint("Edited a note")}
             maxLength={600}
             rows={5}
             onChange={(e) => s.updateNote(note.id, { body: e.target.value })}

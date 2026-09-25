@@ -1299,3 +1299,96 @@ kbd {
 .d-proposed {
   color: #8a7c62;
 }
+
+/* ───────────────────────── Undo slip ───────────────────────── */
+
+.undo-slip {
+  position: fixed;
+  bottom: 58px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: min(520px, 90vw);
+  padding: 9px 16px 8px;
+  translate: -50% 0;
+  rotate: -0.8deg;
+  font: 14px/1.2 var(--typed);
+  color: var(--ink);
+  background: #f3ecdb var(--grain);
+  box-shadow: 0 14px 26px -10px rgba(0, 0, 0, 0.85);
+  clip-path: polygon(0 4%, 3% 0, 30% 3%, 58% 0, 86% 4%, 100% 0, 99% 96%, 70% 100%, 42% 97%, 14% 100%, 0 97%);
+  animation: slip-in 0.28s cubic-bezier(0.3, 0.7, 0.2, 1);
+  transition: left 0.45s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.undo-slip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.undo-slip button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 3px;
+  border: 1.5px solid #9b3a2a;
+  border-radius: 2px;
+  background: none;
+  font: 13px/1 var(--typed);
+  color: #9b3a2a;
+  letter-spacing: 0.06em;
+}
+.undo-slip button:hover {
+  background: rgba(155, 58, 42, 0.08);
+}
+.undo-slip kbd {
+  font-size: 11px;
+  opacity: 0.7;
+}
+@keyframes slip-in {
+  from {
+    translate: -50% 16px;
+    opacity: 0;
+  }
+}
+@media (max-width: 759px) {
+  .undo-slip {
+    bottom: calc(55vh + 16px);
+  }
+}
+
+/* ───────────────────────── Overview labels ───────────────────────── */
+
+/* A strip of masking tape with the title in marker, shown when the wall is too far away to read. */
+.far-label {
+  position: absolute;
+  padding: 4px 10px 3px;
+  font: 700 16px/1.05 var(--hand);
+  color: #1d2640;
+  text-align: center;
+  background: rgba(236, 224, 188, 0.93) var(--grain);
+  box-shadow: 0 3px 8px -3px rgba(0, 0, 0, 0.6);
+  clip-path: polygon(1% 6%, 5% 0, 96% 3%, 100% 10%, 98% 94%, 94% 100%, 3% 96%, 0 90%);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  text-wrap: balance;
+}
+.far-label.far-conclusion {
+  color: #7a1c14;
+}
+.far-label.is-focus {
+  background-color: rgba(255, 236, 190, 0.97);
+  box-shadow:
+    0 3px 8px -3px rgba(0, 0, 0, 0.6),
+    0 0 0 2px rgba(255, 210, 140, 0.45);
+}
+.far-label.is-proposed {
+  background-color: rgba(245, 240, 226, 0.85);
+  outline: 1.5px dashed rgba(40, 36, 30, 0.5);
+  outline-offset: 2px;
+}

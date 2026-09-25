@@ -125,8 +125,10 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
       alphaTest: note.type === "web" ? 0.5 : 0,
       envMapIntensity: 0.4,
     };
-    if (note.type === "photo") return new THREE.MeshPhysicalMaterial({ ...common, roughness: 0.55, clearcoat: 0.7, clearcoatRoughness: 0.22 });
-    return new THREE.MeshStandardMaterial({ ...common, roughness: note.type === "hypothesis" ? 0.78 : 0.9 });
+    // emissiveMap = the paper itself, so a glow reads as light on the sheet, not a coloured wash.
+    const glow = { emissive: new THREE.Color("#ffe2b8"), emissiveMap: tex, emissiveIntensity: 0 };
+    if (note.type === "photo") return new THREE.MeshPhysicalMaterial({ ...common, ...glow, roughness: 0.55, clearcoat: 0.7, clearcoatRoughness: 0.22 });
+    return new THREE.MeshStandardMaterial({ ...common, ...glow, roughness: note.type === "hypothesis" ? 0.78 : 0.9 });
   }, [tex, note.type, paperNormal, w, h]);
   useEffect(() => () => material.dispose(), [material]);
 
@@ -161,6 +163,10 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
     g.rotation.x += (sway - g.rotation.x) * k;
     const s = g.scale.x + (target.current.scale - g.scale.x) * k;
     g.scale.setScalar(s);
+    // New evidence warms up as it arrives, and loose sheets stay faintly lit so none hide in the dark.
+    const age = (Date.now() - note.createdAt) / 1000;
+    const arrival = age < 6 ? 0.45 * (1 - age / 6) ** 2 : 0;
+    material.emissiveIntensity = Math.max(arrival, proposed ? 0.1 : 0);
   });
 
   return (

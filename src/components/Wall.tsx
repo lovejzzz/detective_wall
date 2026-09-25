@@ -225,6 +225,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const dx = e.clientX - grab.px;
       const dy = e.clientY - grab.py;
       if (!grab.moved && Math.hypot(dx, dy) < 4) return;
+      if (!grab.moved) store().checkpoint("Moved a note");
       grab.moved = true;
       const z = camRef.current.zoom;
       store().moveNote(grab.id, Math.round(grab.x + dx / z), Math.round(grab.y + dy / z));
@@ -319,6 +320,27 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   });
   const draggingId = grab?.kind === "note" && grab.moved ? grab.id : null;
   const tagScale = Math.max(0.6, Math.min(1, cam.zoom * 1.25));
+  // Far away, the paper's own type is too small to read: tape a marker label over each note.
+  const farOpacity = Math.max(0, Math.min(1, (0.68 - cam.zoom) / 0.14));
+  // Proposed-string tags: nudge apart so they never stack on top of each other.
+  const tagSpots = (() => {
+    const spots = new Map<string, { x: number; y: number }>();
+    const placed: { x: number; y: number }[] = [];
+    const tw = 118 * tagScale;
+    const th = 30 * tagScale;
+    const byId = new Map(c.notes.map((n) => [n.id, n]));
+    const proposed = c.links.filter((l) => l.status === "proposed");
+    for (const l of proposed) {
+      const a = byId.get(l.from);
+      const b = byId.get(l.to);
+      if (!a || !b) continue;
+      const p = toScreen(stringMid(a, b));
+      for (let i = 0; i < 8 && placed.some((q) => Math.abs(q.x - p.x) < tw && Math.abs(q.y - p.y) < th); i++) p.y += th;
+      placed.push(p);
+      spots.set(l.id, p);
+    }
+    return spots;
+  })();
   const tabScale = Math.max(0.75, Math.min(1, cam.zoom * 1.35));
 
   return (
@@ -390,13 +412,28 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               </div>
             );
           })}
+        {farOpacity > 0 &&
+          c.notes.map((n) => {
+            const p = toScreen(n);
+            const w = Math.max(96, NOTE_SIZE[n.type].w * cam.zoom * 1.1);
+            return (
+              <div
+                key={`far-${n.id}`}
+                className={`far-label far-${n.type} ${n.status === "proposed" ? "is-proposed" : ""} ${n.id === c.focusNoteId ? "is-focus" : ""}`}
+                style={{ left: p.x, top: p.y, maxWidth: w, opacity: farOpacity, transform: `translate(-50%, -50%) rotate(${n.rotation}deg)` }}
+                aria-hidden
+              >
+                {n.title}
+              </div>
+            );
+          })}
         {c.links.map((l) => {
           const a = c.notes.find((n) => n.id === l.from);
           const b = c.notes.find((n) => n.id === l.to);
           if (!a || !b) return null;
           if (l.status === "pinned" && openTag !== l.id) return null;
           const m = stringMid(a, b);
-          const p = toScreen(m);
+          const p = l.status === "proposed" ? (tagSpots.get(l.id) ?? toScreen(m)) : toScreen(m);
           const info = RELATION_INFO[l.relation];
           if (l.status === "proposed") {
             const flipped = m.angle > Math.PI / 2 || m.angle < -Math.PI / 2;
