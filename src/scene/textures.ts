@@ -64,9 +64,14 @@ export interface CorkTextures {
   map: THREE.CanvasTexture;
   normalMap: THREE.CanvasTexture;
   roughnessMap: THREE.CanvasTexture;
+  /** Very low-frequency variation, sampled at a much larger scale so the tile never shows. */
+  macro: THREE.CanvasTexture;
 }
 
-/** Agglomerated cork: warm granules of varied size, a few deep pits, soft mottling. */
+/**
+ * Agglomerated cork as it really looks up close: a dense, fairly even crumb of close warm browns,
+ * a faint sheen on some granules, a few shallow pits, and the odd pin hole from notes long gone.
+ */
 export function makeCork(size = 1024): CorkTextures {
   const rand = mulberry32(11);
   const albedo = canvas(size);
@@ -75,87 +80,172 @@ export function makeCork(size = 1024): CorkTextures {
   const a = albedo.getContext("2d")!;
   const h = height.getContext("2d")!;
   const r = rough.getContext("2d")!;
-  a.fillStyle = "#86603f";
+  a.fillStyle = "#86674a";
   a.fillRect(0, 0, size, size);
-  h.fillStyle = "#6e6e6e";
+  h.fillStyle = "#707070";
   h.fillRect(0, 0, size, size);
-  r.fillStyle = "#e8e8e8";
+  r.fillStyle = "#dedede";
   r.fillRect(0, 0, size, size);
 
-  // Low-frequency mottling so the tile doesn't read as a repeat.
-  for (let i = 0; i < 180; i++) {
+  // Gentle mid-frequency mottling (the macro map handles the large scale).
+  for (let i = 0; i < 260; i++) {
     const x = rand() * size;
     const y = rand() * size;
-    const rad = 30 + rand() * 120;
+    const rad = 20 + rand() * 70;
     const light = rand() > 0.5;
     wrapped(size, x, y, rad, (px, py) => {
       const g = a.createRadialGradient(px, py, 0, px, py, rad);
-      g.addColorStop(0, light ? "rgba(214,160,104,0.10)" : "rgba(70,40,18,0.10)");
+      g.addColorStop(0, light ? "rgba(196,156,112,0.07)" : "rgba(64,42,24,0.07)");
       g.addColorStop(1, "rgba(0,0,0,0)");
       a.fillStyle = g;
       a.fillRect(px - rad, py - rad, rad * 2, rad * 2);
     });
   }
 
-  const palette = ["#6a4629", "#b08660", "#835d3b", "#c19a70", "#553722", "#9e7650", "#cfab83", "#74502f"];
-  const granule = (x: number, y: number, rx: number, ry: number, rot: number, color: string, alpha: number, hv: number) => {
+  // Close values: cork reads as one warm material, not as confetti.
+  const palette = ["#7a5b3e", "#8c6b4c", "#977657", "#6f5237", "#a08060", "#846448", "#8f7052", "#735640"];
+  const granule = (x: number, y: number, rx: number, ry: number, rot: number, color: string, alpha: number, hv: number, rv: number) => {
     wrapped(size, x, y, rx + 2, (px, py) => {
       a.globalAlpha = alpha;
       a.fillStyle = color;
       a.beginPath();
       a.ellipse(px, py, rx, ry, rot, 0, Math.PI * 2);
       a.fill();
-      h.globalAlpha = 0.85;
+      h.globalAlpha = 0.7;
       h.fillStyle = `rgb(${hv},${hv},${hv})`;
       h.beginPath();
-      h.ellipse(px, py, rx * 0.9, ry * 0.9, rot, 0, Math.PI * 2);
+      h.ellipse(px, py, rx * 0.85, ry * 0.85, rot, 0, Math.PI * 2);
       h.fill();
+      r.globalAlpha = 0.5;
+      r.fillStyle = `rgb(${rv},${rv},${rv})`;
+      r.beginPath();
+      r.ellipse(px, py, rx, ry, rot, 0, Math.PI * 2);
+      r.fill();
     });
   };
 
-  // Granules at real scale (a 76 mm sticky is ~196 px, so cork crumbs are 5–15 px across),
-  // biggest first so the small ones pack into the gaps.
+  // Crumbs at real scale, biggest first so the small ones pack into the gaps.
   const items = [
-    ...Array.from({ length: 4200 }, () => ({ s: 4 + rand() * rand() * 11, x: rand() * size, y: rand() * size })),
-    ...Array.from({ length: 16000 }, () => ({ s: 1 + rand() * 2.6, x: rand() * size, y: rand() * size })),
+    ...Array.from({ length: 7000 }, () => ({ s: 2.2 + rand() * rand() * 5.5, x: rand() * size, y: rand() * size })),
+    ...Array.from({ length: 30000 }, () => ({ s: 0.8 + rand() * 1.6, x: rand() * size, y: rand() * size })),
   ].sort((p, q) => q.s - p.s);
   for (const it of items) {
     const color = palette[Math.floor(rand() * palette.length)];
-    // Crumbs are irregular: squash and rotate each one.
-    granule(it.x, it.y, it.s, it.s * (0.55 + rand() * 0.45), rand() * Math.PI, color, 0.7 + rand() * 0.3, 110 + Math.floor(rand() * 120));
+    granule(it.x, it.y, it.s, it.s * (0.55 + rand() * 0.45), rand() * Math.PI, color, 0.55 + rand() * 0.4, 100 + Math.floor(rand() * 70), 200 + Math.floor(rand() * 45));
   }
-  // Pits: dark and low.
-  for (let i = 0; i < 700; i++) {
-    const s = 1 + rand() * 3.2;
-    granule(rand() * size, rand() * size, s, s * (0.5 + rand() * 0.5), rand() * Math.PI, "#3a2210", 0.7, 15);
+  // Shallow pits: a little darker and lower, never black holes.
+  for (let i = 0; i < 380; i++) {
+    const s = 0.8 + rand() * 1.8;
+    granule(rand() * size, rand() * size, s, s * (0.5 + rand() * 0.5), rand() * Math.PI, "#58402a", 0.5, 70, 235);
   }
-  // Specks of light: the sheen that catches a raking lamp.
-  a.globalAlpha = 1;
-  for (let i = 0; i < 700; i++) {
+  // Old pin holes: a dark prick with a crushed, slightly shiny ring around it.
+  for (let i = 0; i < 26; i++) {
     const x = rand() * size;
     const y = rand() * size;
-    a.fillStyle = `rgba(240,205,160,${0.18 + rand() * 0.25})`;
-    a.fillRect(x, y, 1, 1);
-    r.fillStyle = "rgba(150,150,150,0.8)";
-    r.fillRect(x, y, 1, 1);
+    wrapped(size, x, y, 5, (px, py) => {
+      a.globalAlpha = 0.35;
+      a.fillStyle = "#6a4e34";
+      a.beginPath();
+      a.arc(px, py, 3.2, 0, Math.PI * 2);
+      a.fill();
+      a.globalAlpha = 0.9;
+      a.fillStyle = "#2a1c10";
+      a.beginPath();
+      a.arc(px, py, 1.1, 0, Math.PI * 2);
+      a.fill();
+      h.globalAlpha = 1;
+      h.fillStyle = "#3a3a3a";
+      h.beginPath();
+      h.arc(px, py, 1.4, 0, Math.PI * 2);
+      h.fill();
+      r.globalAlpha = 0.8;
+      r.fillStyle = "#a8a8a8";
+      r.beginPath();
+      r.arc(px, py, 3, 0, Math.PI * 2);
+      r.fill();
+    });
   }
   a.globalAlpha = 1;
   h.globalAlpha = 1;
+  r.globalAlpha = 1;
 
   const map = new THREE.CanvasTexture(albedo);
   map.colorSpace = THREE.SRGBColorSpace;
-  // Soften the height field a touch so crumbs read as rounded, not stamped.
+  // Soften the height field so crumbs read as rounded and pressed together, not as craters.
   const soft = canvas(size);
   const sg = soft.getContext("2d")!;
-  sg.filter = "blur(1.2px)";
+  sg.filter = "blur(0.9px)";
   sg.drawImage(height, 0, 0);
-  const normalMap = new THREE.CanvasTexture(heightToNormal(soft, 4));
+  const normalMap = new THREE.CanvasTexture(heightToNormal(soft, 2.2));
   const roughnessMap = new THREE.CanvasTexture(rough);
   for (const t of [map, normalMap, roughnessMap]) {
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.anisotropy = 8;
   }
-  return { map, normalMap, roughnessMap };
+  return { map, normalMap, roughnessMap, macro: makeMacro() };
+}
+
+/** Soft, blotchy large-scale variation: sun-faded patches, handling, age. Grey, around mid-value. */
+function makeMacro(size = 256): THREE.CanvasTexture {
+  const rand = mulberry32(29);
+  const c = canvas(size);
+  const g = c.getContext("2d")!;
+  g.fillStyle = "#808080";
+  g.fillRect(0, 0, size, size);
+  for (let i = 0; i < 90; i++) {
+    const x = rand() * size;
+    const y = rand() * size;
+    const rad = 12 + rand() * 60;
+    const v = rand() > 0.5 ? 255 : 0;
+    wrapped(size, x, y, rad, (px, py) => {
+      const gr = g.createRadialGradient(px, py, 0, px, py, rad);
+      gr.addColorStop(0, `rgba(${v},${v},${v},0.16)`);
+      gr.addColorStop(1, `rgba(${v},${v},${v},0)`);
+      g.fillStyle = gr;
+      g.fillRect(px - rad, py - rad, rad * 2, rad * 2);
+    });
+  }
+  const soft = canvas(size);
+  const sg = soft.getContext("2d")!;
+  sg.filter = "blur(6px)";
+  // Blur across the wrap so the tile edges stay seamless.
+  for (const dx of [-size, 0, size]) for (const dy of [-size, 0, size]) sg.drawImage(c, dx, dy);
+  const t = new THREE.CanvasTexture(soft);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+/**
+ * Moonlight through venetian blinds: soft horizontal slats in a window frame with a mullion.
+ * Projected by a spotlight, it throws the classic noir stripes across the wall.
+ */
+export function makeBlinds(size = 512): THREE.CanvasTexture {
+  const c = canvas(size);
+  const g = c.getContext("2d")!;
+  g.fillStyle = "#000";
+  g.fillRect(0, 0, size, size);
+  const x0 = size * 0.14;
+  const x1 = size * 0.86;
+  const y0 = size * 0.1;
+  const y1 = size * 0.9;
+  const slats = 11;
+  const pitch = (y1 - y0) / slats;
+  g.filter = "blur(5px)";
+  for (let i = 0; i < slats; i++) {
+    const y = y0 + i * pitch;
+    // Light between slats; slightly warmer-brighter towards the middle of the window.
+    const lum = 0.75 + 0.25 * Math.sin(((i + 0.5) / slats) * Math.PI);
+    g.fillStyle = `rgba(255,255,255,${lum})`;
+    g.fillRect(x0, y + pitch * 0.34, x1 - x0, pitch * 0.46);
+  }
+  // The mullion down the middle, and a cord.
+  g.fillStyle = "#000";
+  g.fillRect(size * 0.485, y0 - 10, size * 0.03, y1 - y0 + 20);
+  g.fillRect(size * 0.3, y0, 3, y1 - y0);
+  g.filter = "none";
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }
 
 /** Paper fibre: a faint normal map shared by every sheet. */

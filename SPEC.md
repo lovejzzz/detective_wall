@@ -136,7 +136,9 @@ Opening a note (click, or `Enter` on a focused note) slides in a manila folder w
 
 | Element | Behaviour |
 |---|---|
-| Overhead lamp | A warm tungsten wash (about 2700 K), brightest at the top center, falling off toward the edges |
+| Overhead lamp | A warm tungsten wash (about 2700 K) from a lamp just out of shot, brightest at the top center, falling off softly toward the edges |
+| Moonlight through blinds | A faint, cold (≈ 7000 K) spotlight from high on the left, projected through a venetian-blind gobo: soft diagonal stripes across the lower-left of the wall. Warm against cool is the whole palette. |
+| Film grade | Neutral tone mapping, then a gentle split-tone (cool shadows, warm highlights), blacks lifted a touch like a print, slight desaturation, soft vignette and fine grain |
 | Spotlight | A radial pool (radius about 340 px on screen) that eases to the focused note in 600 ms. It stays at the last focus when idle. |
 | Darkness | A vignette at the viewport edges, plus a dim veil over wall regions with no pinned notes. Any note inside the veil stays at least 35% visible. |
 | Dust | 40–70 slow particles, drawn only inside the light cones, drifting on a gentle noise field |
@@ -217,7 +219,7 @@ update_wall({
 2. The spotlight rests where the user left it.
 3. The notepad shows the AI's resume line (§8.2 rule 6). No model call is needed for this.
 
-**Switching cases:** click a folder in the tray, or open the cabinet (`C`) for older cases. The wall cross-fades in 300 ms and each case keeps its own camera position.
+**Switching cases:** click a folder in the tray, or open the cabinet (`C`) for older cases. It plays like a cut: black, a title card ("CASE FILE No. 009", the title settling into place, its years, exhibits and verdict), then the lights come up on that case's wall, where it keeps its own camera position. About two seconds; any click or key skips it. No card for a blank new case, with reduced motion, or more than once per session on page load.
 
 ---
 
@@ -295,8 +297,8 @@ interface Message {
 | Paper | Curved sheet meshes (stickies lift at the free end, typed sheets curl at a corner, newsprint cockles, polaroids bow). Each sheet's face is typeset onto a 3× canvas texture with seeded imperfections: typewriter baseline wobble and uneven ribbon ink, handwriting drift and pen pressure, rubber stamps with dry-pad voids, pen-drawn sketches. | Text stays sharp at normal zooms, and every sheet looks individually made |
 | Pins, clips, tape | Lathe-turned push pins (clearcoat plastic), brass tacks, a binder clip, translucent masking tape | Small metal and plastic highlights sell the scale |
 | Strings | Tubes along a sagging curve, with a twisted-ply normal map, casting shadows. Proposed strings are dashed graphite. | Thread has thickness and throws a shadow across the paper it crosses |
-| Light | A tungsten lamp hanging just out of shot, whose light falls off with distance and sways very slightly on its cord, plus a focus spotlight that glides to the focused note. Both cast soft shadows. A cool, low fill lights the shadows. | Warm light against cool shadow; "light = attention" happens physically. The light carries the mood without a prop in the frame |
-| Cork | A procedural albedo, normal and roughness set at real crumb scale | Raking lamp light reveals the relief |
+| Light | A tungsten lamp hanging just out of shot, whose light falls off with distance and sways very slightly on its cord; cold moonlight through venetian blinds (a spotlight with a projected gobo); and a soft-edged focus spotlight that glides to the focused note. Both cast soft shadows. A cool, low fill lights the shadows. | Warm light against cool shadow; "light = attention" happens physically. The light carries the mood without a prop in the frame |
+| Cork | A procedural albedo, normal and roughness at real crumb scale: dense, close-valued granules, shallow pits and the odd old pin hole, plus a large-scale variation map (≈ 2900 px) so the tile never shows | Raking light reveals a fine relief rather than craters |
 | Atmosphere | Dust motes visible only inside the light cones, ambient occlusion, gentle bloom on the bulb, film grain, vignette, neutral tone mapping | The air feels like an attic at night |
 | Controls on the wall | Plain DOM overlays (Pin it / Toss, proposed-string tags, popovers), positioned from exact world→screen mapping | Crisp, accessible buttons that never move under the cursor |
 | App | React + TypeScript + Vite, with Zustand for state | A small, typed setup that's easy to work on |

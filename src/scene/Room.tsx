@@ -8,6 +8,7 @@ import * as THREE from "three";
 import type { Camera } from "../lib/types.ts";
 import { reducedMotion } from "../lib/motion.ts";
 import { sharedTextures } from "./objects.ts";
+import { Grade } from "./grade.tsx";
 
 const debug = new URLSearchParams(location.search);
 
@@ -46,14 +47,25 @@ export function Cork() {
   const mat = useMemo(() => {
     const rep = SIZE / 520;
     for (const t of [cork.map, cork.normalMap, cork.roughnessMap]) t.repeat.set(rep, rep);
-    return new THREE.MeshStandardMaterial({
+    const m = new THREE.MeshStandardMaterial({
       map: cork.map,
       normalMap: cork.normalMap,
-      normalScale: new THREE.Vector2(1.1, 1.1),
+      normalScale: new THREE.Vector2(0.85, 0.85),
       roughnessMap: cork.roughnessMap,
       roughness: 1,
       envMapIntensity: 0.25,
     });
+    // Large-scale variation (sun-faded patches, handling) at ~2900 px, so the 520 px tile never shows.
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.macroMap = { value: cork.macro };
+      sh.fragmentShader = sh.fragmentShader
+        .replace("void main() {", "uniform sampler2D macroMap;\nvoid main() {")
+        .replace(
+          "#include <map_fragment>",
+          "#include <map_fragment>\n  float macro = texture2D(macroMap, vMapUv * 0.179).r;\n  diffuseColor.rgb *= mix(0.8, 1.16, macro);",
+        );
+    };
+    return m;
   }, [cork]);
   return (
     <mesh material={mat} receiveShadow>
@@ -67,6 +79,7 @@ export function Cork() {
 const TUNGSTEN = new THREE.Color("#ffcf9c"); // ≈ 2900 K
 const LAMP_DECAY = 1.3;
 const SPOT = new THREE.Color("#ffe0bd");
+const MOON = new THREE.Color("#8ea6d4"); // cold, from the window
 
 interface LightRig {
   lampPos: THREE.Vector3;
@@ -81,7 +94,7 @@ interface LightRig {
  */
 export function lampPlacement(view: View, viewportH: number) {
   const d = distanceFor(viewportH, view.cam.zoom);
-  const z = d * 0.2;
+  const z = d * Number(debug.get("lampZ") ?? 0.21);
   const pxPerUnit = view.cam.zoom / 0.8; // at that depth
   const y = -view.cam.y + (view.stage.cy + 70) / pxPerUnit;
   return { pos: new THREE.Vector3(view.cam.x, y, z), scale: 1 / pxPerUnit, d };
@@ -91,6 +104,9 @@ export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y
   const { size } = useThree();
   const lamp = useRef<THREE.SpotLight>(null);
   const spot = useRef<THREE.SpotLight>(null);
+  const moon = useRef<THREE.SpotLight>(null);
+  const moonTarget = useMemo(() => new THREE.Object3D(), []);
+  const { blinds } = sharedTextures();
   const lampTarget = useMemo(() => new THREE.Object3D(), []);
   const spotTarget = useMemo(() => new THREE.Object3D(), []);
   const spotAim = useRef(new THREE.Vector3(focus?.x ?? view.cam.x, -(focus?.y ?? view.cam.y), 0));
@@ -118,6 +134,18 @@ export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y
     S.position.set(a.x - 240, a.y + 430, 560);
     spotTarget.position.copy(a);
     spotTarget.updateMatrixWorld();
+    // Moonlight through the blinds, from high on the left, laying cold stripes across the wall.
+    // Placed relative to the view (like the lamp) so the stripes keep their size at any zoom.
+    const M = moon.current;
+    if (M) {
+      const W = size.width / view.cam.zoom;
+      const H = size.height / view.cam.zoom;
+      const cx = view.cam.x;
+      const cy = -view.cam.y;
+      M.position.set(cx - W * 0.9, cy + H * 0.45, d * 0.55);
+      moonTarget.position.set(cx - W * 0.18, cy - H * 0.02, 0);
+      moonTarget.updateMatrixWorld();
+    }
     rig.current = { lampPos: L.position.clone(), lampTarget: lampTarget.position.clone(), spotPos: S.position.clone(), spotTarget: a.clone() };
     void d;
   });
@@ -125,7 +153,7 @@ export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y
   return (
     <>
       {/* Fill: cool, like moonlight from a skylight, so shadows go blue-grey against the tungsten. */}
-      <ambientLight color="#3b4254" intensity={debug.get("fill") === "0" ? 0 : 0.35} />
+      <ambientLight color="#394560" intensity={debug.get("fill") === "0" ? 0 : 0.42} />
       <hemisphereLight color="#43506a" groundColor="#1a120c" intensity={debug.get("fill") === "0" ? 0 : 0.35} />
       <spotLight
         ref={lamp}
@@ -145,10 +173,10 @@ export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y
       <spotLight
         ref={spot}
         color={SPOT}
-        intensity={3}
+        intensity={2.3}
         decay={0}
-        angle={0.36}
-        penumbra={0.82}
+        angle={0.42}
+        penumbra={1}
         target={spotTarget}
         castShadow
         shadow-mapSize={[SHADOW_SIZE, SHADOW_SIZE]}
@@ -158,6 +186,26 @@ export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y
         shadow-camera-near={300}
         shadow-camera-far={2500}
       />
+      {!LITE && debug.get("moon") !== "0" && (
+        <spotLight
+          ref={moon}
+          color={MOON}
+          intensity={Number(debug.get("moonI") ?? 4.2)}
+          decay={0}
+          angle={0.36}
+          penumbra={0.3}
+          map={debug.get("moonmap") === "0" ? null : blinds}
+          target={moonTarget}
+          castShadow
+          shadow-mapSize={[1024, 1024]}
+          shadow-bias={-0.00005}
+          shadow-normalBias={0.02}
+          shadow-radius={6}
+          shadow-camera-near={300}
+          shadow-camera-far={20000}
+        />
+      )}
+      <primitive object={moonTarget} />
       <primitive object={lampTarget} />
       <primitive object={spotTarget} />
       {/* Reflections for brass, steel and clearcoat: a warm softbox where the lamp is, a dim bounce below. */}
@@ -264,7 +312,11 @@ export function Dust({ view, rig }: { view: View; rig: React.MutableRefObject<Li
 // ───────────────────────── lens ─────────────────────────
 
 /** Phones and small screens get a lighter render: no AO, smaller shadow maps. */
-export const LITE = typeof window !== "undefined" && (window.innerWidth < 760 || (navigator.hardwareConcurrency ?? 8) <= 4);
+/** Lighter rendering for small or low-core devices. `?lite=0` / `?lite=1` forces it either way. */
+export const LITE =
+  debug.get("lite") === "0"
+    ? false
+    : debug.get("lite") === "1" || (typeof window !== "undefined" && (window.innerWidth < 760 || (navigator.hardwareConcurrency ?? 8) <= 4));
 const SHADOW_SIZE = LITE ? 1024 : 2048;
 
 export function Lens() {
@@ -272,10 +324,11 @@ export function Lens() {
   return (
     <EffectComposer multisampling={LITE ? 0 : 4}>
       {debug.get("ao") === "0" || LITE ? <></> : <N8AO aoRadius={18} distanceFalloff={0.6} intensity={1.6} quality="medium" halfRes />}
-      <Bloom mipmapBlur intensity={0.55} luminanceThreshold={0.82} luminanceSmoothing={0.2} />
-      <ToneMapping mode={ToneMappingMode.NEUTRAL} />
-      <Vignette offset={0.28} darkness={0.62} />
-      <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.22} />
+      <Bloom mipmapBlur intensity={0.45} luminanceThreshold={0.78} luminanceSmoothing={0.3} />
+      <ToneMapping mode={debug.get("tm") === "agx" ? ToneMappingMode.AGX : ToneMappingMode.NEUTRAL} />
+      {debug.get("grade") === "0" ? <></> : <Grade />}
+      <Vignette offset={0.42} darkness={0.46} />
+      <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.18} />
     </EffectComposer>
   );
 }

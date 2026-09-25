@@ -2,7 +2,7 @@
 import * as THREE from "three";
 import type { NoteType } from "../lib/types.ts";
 import { NOTE_SIZE } from "../lib/geometry.ts";
-import { hashString, makeCork, makePaperNormal, makeStringNormal, makeDashAlpha, mulberry32 } from "./textures.ts";
+import { hashString, makeBlinds, makeCork, makePaperNormal, makeStringNormal, makeDashAlpha, mulberry32 } from "./textures.ts";
 
 /** World px → three units: x right, y up (the store keeps y pointing down). */
 export const toThree = (x: number, y: number, z = 0) => new THREE.Vector3(x, -y, z);
@@ -70,6 +70,7 @@ let shared: {
   paperNormal: THREE.CanvasTexture;
   stringNormal: THREE.CanvasTexture;
   dash: THREE.CanvasTexture;
+  blinds: THREE.CanvasTexture;
 } | null = null;
 
 export function sharedTextures() {
@@ -78,6 +79,7 @@ export function sharedTextures() {
     paperNormal: makePaperNormal(512),
     stringNormal: makeStringNormal(),
     dash: makeDashAlpha(),
+    blinds: makeBlinds(),
   };
   return shared;
 }

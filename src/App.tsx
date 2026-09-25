@@ -4,6 +4,7 @@ import type { Stage } from "./components/Wall.tsx";
 import { Notepad } from "./components/Notepad.tsx";
 import { CaseTray } from "./components/CaseTray.tsx";
 import { CaseCabinet } from "./components/CaseCabinet.tsx";
+import { TitleCard } from "./components/TitleCard.tsx";
 import { Dossier, LinkPicker } from "./components/Dossier.tsx";
 import { UndoSlip } from "./components/UndoSlip.tsx";
 import { ViewTabs } from "./components/ViewTabs.tsx";
@@ -104,6 +105,7 @@ export function App() {
       <ViewTabs left={stage.cx} />
       <CaseTray />
       <CaseCabinet />
+      <TitleCard />
       <Notepad c={c} />
       <div className="plaque" aria-hidden>
         <span>

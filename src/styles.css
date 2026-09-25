@@ -359,7 +359,7 @@ kbd {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: #f1e5a4;
+  background: #ebdf9f;
   background-image:
     linear-gradient(90deg, transparent 44px, rgba(196, 64, 58, 0.55) 44px 45px, transparent 45px 48px, rgba(196, 64, 58, 0.55) 48px 49px, transparent 49px),
     var(--grain);
@@ -375,7 +375,13 @@ kbd {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(200deg, rgba(0, 0, 0, 0) 40%, rgba(40, 20, 0, 0.14));
+  z-index: 2;
+  /* The same light as the wall: the lamp is up and to the left, so warmth pools at the top-left
+     corner, the sheet falls off towards the bottom and the far edge. */
+  background:
+    radial-gradient(120% 55% at 0% 0%, rgba(255, 210, 140, 0.12), transparent 70%),
+    linear-gradient(180deg, transparent 30%, rgba(38, 20, 4, 0.2) 78%, rgba(30, 16, 4, 0.34)),
+    linear-gradient(270deg, rgba(24, 12, 2, 0.2), transparent 26%);
 }
 .pad-binding {
   height: 30px;
@@ -2567,5 +2573,84 @@ kbd {
   .file-body {
     animation: none !important;
     transition: none;
+  }
+}
+
+/* ───────────────────────── Title card ───────────────────────── */
+
+.title-card {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at 50% 45%, #140d08, #050302 70%);
+  cursor: pointer;
+}
+/* the lights come up: the black lifts off the wall */
+.title-card.is-leaving {
+  animation: title-out 700ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
+}
+@keyframes title-out {
+  to {
+    opacity: 0;
+  }
+}
+.title-inner {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  max-width: min(900px, calc(100vw - 48px));
+  text-align: center;
+}
+.title-no {
+  margin: 0;
+  font: 12px/1 var(--typed);
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: #a8926a;
+  opacity: 0;
+  animation: title-in 900ms ease-out 150ms forwards;
+}
+.title-name {
+  margin: 0;
+  font: 400 clamp(30px, 4.4vw, 54px) / 1.1 var(--typed);
+  color: #efe2c4;
+  text-shadow: 0 0 24px rgba(255, 200, 130, 0.18);
+  opacity: 0;
+  animation:
+    title-in 1100ms ease-out 300ms forwards,
+    title-settle 1800ms cubic-bezier(0.2, 0.7, 0.2, 1) 300ms forwards;
+}
+.title-rule {
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #a8926a, transparent);
+  animation: title-rule 900ms ease-out 650ms forwards;
+}
+.title-meta {
+  margin: 0;
+  font: 600 20px/1 var(--hand);
+  color: #b9a47c;
+  white-space: pre;
+  opacity: 0;
+  animation: title-in 800ms ease-out 800ms forwards;
+}
+@keyframes title-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes title-settle {
+  from {
+    letter-spacing: 0.22em;
+  }
+  to {
+    letter-spacing: 0.04em;
+  }
+}
+@keyframes title-rule {
+  to {
+    width: 220px;
   }
 }
