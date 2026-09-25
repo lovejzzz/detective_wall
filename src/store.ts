@@ -4,7 +4,7 @@ import type { Camera, Case, Link, Message, Note, NoteType, Relation, StickyColor
 import type { WallUpdate } from "./lib/contract.ts";
 import { findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
 import { seedCase } from "./lib/seed.ts";
-import { COOPER_DEMO, coldCase } from "./lib/coldcase.ts";
+import { COOPER_DATES, COOPER_DEMO, coldCase } from "./lib/coldcase.ts";
 
 export type PartnerMode = "unknown" | "live" | "offline";
 
@@ -36,6 +36,8 @@ interface State {
   previousOpen: Record<string, number | undefined>;
   /** The partner's reply while it is still being typed out. */
   live: { text: string; status?: string } | null;
+  /** How the active case is laid out: the free wall, or ordered along a timeline. */
+  view: "wall" | "timeline";
   /** Undo/redo stacks per case (this visit only). */
   history: Record<string, { past: Snapshot[]; future: Snapshot[] }>;
   /** The last undoable thing that happened, for the undo slip. */
@@ -47,7 +49,7 @@ interface Actions {
   switchCase(id: string): void;
   deleteCase(id: string): void;
   renameCase(id: string, title: string): void;
-  addUserMessage(caseId: string, text: string): Message;
+  addUserMessage(caseId: string, text: string, photoNoteIds?: string[]): Message;
   applyTurn(
     caseId: string,
     turn: { reply: string; update: WallUpdate; sources?: { url: string; title: string }[]; offline?: boolean },
@@ -57,7 +59,7 @@ interface Actions {
   setCamera(caseId: string, camera: Camera): void;
   setFocus(noteId: string | null): void;
   moveNote(noteId: string, x: number, y: number): void;
-  updateNote(noteId: string, patch: Partial<Pick<Note, "title" | "body" | "type" | "color" | "stamp" | "rotation">>): void;
+  updateNote(noteId: string, patch: Partial<Pick<Note, "title" | "body" | "type" | "color" | "stamp" | "rotation" | "when" | "approx">>): void;
   pinNote(noteId: string): void;
   tossNote(noteId: string): void;
   removeNote(noteId: string): void;
@@ -74,6 +76,9 @@ interface Actions {
   setHoverNote(id: string | null): void;
   setLive(live: State["live"] | ((prev: State["live"]) => State["live"])): void;
 
+  setView(view: State["view"]): void;
+  /** Pins a stored photo to the wall; returns the new note id. */
+  addPhotoNote(caseId: string, p: { imageId: string; title: string; x: number; y: number; messageId?: string }): string;
   /** Saves the wall so the next change can be undone. */
   checkpoint(label: string, destructive?: boolean): void;
   undo(): void;
@@ -179,6 +184,7 @@ export const useStore = create<Store>()(
       };
 
       return {
+        view: "wall",
         history: {},
         lastAction: null,
         cases: {},
@@ -201,7 +207,7 @@ export const useStore = create<Store>()(
         },
         switchCase(id) {
           if (!get().cases[id]) return;
-          set({ activeId: id, dossierId: null, pendingLink: null });
+          set({ activeId: id, dossierId: null, pendingLink: null, view: "wall" });
           markOpened(id);
         },
         deleteCase(id) {
@@ -216,11 +222,11 @@ export const useStore = create<Store>()(
           mutateCase(id, (c) => void (c.title = title.trim() || c.title));
         },
 
-        addUserMessage(caseId, text) {
-          const msg: Message = { id: uid(), role: "user", text, createdAt: Date.now() };
+        addUserMessage(caseId, text, photoNoteIds = []) {
+          const msg: Message = { id: uid(), role: "user", text, createdAt: Date.now(), ...(photoNoteIds.length ? { noteIds: [...photoNoteIds] } : {}) };
           mutateCase(caseId, (c) => {
             // The first question of an empty case gets pinned as its opening sticky (SPEC §9).
-            if (c.notes.length === 0) {
+            if (c.notes.filter((n) => n.type !== "photo").length === 0 && !photoNoteIds.length) {
               const note: Note = {
                 id: uid(),
                 type: "hypothesis",
@@ -279,6 +285,7 @@ export const useStore = create<Store>()(
                 ...(p.confidence ? { confidence: p.confidence } : {}),
                 ...(p.stamp ? { stamp: p.stamp } : {}),
                 ...(p.diagram ? { diagram: p.diagram } : {}),
+                ...(p.when ? { when: p.when, ...(p.approx ? { approx: true } : {}) } : {}),
                 origin: {
                   kind: p.type === "web" || p.url ? "web" : "ai",
                   messageId: msgId,
@@ -348,11 +355,16 @@ export const useStore = create<Store>()(
         },
         updateNote(noteId, patch) {
           // Text edits are checkpointed once per editing session by the dossier; the rest here.
-          if (patch.type || patch.color || patch.stamp) get().checkpoint(`Changed ${noteTitle(noteId)}`);
+          if (patch.type || patch.color || patch.stamp || "when" in patch || "approx" in patch) get().checkpoint(`Changed ${noteTitle(noteId)}`);
           mutateActive((c) => {
             const n = c.notes.find((x) => x.id === noteId);
             if (!n) return;
             Object.assign(n, patch);
+            if (!n.when) {
+              delete n.when;
+              delete n.approx;
+            }
+            if (n.approx === false) delete n.approx;
             if (patch.type === "hypothesis" && !n.color) n.color = "yellow";
             if (patch.type === "conclusion" && !n.stamp) n.stamp = "OPEN";
           });
@@ -429,6 +441,30 @@ export const useStore = create<Store>()(
         },
         setHoverNote(hoverNoteId) {
           if (get().hoverNoteId !== hoverNoteId) set({ hoverNoteId });
+        },
+        setView(view) {
+          set({ view, pendingLink: null });
+        },
+        addPhotoNote(caseId, { imageId, title, x, y, messageId }) {
+          const id = uid();
+          if (caseId === get().activeId) get().checkpoint("Pinned a photo");
+          mutateCase(caseId, (c) => {
+            c.notes.push({
+              id,
+              type: "photo",
+              status: "pinned",
+              title: title.slice(0, 60) || "Photo",
+              body: "",
+              x: Math.round(x),
+              y: Math.round(y),
+              rotation: naturalTilt(3.5),
+              imageUrl: `idb:${imageId}`,
+              origin: { kind: "user", ...(messageId ? { messageId } : {}) },
+              createdAt: Date.now(),
+            });
+            c.focusNoteId = id;
+          });
+          return id;
         },
         checkpoint(label, destructive = false) {
           const { activeId, cases, history } = get();
@@ -522,6 +558,13 @@ export function ensureCases() {
     } else if (!s.activeId || !s.cases[s.activeId]) {
       useStore.setState({ activeId: s.order[0] });
     }
+  }
+  // Walls saved before evidence had dates: give the demo its dates so the timeline works.
+  const st = useStore.getState();
+  for (const c of Object.values(st.cases)) {
+    if (c.demo !== COOPER_DEMO || !c.notes.some((n) => !n.when && COOPER_DATES[n.title])) continue;
+    const notes = c.notes.map((n) => (!n.when && COOPER_DATES[n.title] ? { ...n, ...COOPER_DATES[n.title] } : n));
+    useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...s2.cases[c.id], notes } } }));
   }
   try {
     localStorage.setItem("detective-wall/demo-cooper", "1");

@@ -1,5 +1,6 @@
 // The structured contract between the AI partner and the wall (SPEC §8.3).
 // Shared by the server (tool schema) and the client (validation + offline partner).
+import { isWhen } from "./when.ts";
 import {
   NOTE_TYPES,
   RELATIONS,
@@ -24,6 +25,8 @@ export interface ProposedNote {
   stamp?: Stamp;
   diagram?: DiagramSpec;
   near?: string;
+  when?: string;
+  approx?: boolean;
 }
 
 export interface ProposedLink {
@@ -42,10 +45,18 @@ export interface WallUpdate {
 
 export interface InvestigateRequest {
   caseTitle: string;
-  notes: { id: string; type: NoteType; status: string; title: string; body: string; url?: string }[];
+  notes: { id: string; type: NoteType; status: string; title: string; body: string; url?: string; when?: string }[];
   links: { from: string; to: string; relation: Relation; status: string }[];
   messages: { role: "user" | "assistant"; text: string }[];
+  /** Photos attached to the latest user message (base64, already downscaled by the browser). */
+  images?: { media_type: ImageMediaType; data: string; noteId?: string }[];
 }
+
+export type ImageMediaType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+export const IMAGE_TYPES: ImageMediaType[] = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+export const MAX_IMAGES_PER_TURN = 3;
+/** Base64 length cap per image (~3.7 MB decoded), comfortably under the API's per-image limit. */
+export const MAX_IMAGE_B64 = 5_000_000;
 
 export interface InvestigateResponse {
   reply: string;
@@ -93,6 +104,11 @@ export const UPDATE_WALL_SCHEMA = {
             },
           },
           near: { type: "string", description: "Id or ref of a note to place this one next to." },
+          when: {
+            type: "string",
+            description: "When the evidence happened, as precise as is actually known: YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM. Omit for undated ideas.",
+          },
+          approx: { type: "boolean", description: "True if the date is approximate." },
         },
       },
     },
@@ -183,6 +199,10 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
       if (diagram) note.diagram = diagram;
     }
     if (isStr(r.near)) note.near = r.near;
+    if (isWhen(r.when)) {
+      note.when = r.when;
+      if (r.approx === true) note.approx = true;
+    }
     refs.add(note.ref);
     out.notes.push(note);
   }

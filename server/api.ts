@@ -1,6 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import Anthropic from "@anthropic-ai/sdk";
 import {
+  IMAGE_TYPES,
+  MAX_IMAGES_PER_TURN,
+  MAX_IMAGE_B64,
   MAX_LINKS_PER_TURN,
   MAX_NOTES_PER_TURN,
   UPDATE_WALL_SCHEMA,
@@ -33,6 +36,10 @@ Note types:
 - conclusion: the current best answer to the case question, with a stamp: LIKELY, CONFIRMED, RULED OUT, or OPEN. Propose one only when the evidence supports it.
 - photo: avoid; the user adds photos.
 
+Dates: set "when" on any note about an event that happened at a known time, as precisely as the record allows (YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM), and "approx" when it is approximate. The user can lay the wall out as a timeline, so dates matter. Leave undated ideas and hunches undated.
+
+Photos: the user may attach photos. Describe only what is visibly there, say what is uncertain, and never identify real people from their faces. When a photo is already on the wall (its note id is given), link to that note rather than duplicating it.
+
 Links: supports (A is evidence for B), causes (A leads to B, directional), contradicts (A is in tension with B), references (A cites or points to B). Every link needs a short reason.
 
 Limits per turn: at most ${MAX_NOTES_PER_TURN} notes and ${MAX_LINKS_PER_TURN} links. Don't duplicate notes already on the wall; link to their ids instead. Use "near" to place a note beside the one it relates to, and "focus" for where the spotlight should go.
@@ -53,7 +60,7 @@ function renderWallState(req: InvestigateRequest): string {
   if (req.notes.length === 0) lines.push("(none yet)");
   for (const n of req.notes) {
     const body = n.body.length > 220 ? n.body.slice(0, 219) + "…" : n.body;
-    lines.push(`- ${n.id} · ${n.type} · ${n.status} · ${n.title} — ${body}${n.url ? ` [${n.url}]` : ""}`);
+    lines.push(`- ${n.id} · ${n.type} · ${n.status}${n.when ? ` · ${n.when}` : ""} · ${n.title} — ${body}${n.url ? ` [${n.url}]` : ""}`);
   }
   lines.push("", "Strings:");
   if (req.links.length === 0) lines.push("(none yet)");
@@ -68,10 +75,16 @@ function buildMessages(req: InvestigateRequest): Anthropic.Beta.BetaMessageParam
   const last = history.pop();
   if (!last || last.role !== "user") throw new HttpError(400, "The last message must be from the user.");
   const messages: Anthropic.Beta.BetaMessageParam[] = history.map((m) => ({ role: m.role, content: m.text }));
+  const images: Anthropic.Beta.BetaContentBlockParam[] = [];
+  for (const img of (req.images ?? []).slice(0, MAX_IMAGES_PER_TURN)) {
+    if (img.noteId) images.push({ type: "text", text: `Photo on the wall as note ${img.noteId}:` });
+    images.push({ type: "image", source: { type: "base64", media_type: img.media_type, data: img.data } });
+  }
   messages.push({
     role: "user",
     content: [
       { type: "text", text: `<wall_state>\n${renderWallState(req)}\n</wall_state>` },
+      ...images,
       { type: "text", text: last.text },
     ],
   });
@@ -199,7 +212,7 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   let size = 0;
   for await (const chunk of req) {
     size += (chunk as Buffer).length;
-    if (size > 1_000_000) throw new HttpError(413, "Request too large.");
+    if (size > 20_000_000) throw new HttpError(413, "Request too large.");
     chunks.push(chunk as Buffer);
   }
   try {
@@ -209,10 +222,30 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   }
 }
 
+function validImages(v: unknown): boolean {
+  if (v === undefined) return true;
+  return (
+    Array.isArray(v) &&
+    v.length <= MAX_IMAGES_PER_TURN &&
+    v.every((i) => {
+      const r = i as Record<string, unknown>;
+      return (
+        !!r &&
+        IMAGE_TYPES.includes(r.media_type as never) &&
+        typeof r.data === "string" &&
+        r.data.length <= MAX_IMAGE_B64 &&
+        /^[A-Za-z0-9+/=]+$/.test(r.data) &&
+        (r.noteId === undefined || typeof r.noteId === "string")
+      );
+    })
+  );
+}
+
 function isInvestigateRequest(v: unknown): v is InvestigateRequest {
   if (!v || typeof v !== "object") return false;
   const r = v as Record<string, unknown>;
   return (
+    validImages(r.images) &&
     typeof r.caseTitle === "string" &&
     Array.isArray(r.notes) &&
     Array.isArray(r.links) &&

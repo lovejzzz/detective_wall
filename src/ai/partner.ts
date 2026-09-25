@@ -2,7 +2,8 @@ import { useStore } from "../store.ts";
 import type { InvestigateRequest, InvestigateResponse } from "../lib/contract.ts";
 import { sanitizeWallUpdate } from "../lib/contract.ts";
 import type { Case } from "../lib/types.ts";
-import { offlineTurn } from "./offline.ts";
+import { offlineTurn, offlinePhotoTurn } from "./offline.ts";
+import { photoBase64, photoIdOf } from "../lib/images.ts";
 
 type PartnerEvent =
   | { type: "text"; delta: string }
@@ -31,9 +32,9 @@ function knownIds(caseId: string, fallback: Case) {
   return new Set((useStore.getState().cases[caseId] ?? fallback).notes.map((n) => n.id));
 }
 
-async function runOffline(caseId: string, c: Case, text: string) {
+async function runOffline(caseId: string, c: Case, text: string, photoNoteIds: string[] = []) {
   await new Promise((r) => setTimeout(r, 650 + Math.random() * 500)); // a beat to "think"
-  const turn = offlineTurn(c, text);
+  const turn = photoNoteIds.length ? offlinePhotoTurn(c, photoNoteIds) : offlineTurn(c, text);
   useStore.getState().applyTurn(caseId, {
     reply: turn.reply,
     update: sanitizeWallUpdate(turn.update, knownIds(caseId, c)),
@@ -51,6 +52,7 @@ function toRequest(c: Case): InvestigateRequest {
       title: n.title,
       body: n.body,
       ...(n.origin.url ? { url: n.origin.url } : {}),
+      ...(n.when ? { when: n.when } : {}),
     })),
     links: c.links.map((l) => ({ from: l.from, to: l.to, relation: l.relation, status: l.status })),
     messages: c.messages.map((m) => ({ role: m.role, text: m.text })),
@@ -80,28 +82,43 @@ async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<Par
   }
 }
 
-/** Sends the user's words to Claude and applies the streamed reply + proposals to the wall. */
-export async function ask(caseId: string, text: string) {
+/** The photos attached to this turn, as base64 for Claude (skipping any that can't be read). */
+async function attachments(c: Case, photoNoteIds: string[]): Promise<NonNullable<InvestigateRequest["images"]>> {
+  const out: NonNullable<InvestigateRequest["images"]> = [];
+  for (const noteId of photoNoteIds.slice(0, 3)) {
+    const id = photoIdOf(c.notes.find((n) => n.id === noteId)?.imageUrl);
+    const img = id ? await photoBase64(id) : null;
+    if (img) out.push({ ...img, noteId });
+  }
+  return out;
+}
+
+/**
+ * Sends the user's words (and any attached photos, already pinned to the wall) to Claude,
+ * then applies the streamed reply and proposals to the wall.
+ */
+export async function ask(caseId: string, text: string, opts: { photoNoteIds?: string[] } = {}) {
   const store = useStore.getState();
   if (store.busyCaseId) return;
-  store.addUserMessage(caseId, text);
+  const photoNoteIds = opts.photoNoteIds ?? [];
+  store.addUserMessage(caseId, text, photoNoteIds);
   store.setBusy(caseId);
   store.setLive({ text: "" });
 
   try {
     const c = useStore.getState().cases[caseId];
     if (!c) return;
-    if (useStore.getState().partner.mode !== "live") return await runOffline(caseId, c, text);
+    if (useStore.getState().partner.mode !== "live") return await runOffline(caseId, c, text, photoNoteIds);
 
     const res = await fetch("/api/investigate", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(toRequest(c)),
+      body: JSON.stringify({ ...toRequest(c), ...(photoNoteIds.length ? { images: await attachments(c, photoNoteIds) } : {}) }),
     });
     if (res.status === 503) {
       // Key missing: fall back for this and future turns.
       useStore.getState().setPartner({ mode: "offline" });
-      return await runOffline(caseId, c, text);
+      return await runOffline(caseId, c, text, photoNoteIds);
     }
     if (!res.ok || !res.body) {
       const err = (await res.json().catch(() => ({}))) as { message?: string };

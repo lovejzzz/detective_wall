@@ -35,7 +35,12 @@ export interface Note {
   confidence?: Confidence;
   stamp?: Stamp;
   diagram?: DiagramSpec;
+  /** Photo notes: "idb:<id>" for a photo stored in this browser, or "sketch:<kind>" for built-in art. */
   imageUrl?: string;
+  /** When the evidence happened: "1971", "1971-11", "1971-11-24" or "1971-11-24T20:00". */
+  when?: string;
+  /** The date is approximate. */
+  approx?: boolean;
   origin: NoteOrigin;
   createdAt: number;
 }

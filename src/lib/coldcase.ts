@@ -9,6 +9,21 @@ import { uid } from "./geometry.ts";
 
 export const COOPER_DEMO = "cooper-1971";
 
+/** Dates for the demo's evidence, by title: also used to backfill walls saved before dates existed. */
+export const COOPER_DATES: Record<string, { when: string; approx?: boolean }> = {
+  "Flight 305 · 24 Nov 1971": { when: "1971-11-24" },
+  "The demands": { when: "1971-11-24" },
+  "The night, in order": { when: "1971-11-24" },
+  "How he wanted it flown": { when: "1971-11-24T20:00", approx: true },
+  "Left on seat 18E": { when: "1971-11-24" },
+  "What was on the tie": { when: "2017" },
+  "Ransom cash on a river beach": { when: "1980-02-10" },
+  "Unsolved": { when: "2016-07" },
+  "Serial numbers on record": { when: "1971-11-24" },
+  "Two parachutes gone": { when: "1971-11-24T22:15" },
+  "Copycats, 1972": { when: "1972" },
+};
+
 export function coldCase(now = Date.now()): Case {
   const t = (minutesAgo: number) => now - minutesAgo * 60_000;
   const note = (n: Omit<Note, "id" | "status" | "createdAt"> & { at: number; status?: Note["status"] }): Note => {
@@ -36,6 +51,7 @@ export function coldCase(now = Date.now()): Case {
     y: -370,
     rotation: 1.6,
     confidence: "high",
+    when: "1971-11-24",
     origin: { kind: "ai", excerpt: "On 24 November 1971 a man who bought his ticket as “Dan Cooper” hijacked Northwest Orient Flight 305." },
     at: 93,
   });
@@ -48,6 +64,7 @@ export function coldCase(now = Date.now()): Case {
     y: 30,
     rotation: -1.2,
     confidence: "high",
+    when: "1971-11-24",
     origin: { kind: "ai" },
     at: 92,
   });
@@ -62,6 +79,7 @@ export function coldCase(now = Date.now()): Case {
       kind: "flow",
       items: [{ label: "Portland" }, { label: "Seattle" }, { label: "Stairs 8pm" }, { label: "Reno 10:15" }],
     },
+    when: "1971-11-24",
     origin: { kind: "ai", excerpt: "Shortly after 8 pm he went out of the aft stairs over southwest Washington." },
     at: 91,
   });
@@ -73,6 +91,8 @@ export function coldCase(now = Date.now()): Case {
     y: 40,
     rotation: 2.2,
     confidence: "high",
+    when: "1971-11-24T20:00",
+    approx: true,
     origin: { kind: "ai" },
     at: 90,
   });
@@ -106,6 +126,7 @@ export function coldCase(now = Date.now()): Case {
     y: -420,
     rotation: 2.6,
     imageUrl: "sketch:tie",
+    when: "1971-11-24",
     origin: { kind: "ai" },
     at: 60,
   });
@@ -117,6 +138,7 @@ export function coldCase(now = Date.now()): Case {
     x: 640,
     y: -390,
     rotation: -1.6,
+    when: "2017",
     origin: { kind: "web", url: "https://www.citizensleuths.com/overview-of-snap-on-tie-from-penneys/" },
     at: 58,
   });
@@ -139,6 +161,7 @@ export function coldCase(now = Date.now()): Case {
     x: -440,
     y: 440,
     rotation: 1.4,
+    when: "1980-02-10",
     origin: { kind: "web", url: "https://www.historylink.org/file/23059" },
     at: 40,
   });
@@ -184,6 +207,7 @@ export function coldCase(now = Date.now()): Case {
     y: 40,
     rotation: -0.9,
     stamp: "OPEN",
+    when: "2016-07",
     origin: { kind: "ai" },
     at: 28,
   });
@@ -196,6 +220,7 @@ export function coldCase(now = Date.now()): Case {
     rotation: 6,
     confidence: "high",
     status: "proposed",
+    when: "1971-11-24",
     origin: { kind: "ai" },
     at: 5,
   });

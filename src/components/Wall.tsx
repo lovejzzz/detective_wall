@@ -10,6 +10,9 @@ import { Strings3D, stringMid } from "../scene/Strings3D.tsx";
 import { RELATION_INFO } from "../lib/relations.ts";
 import { CameraRig, Cork, Dust, LITE, Lamp, Lens, Lights, type LightRig, type View } from "../scene/Room.tsx";
 import { fontsReady } from "../scene/paint.ts";
+import { Timeline3D } from "../scene/Timeline3D.tsx";
+import { layoutTimeline } from "../lib/timeline.ts";
+import { importPhoto, isPhotoFile } from "../lib/images.ts";
 
 export interface Stage {
   /** Center of the uncovered part of the wall, in screen px. */
@@ -65,8 +68,24 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     [stage.cx, stage.cy],
   );
 
+  // ---- Wall or timeline: where each note sits right now ----
+  const mode = useStore((s) => s.view);
+  const timeline = useMemo(() => (mode === "timeline" ? layoutTimeline(c.notes) : null), [mode, c.notes]);
+  /** Notes with the position they occupy in the current view. */
+  const placed = useMemo(
+    () =>
+      timeline
+        ? c.notes.map((n) => {
+            const sl = timeline.slots.get(n.id);
+            return sl ? { ...n, x: sl.x, y: sl.y, rotation: sl.rotation } : n;
+          })
+        : c.notes,
+    [timeline, c.notes],
+  );
+  const placedById = useMemo(() => new Map(placed.map((n) => [n.id, n])), [placed]);
+
   // ---- Camera follows the investigation ----
-  const focusNote = c.notes.find((n) => n.id === c.focusNoteId) ?? null;
+  const focusNote = placedById.get(c.focusNoteId ?? "") ?? null;
   const cancelFly = useRef<() => void>(() => {});
   const flyTo = useCallback((to: Camera, ms = 650) => {
     cancelFly.current();
@@ -102,7 +121,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       seen.current = { caseId: c.id, ids: new Set(c.notes.map((n) => n.id)) };
       return;
     }
-    const fresh = c.notes.filter((n) => !seen.current.ids.has(n.id));
+    const fresh = placed.filter((n) => !seen.current.ids.has(n.id));
     seen.current.ids = new Set(c.notes.map((n) => n.id));
     const k = camRef.current;
     if (fresh.some((n) => n.status === "proposed")) {
@@ -116,6 +135,69 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     if (focusNote && !inView(focusNote, k)) flyTo({ x: focusNote.x, y: focusNote.y, zoom: k.zoom });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.focusNoteId, c.notes.length, c.id]);
+
+  // Switching views: remember the wall's camera, frame the timeline, and come back to the same spot.
+  const wallCam = useRef<Camera | null>(null);
+  const [settling, setSettling] = useState(false);
+  const firstView = useRef(true);
+  useEffect(() => {
+    if (firstView.current) {
+      firstView.current = false;
+      return;
+    }
+    setSettling(true);
+    const t = setTimeout(() => setSettling(false), reducedMotion() ? 0 : 1100);
+    if (mode === "timeline") {
+      wallCam.current = { ...camRef.current };
+      // Frame the dated line (undated evidence waits below it). If it's too long to fit at
+      // reading distance, start at the beginning of the line, the way you'd read it.
+      const onLine = placed.filter((n) => timeline?.slots.get(n.id)?.row !== "aside");
+      const pts = onLine.length ? onLine : placed;
+      if (pts.length) {
+        const f = framing(pts, 0.8);
+        const zoom = Math.max(f.zoom, 0.46);
+        const left = Math.min(...pts.map((n) => n.x - NOTE_SIZE[n.type].w / 2));
+        const fits = f.zoom >= 0.46;
+        flyTo({ zoom, y: f.y, x: fits ? f.x : left + (stage.w / 2 - 110) / zoom }, 900);
+      }
+    } else if (wallCam.current) {
+      flyTo(wallCam.current, 900);
+      wallCam.current = null;
+    }
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  // ---- Photos: drop them on the wall, or paste one ----
+  const [dropping, setDropping] = useState(false);
+  const pinPhotos = useCallback(
+    async (files: File[], at: { x: number; y: number }) => {
+      const photos = files.filter(isPhotoFile).slice(0, 6);
+      for (const [i, f] of photos.entries()) {
+        try {
+          const { id } = await importPhoto(f);
+          const title = f.name.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").slice(0, 40) || "Photo";
+          store().addPhotoNote(caseIdRef.current, { imageId: id, title, x: at.x + i * 60, y: at.y + i * 40 });
+        } catch {
+          /* unreadable image: skip it */
+        }
+      }
+      if (useStore.getState().view === "timeline" && photos.length) store().setView("wall");
+    },
+    [store],
+  );
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (t.closest?.("input, textarea")) return;
+      const files = [...(e.clipboardData?.files ?? [])];
+      if (!files.some(isPhotoFile)) return;
+      e.preventDefault();
+      void pinPhotos(files, toWorld({ x: stage.cx, y: stage.cy }));
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [pinPhotos, toWorld, stage.cx, stage.cy]);
 
   // ---- Pan / pinch / wheel ----
   // Scene objects claim the pointer first (R3F runs before React's delegated handlers).
@@ -187,13 +269,14 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (t.closest("input, textarea, [contenteditable=true]") || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === "0") flyTo(c.notes.length ? framing(c.notes, 1) : { x: 0, y: 0, zoom: 0.9 }, 600);
+      if (e.key === "0") flyTo(placed.length ? framing(placed, 1) : { x: 0, y: 0, zoom: 0.9 }, 600);
+      else if (e.key === "t" || e.key === "T") store().setView(useStore.getState().view === "timeline" ? "wall" : "timeline");
       else if (e.key === "+" || e.key === "=") zoomAt({ x: stage.cx, y: stage.cy }, clampZ(camRef.current.zoom * 1.2));
       else if (e.key === "-") zoomAt({ x: stage.cx, y: stage.cy }, clampZ(camRef.current.zoom / 1.2));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [c.notes, stage, zoomAt, flyTo, framing]);
+  }, [placed, stage, zoomAt, flyTo, framing, store]);
 
   // ---- Grabbing notes and pins ----
   const [grab, setGrab] = useState<Grab | null>(null);
@@ -210,6 +293,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   }, []);
   const onGrabPin = useCallback((id: string, e: ThreeEvent<PointerEvent>) => {
     claimed.current = true;
+    if (useStore.getState().view === "timeline") return; // strings are tied on the wall
     setGrab({ kind: "pin", id });
     setCursor({ x: e.nativeEvent.clientX, y: e.nativeEvent.clientY });
   }, []);
@@ -225,6 +309,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const dx = e.clientX - grab.px;
       const dy = e.clientY - grab.py;
       if (!grab.moved && Math.hypot(dx, dy) < 4) return;
+      if (useStore.getState().view === "timeline") return; // the timeline decides where notes go
       if (!grab.moved) store().checkpoint("Moved a note");
       grab.moved = true;
       const z = camRef.current.zoom;
@@ -325,7 +410,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   // Proposed-string tags: nudge apart so they never stack on top of each other.
   const tagSpots = (() => {
     const spots = new Map<string, { x: number; y: number }>();
-    const placed: { x: number; y: number }[] = [];
+    const taken: { x: number; y: number }[] = [];
     const tw = 118 * tagScale;
     const th = 30 * tagScale;
     const byId = new Map(c.notes.map((n) => [n.id, n]));
@@ -335,8 +420,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const b = byId.get(l.to);
       if (!a || !b) continue;
       const p = toScreen(stringMid(a, b));
-      for (let i = 0; i < 8 && placed.some((q) => Math.abs(q.x - p.x) < tw && Math.abs(q.y - p.y) < th); i++) p.y += th;
-      placed.push(p);
+      for (let i = 0; i < 8 && taken.some((q) => Math.abs(q.x - p.x) < tw && Math.abs(q.y - p.y) < th); i++) p.y += th;
+      taken.push(p);
       spots.set(l.id, p);
     }
     return spots;
@@ -346,7 +431,21 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   return (
     <div
       ref={viewportRef}
-      className={`wall3d ${grab?.kind === "pin" ? "is-linking" : ""}`}
+      className={`wall3d ${grab?.kind === "pin" ? "is-linking" : ""} ${dropping ? "is-dropping" : ""}`}
+      onDragOver={(e) => {
+        if (![...e.dataTransfer.items].some((i) => i.kind === "file")) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        setDropping(true);
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setDropping(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDropping(false);
+        void pinPhotos([...e.dataTransfer.files], toWorld({ x: e.clientX, y: e.clientY }));
+      }}
       onPointerDown={onBgDown}
       onPointerMove={onBgMove}
       onPointerUp={onBgUp}
@@ -376,12 +475,17 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             dragging={draggingId === n.id}
             dragTilt={draggingId === n.id ? dragTilt : 0}
             hovered={hoverNoteId === n.id}
+            slot={timeline?.slots.get(n.id)}
             onGrab={onGrab}
             onGrabPin={onGrabPin}
             onHover={onHover}
           />
         ))}
-        <Strings3D notes={c.notes} links={c.links} lit={hoverNet?.links ?? null} draft={draft} onOpenTag={onOpenTag} />
+        {timeline ? (
+          <Timeline3D layout={timeline} />
+        ) : (
+          <Strings3D notes={c.notes} links={c.links} lit={hoverNet?.links ?? null} draft={draft} onOpenTag={onOpenTag} />
+        )}
         <Dust view={view} rig={rig} />
         <Lamp view={view} />
         <Lens />
@@ -390,12 +494,15 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       {/* Paper controls over the scene. The camera looks straight at the wall, so world → screen is exact.
           They shrink with the wall so they never swamp the notes. */}
       <div className="wall-overlay">
-        {c.notes
+        {!settling &&
+          placed
           .filter((n) => n.status === "proposed")
           .map((n) => {
-            const p = toScreen({ x: n.x, y: n.y + NOTE_SIZE[n.type].h / 2 });
+            // Above the timeline's cord, the tabs go over the note so they don't sit on the cord.
+            const above = timeline?.slots.get(n.id)?.row === "above";
+            const p = toScreen({ x: n.x, y: n.y + (above ? -1 : 1) * (NOTE_SIZE[n.type].h / 2) });
             return (
-              <div key={n.id} className="proposal-anchor" style={{ left: p.x, top: p.y + 10 * cam.zoom }}>
+              <div key={n.id} className="proposal-anchor" style={{ left: p.x, top: above ? p.y - 40 * tabScale : p.y + 10 * cam.zoom }}>
                 <div className="proposal-tabs" style={{ transform: `scale(${tabScale})`, transformOrigin: "50% 0" }}>
                   <button className="tab-pin" onClick={() => onPin(n.id)} title="Pin it (P)">
                     <svg viewBox="0 0 16 16" aria-hidden>
@@ -413,7 +520,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             );
           })}
         {farOpacity > 0 &&
-          c.notes.map((n) => {
+          !settling &&
+          placed.map((n) => {
             const p = toScreen(n);
             const w = Math.max(96, NOTE_SIZE[n.type].w * cam.zoom * 1.1);
             return (
@@ -427,7 +535,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               </div>
             );
           })}
-        {c.links.map((l) => {
+        {!timeline && c.links.map((l) => {
           const a = c.notes.find((n) => n.id === l.from);
           const b = c.notes.find((n) => n.id === l.to);
           if (!a || !b) return null;
@@ -478,8 +586,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
         })}
         {(() => {
           // Discoverability: the second click opens the file, so say so on the focused note.
-          const n = c.notes.find((x) => x.id === hoverNoteId);
-          if (!n || grab || n.id !== c.focusNoteId || n.status !== "pinned") return null;
+          const n = placedById.get(hoverNoteId ?? "");
+          if (!n || grab || settling || n.id !== c.focusNoteId || n.status !== "pinned") return null;
           const p = toScreen({ x: n.x, y: n.y + NOTE_SIZE[n.type].h / 2 });
           return (
             <div className="proposal-anchor open-hint" style={{ left: p.x, top: p.y + 10 }}>
@@ -487,6 +595,50 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             </div>
           );
         })()}
+        {timeline && !settling && (
+          <>
+            {timeline.stops.map((st, i) => {
+              const p = toScreen({ x: st.x, y: 0 });
+              return (
+                <div key={`stop-${i}`} className="tl-stop" style={{ left: p.x, top: p.y, transform: `translate(-6px, -50%) scale(${tagScale})` }}>
+                  {st.label}
+                </div>
+              );
+            })}
+            {timeline.times.map((t, i) => {
+              const p = toScreen({ x: t.x, y: 0 });
+              return (
+                <div key={`time-${i}`} className={`tl-time ${t.above ? "is-above" : ""}`} style={{ left: p.x, top: p.y, transform: `translate(-50%, ${t.above ? "-150%" : "60%"}) scale(${tagScale})` }}>
+                  {t.label}
+                </div>
+              );
+            })}
+            {timeline.gaps.map((g, i) => {
+              const p = toScreen({ x: g.x, y: 0 });
+              return (
+                <div key={`gap-${i}`} className="tl-gap" style={{ left: p.x, top: p.y, transform: `translate(-50%, -50%) scale(${tagScale})` }}>
+                  <span aria-hidden>≈</span>
+                  {g.label.replace(/^≈ /, "")}
+                </div>
+              );
+            })}
+            {timeline.aside && (
+              <div className="tl-aside" style={{ left: toScreen({ x: timeline.aside.x, y: timeline.aside.y }).x, top: toScreen({ x: 0, y: timeline.aside.y }).y, transform: `translate(0, -50%) scale(${tagScale})` }}>
+                {timeline.aside.label} · add a date in a note's file to put it on the line
+              </div>
+            )}
+            {timeline.stops.length === 0 && (
+              <div className="tag-anchor" style={{ left: stage.cx, top: stage.cy * 0.35 }}>
+                <div className="tl-empty">Nothing on this wall has a date yet. Open a note's file and give it a “When”.</div>
+              </div>
+            )}
+          </>
+        )}
+        {dropping && (
+          <div className="drop-hint" aria-hidden>
+            <span>Drop to pin the photo here</span>
+          </div>
+        )}
         {c.notes.length === 0 && (
           <div className="tag-anchor" style={{ left: toScreen({ x: 0, y: 0 }).x, top: toScreen({ x: 0, y: 0 }).y }}>
             <div className="empty-card">

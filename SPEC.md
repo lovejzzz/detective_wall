@@ -246,7 +246,9 @@ interface Note {
   confidence?: "high" | "medium" | "low";
   stamp?: "LIKELY" | "CONFIRMED" | "RULED OUT" | "OPEN";
   diagram?: DiagramSpec;
-  imageUrl?: string;           // photo only
+  imageUrl?: string;           // photo only: "idb:<id>" (stored in IndexedDB) or "sketch:<kind>"
+  when?: string;               // "1971" | "1971-11" | "1971-11-24" | "1971-11-24T20:00"
+  approx?: boolean;            // the date is approximate
   origin: {
     kind: "user" | "ai" | "web" | "seed";
     messageId?: string;
@@ -275,7 +277,7 @@ interface Message {
 }
 ```
 
-- **Storage (v1.0):** versioned `localStorage` (`detective-wall/v1`), written with a 300 ms debounce. Moving to IndexedDB is planned for v1.5, when photos land.
+- **Storage (v1.0):** versioned `localStorage` (`detective-wall/v1`), written with a 300 ms debounce. Photos are downscaled on import (long edge ≤ 1568 px, JPEG) and stored in IndexedDB, keyed by id.
 - **Export (v2.0):** JSON (lossless), plus a PNG or SVG snapshot of the wall.
 
 ---
@@ -341,8 +343,12 @@ interface Message {
 |---|---|
 | **v1.0** | Case walls and switching, six note types, proposed/pinned flow, dossier, strings (AI-proposed plus manual drag), pan and zoom, lighting and dust, AI partner with offline fallback, localStorage |
 | v1.2 | Rearrange strings (re-pin an end), editable string reasons, optional room sound |
-| v1.5 | Search and filter (dims non-matches), photo upload, IndexedDB, minimap |
+| v1.5 | Search and filter (dims non-matches), minimap |
 | v2.0 | Collaboration (shared case, live cursors as flashlights), export as JSON/PNG/SVG, share a read-only wall |
+
+**Timeline and photos (added in v1.0):**
+- **Timeline.** Notes carry an optional partial date (`when`, plus an `approx` flag). The Timeline view hangs dated notes from a cord in order: same-day notes pair above and below it, times of day are tagged, gaps of more than about 5 months are marked ("≈ 8 years"), and undated notes wait in a tray below. Switching views animates every sheet to its new place and back, and the camera starts at the beginning of the line. Claude is asked to date the evidence it proposes (`when` in `update_wall`), and people can date a note in its file.
+- **Photos.** Photos can be dropped on the wall, pasted, or attached to a message with the typewriter's paperclip. Attached photos go to Claude as image blocks (at most 3 per turn), and it is told never to identify real people from their faces. Offline, the partner says it can't look at photos and sets up the questions to ask of one.
 
 **Moved into v1.0 after review:** undo/redo with an undo slip, and overview labels (masking tape with the title in marker) that fade in once the paper's own type gets too small to read. Both came out of a UX pass on the demo case.
 

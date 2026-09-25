@@ -9,6 +9,8 @@ Every question becomes a case. You talk it through with Claude, and the evidence
 - **Every note remembers where it came from.** Open a note to see the conversation or URL behind it, and every string tied to it.
 - **Light means attention.** A spotlight follows your focus, and what nobody has looked at yet stays in the dark.
 
+![The same case laid out as a timeline](docs/timeline.jpg)
+
 ![Close-up: typed ink, a rubber stamp, push pins and string throwing shadows](docs/closeup.jpg)
 
 The demo opens on a real, unsolved case: the 1971 Flight 305 hijacking ("D. B. Cooper"), set up with the documented evidence, the open questions and one lead waiting to be pinned. Without an API key the offline partner walks through three fact-checked leads for it. The full product spec is in [SPEC.md](SPEC.md).
@@ -48,6 +50,8 @@ npm start                 # serves dist/ and the API on $PORT (default 8787)
 | Move around | Drag empty cork to pan. Scroll or pinch to zoom. `0` shows the whole wall. `Tab` moves through the notes. |
 | Undo | `⌘Z` / `Ctrl+Z` undoes the last change to the wall (take down, cut, tie, pin, move, edit, the partner's proposals); `⇧⌘Z` / `Ctrl+Y` redoes it. Anything taken down leaves a slip with an Undo button. |
 | Overview | Zoom out and each note gets a masking-tape label with its title, so the whole case stays readable from a distance. |
+| Timeline | The **Timeline** tab (or `T`) hangs every dated note in order from a cord across the wall. Long silences are marked ("≈ 8 years") and undated notes wait in a tray below. Give a note a date in its file ("24 Nov 1971", "1971-11-24 20:13", "c. 1972") and it takes its place. **Wall** puts everything back where it was. |
+| Photos | Drop photos onto the wall, paste one, or use the paperclip on the typewriter to send photos with your next message so Claude can look at them. Each photo's file has a large print and "Ask the partner about this photo". Photos are downscaled and stored in this browser's IndexedDB. |
 | Cases | The manila folders on the left. Hover one to read it, click it to open it, and "+" starts a new case. |
 
 Everything is saved in your browser's localStorage.
@@ -69,12 +73,16 @@ src/
     Room.tsx            camera rig, tungsten lamp + focus spotlight, cork, dust, post-processing
     NoteMesh.tsx        curled paper sheets, pins, tape, contact shadows, lift-and-settle motion
     Strings3D.tsx       thread tubes along a sagging curve, and relation tags
+    Timeline3D.tsx      the timeline cord, tacks and threads
     paint.ts            typesets each sheet onto a canvas: typewriter jitter, handwriting, newsprint, stamps, sketches
     objects.ts          sheet curl geometry, lathe-turned pins, binder clip, tape, lamp
     textures.ts         procedural cork (albedo / normal / roughness), paper fibre, string twist
   ai/partner.ts         calls /api/investigate and reads the SSE stream
   ai/offline.ts         scripted partner for when there's no key
   lib/contract.ts       update_wall tool schema and validator (shared with the server)
+  lib/timeline.ts       timeline layout: date groups, gaps, undated tray
+  lib/when.ts           partial dates ("1971", "1971-11-24T20:13"): parse, sort, label
+  lib/images.ts         photo import (downscale), IndexedDB storage, base64 for Claude
 server/
   api.ts                Claude turn: streaming, web search, update_wall tool
   index.ts              production static and API server

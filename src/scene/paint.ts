@@ -855,9 +855,9 @@ function drawTie(p: Ctx, w: number, h: number, rand: Rand) {
 
 // ───────────────────────── public ─────────────────────────
 
-const images = new Map<string, HTMLImageElement>();
 
-export function paintNote(n: Note, texel = TEXEL): HTMLCanvasElement {
+/** `photo` is the loaded image for a photo note (loaded by the caller; painting is synchronous). */
+export function paintNote(n: Note, texel = TEXEL, photo?: HTMLImageElement): HTMLCanvasElement {
   const { w, h } = NOTE_SIZE[n.type];
   const c = document.createElement("canvas");
   c.width = Math.round(w * texel);
@@ -882,20 +882,9 @@ export function paintNote(n: Note, texel = TEXEL): HTMLCanvasElement {
     case "web":
       paintWeb(g, n, W, H, rand);
       break;
-    case "photo": {
-      let img: HTMLImageElement | undefined;
-      if (n.imageUrl && !n.imageUrl.startsWith("sketch:")) {
-        img = images.get(n.imageUrl);
-        if (!img) {
-          img = new Image();
-          img.crossOrigin = "anonymous";
-          img.src = n.imageUrl;
-          images.set(n.imageUrl, img);
-        }
-      }
-      paintPhoto(g, n, W, H, rand, img);
+    case "photo":
+      paintPhoto(g, n, W, H, rand, photo);
       break;
-    }
   }
   return c;
 }

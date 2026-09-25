@@ -1,11 +1,89 @@
-import { useEffect, useRef } from "react";
-import type { Case, NoteType, Relation } from "../lib/types.ts";
+import { useEffect, useRef, useState } from "react";
+import type { Case, Note, NoteType, Relation } from "../lib/types.ts";
+import { parseWhenInput, whenLabel } from "../lib/when.ts";
+import { photoIdOf, photoURL } from "../lib/images.ts";
+import { ask } from "../ai/partner.ts";
 import { NOTE_TYPES, RELATIONS, STAMPS, STICKY_COLORS } from "../lib/types.ts";
 import { typeLabel, useStore } from "../store.ts";
 import { RELATION_INFO } from "../lib/relations.ts";
 
 function when(ts: number) {
   return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+/** "When" for a note: typed loosely, stored precisely. Blank means undated. */
+function WhenField({ note }: { note: Note }) {
+  const [text, setText] = useState(note.when ? whenLabel(note.when) : "");
+  const [bad, setBad] = useState(false);
+  useEffect(() => {
+    setText(note.when ? whenLabel(note.when) : "");
+    setBad(false);
+  }, [note.id, note.when]);
+  const commit = () => {
+    const s = useStore.getState();
+    if (!text.trim()) {
+      if (note.when) s.updateNote(note.id, { when: undefined, approx: undefined });
+      setBad(false);
+      return;
+    }
+    const w = parseWhenInput(text);
+    if (!w) return setBad(true);
+    setBad(false);
+    if (w !== note.when) s.updateNote(note.id, { when: w, ...(/^c\.?\s/i.test(text.trim()) ? { approx: true } : {}) });
+  };
+  return (
+    <div className="d-row d-when">
+      <span className="d-label">When</span>
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
+        placeholder="e.g. 24 Nov 1971, 1971-11-24 20:13, 1980"
+        aria-label="When this happened"
+        aria-invalid={bad}
+      />
+      <label className="d-approx">
+        <input
+          type="checkbox"
+          checked={!!note.approx}
+          disabled={!note.when}
+          onChange={(e) => useStore.getState().updateNote(note.id, { approx: e.target.checked })}
+        />
+        approximate
+      </label>
+      {bad && <span className="d-bad">Try a year, “24 Nov 1971”, or “1971-11-24 20:13”.</span>}
+    </div>
+  );
+}
+
+/** The photo itself, big, with a way to ask the partner about it. */
+function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
+  const id = photoIdOf(note.imageUrl);
+  const [url, setUrl] = useState<string | null>(null);
+  const busy = useStore((s) => s.busyCaseId !== null);
+  useEffect(() => {
+    setUrl(null);
+    if (id) void photoURL(id).then(setUrl);
+  }, [id]);
+  if (!id) return null;
+  return (
+    <figure className="d-photo">
+      {url ? <img src={url} alt={note.title} /> : <div className="d-photo-empty">Developing…</div>}
+      <figcaption>
+        <button
+          className="d-ask"
+          disabled={busy}
+          onClick={() => {
+            useStore.getState().openDossier(null);
+            void ask(caseId, `What can you tell from the photo “${note.title}”?`, { photoNoteIds: [note.id] });
+          }}
+        >
+          Ask the partner about this photo
+        </button>
+      </figcaption>
+    </figure>
+  );
 }
 
 /** A manila folder that slides over the wall with everything about one note (SPEC §5.3). */
@@ -65,6 +143,7 @@ export function Dossier({ c }: { c: Case }) {
             ))}
           </div>
 
+          {note.type === "photo" && <PhotoPrint note={note} caseId={c.id} />}
           <input
             className="d-title"
             value={note.title}
@@ -111,6 +190,8 @@ export function Dossier({ c }: { c: Case }) {
               ))}
             </div>
           )}
+
+          <WhenField note={note} />
 
           <section className="d-section">
             <h4>Origin</h4>

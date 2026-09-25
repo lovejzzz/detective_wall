@@ -44,7 +44,7 @@ const COOPER_SCRIPT: { reply: string; update: (c: Case) => WallUpdate }[] = [
       const survived = c.notes.find((n) => n.title === "Did he survive?");
       return {
         notes: [
-          { ref: "n1", type: "fact", title: "Two parachutes gone", body: "After landing in Reno at 10:15 pm the crew found Cooper, the money and two of the four parachutes gone.", confidence: "high", ...(demands ? { near: demands.id } : {}) },
+          { ref: "n1", type: "fact", title: "Two parachutes gone", body: "After landing in Reno at 10:15 pm the crew found Cooper, the money and two of the four parachutes gone.", confidence: "high", when: "1971-11-24T22:15", ...(demands ? { near: demands.id } : {}) },
           { ref: "n2", type: "hypothesis", title: "Which two did he take?", body: "The choice of chutes says something about whether he knew what he was doing." },
         ],
         links: [
@@ -74,7 +74,7 @@ const COOPER_SCRIPT: { reply: string; update: (c: Case) => WallUpdate }[] = [
     update: (c) => {
       const verdict = c.notes.find((n) => n.type === "conclusion");
       return {
-        notes: [{ ref: "n1", type: "fact", title: "Copycats, 1972", body: "31 hijackings in US airspace in 1972; in 15 the hijacker demanded parachutes. Cooper vanes and airport metal detectors ended the pattern.", confidence: "medium" }],
+        notes: [{ ref: "n1", type: "fact", title: "Copycats, 1972", when: "1972", body: "31 hijackings in US airspace in 1972; in 15 the hijacker demanded parachutes. Cooper vanes and airport metal detectors ended the pattern.", confidence: "medium" }],
         links: verdict ? [{ from: "n1", to: verdict.id, relation: "references", reason: "Why this one stands out" }] : [],
         focus: "n1",
       };
@@ -131,4 +131,30 @@ export function offlineTurn(c: Case, userText: string): { reply: string; update:
   ].join("\n\n");
 
   return { reply, update: { notes, links, focus: "n1" } };
+}
+
+/** Offline, the partner can't look at a photo; it says so and sets up the questions to answer about it. */
+export function offlinePhotoTurn(c: Case, photoNoteIds: string[]): { reply: string; update: WallUpdate } {
+  const photo = c.notes.find((n) => n.id === photoNoteIds[0]);
+  const reply = [
+    "(Offline, so I can't look at photos myself.) It's pinned to the wall.",
+    "To make a photo useful as evidence, pin down three things: what it shows, when it was taken, and where it came from. Open its file to give it a caption and a date, and it will take its place on the timeline.",
+    "Next lead: find the original source of the photo, not a repost.",
+  ].join("\n\n");
+  return {
+    reply,
+    update: {
+      notes: [
+        {
+          ref: "n1",
+          type: "hypothesis",
+          title: "What does this photo actually show?",
+          body: "Separate what is visible from what is assumed. When and where was it taken, and by whom?",
+          ...(photo ? { near: photo.id } : {}),
+        },
+      ],
+      links: photo ? [{ from: "n1", to: photo.id, relation: "references", reason: "Questions for the photo" }] : [],
+      focus: "n1",
+    },
+  };
 }

@@ -4,6 +4,7 @@ import * as THREE from "three";
 import type { Note } from "../lib/types.ts";
 import { NOTE_SIZE } from "../lib/geometry.ts";
 import { reducedMotion } from "../lib/motion.ts";
+import { photoIdOf, photoURL } from "../lib/images.ts";
 import { paintKey, paintNote } from "./paint.ts";
 import { PUSHPIN, TACK, binderClip, contactShadow, liftAtPin, paperGeometry, pinMaterials, sharedTextures, tapeMaterial } from "./objects.ts";
 
@@ -20,17 +21,40 @@ interface Props extends NoteHandlers {
   dragTilt: number;
   hovered: boolean;
   fontsVersion: number;
+  /** Where the timeline puts this note; absent on the free wall. */
+  slot?: { x: number; y: number; rotation: number };
+}
+
+/** Loads a stored photo (IndexedDB) for a photo note. Painting waits for it, then repaints. */
+function usePhoto(note: Note): HTMLImageElement | undefined {
+  const id = photoIdOf(note.imageUrl);
+  const [img, setImg] = useState<HTMLImageElement | undefined>(undefined);
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    void photoURL(id).then((url) => {
+      if (!url || !alive) return;
+      const el = new Image();
+      el.onload = () => alive && setImg(el);
+      el.src = url;
+    });
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+  return id ? img : undefined;
 }
 
 function useNoteTexture(note: Note, fontsVersion: number) {
   const key = paintKey(note);
+  const photo = usePhoto(note);
   const tex = useMemo(() => {
-    const t = new THREE.CanvasTexture(paintNote(note));
+    const t = new THREE.CanvasTexture(paintNote(note, undefined, photo));
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 8;
     return t;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, fontsVersion]);
+  }, [key, fontsVersion, photo]);
   useEffect(() => () => tex.dispose(), [tex]);
   return tex;
 }
@@ -151,13 +175,23 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
   useFrame((state, dt) => {
     const g = group.current;
     if (!g) return;
-    // x/y follow the pointer exactly; depth and tilt ease like a real sheet.
-    g.position.x = note.x;
-    g.position.y = -note.y;
     const k = reducedMotion() ? 1 : 1 - Math.exp(-dt * 14);
+    // Dragging: x/y follow the pointer exactly. Switching views: the sheet glides to its new place.
+    const tx = p.slot ? p.slot.x : note.x;
+    const ty = p.slot ? -p.slot.y : -note.y;
+    if (p.dragging) {
+      g.position.x = tx;
+      g.position.y = ty;
+    } else {
+      const kk = reducedMotion() ? 1 : 1 - Math.exp(-dt * 5);
+      g.position.x += (tx - g.position.x) * kk;
+      g.position.y += (ty - g.position.y) * kk;
+      if (Math.abs(tx - g.position.x) < 0.05) g.position.x = tx;
+      if (Math.abs(ty - g.position.y) < 0.05) g.position.y = ty;
+    }
     const bob = proposed && !reducedMotion() ? Math.sin(state.clock.elapsedTime * 0.9 + phase) * 2.2 : 0;
     g.position.z += (target.current.z + bob - g.position.z) * k;
-    const rot = -THREE.MathUtils.degToRad(note.rotation + target.current.tilt);
+    const rot = -THREE.MathUtils.degToRad((p.slot ? p.slot.rotation : note.rotation) + target.current.tilt);
     g.rotation.z += (rot - g.rotation.z) * k;
     const sway = proposed && !reducedMotion() ? Math.sin(state.clock.elapsedTime * 0.6 + phase) * 0.04 : 0;
     g.rotation.x += (sway - g.rotation.x) * k;
@@ -171,7 +205,7 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
 
   return (
     <>
-    <ContactShadow note={note} lifted={p.dragging ? 34 : proposed ? 16 : 0} />
+    <ContactShadow note={note} follow={group} lifted={p.dragging ? 34 : proposed ? 16 : 0} />
     <group ref={group}>
       <mesh
         geometry={geom}
@@ -201,7 +235,7 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
  * The soft shadow a sheet leaves on the cork. The lamp is overhead, so it falls a little
  * downward, and it spreads and fades as the sheet lifts away from the wall.
  */
-function ContactShadow({ note, lifted }: { note: Note; lifted: number }) {
+function ContactShadow({ note, lifted, follow }: { note: Note; lifted: number; follow: React.RefObject<THREE.Group | null> }) {
   const { w, h } = NOTE_SIZE[note.type];
   const mesh = useRef<THREE.Mesh>(null);
   const mat = useMemo(
@@ -215,8 +249,12 @@ function ContactShadow({ note, lifted }: { note: Note; lifted: number }) {
     cur.current += (lifted - cur.current) * (reducedMotion() ? 1 : 1 - Math.exp(-dt * 10));
     const L = cur.current;
     const spread = 1 + L * 0.012;
-    m.position.set(note.x + L * 0.25, -note.y - 3 - L * 0.55, 0.25);
-    m.rotation.z = -THREE.MathUtils.degToRad(note.rotation);
+    // Follow the sheet itself, so the shadow travels with it when it moves between views.
+    const g = follow.current;
+    const gx = g ? g.position.x : note.x;
+    const gy = g ? g.position.y : -note.y;
+    m.position.set(gx + L * 0.25, gy - 3 - L * 0.55, 0.25);
+    m.rotation.z = g ? g.rotation.z : -THREE.MathUtils.degToRad(note.rotation);
     // The blurred rect fills 208/256 of the texture; size it to the sheet plus a few px.
     m.scale.set(((w - 2) / 208) * spread, ((h - 2) / 208) * spread, 1);
     mat.opacity = 0.3 / (1 + L * 0.04);

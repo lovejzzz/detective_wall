@@ -1,7 +1,23 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
-import type { Case } from "../lib/types.ts";
+import type { Case, Note } from "../lib/types.ts";
 import { useStore } from "../store.ts";
 import { ask } from "../ai/partner.ts";
+import { importPhoto, isPhotoFile, photoIdOf, photoURL } from "../lib/images.ts";
+import { findFreeSpot } from "../lib/geometry.ts";
+
+/** A small print of a stored photo, for the transcript and the attachment tray. */
+export function PhotoThumb({ note, size = 44 }: { note: Note; size?: number }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const id = photoIdOf(note.imageUrl);
+  useEffect(() => {
+    if (id) void photoURL(id).then(setUrl);
+  }, [id]);
+  return (
+    <span className="photo-thumb" style={{ width: size, height: size * 1.12 }} title={note.title}>
+      {url ? <img src={url} alt={note.title} /> : <i />}
+    </span>
+  );
+}
 
 function timeOf(ts: number) {
   return new Date(ts).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
@@ -54,16 +70,67 @@ export function Notepad({ c }: { c: Case }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.id]);
 
-  const send = () => {
-    const text = draft.trim();
-    if (!text || anyBusy) return;
+  // Photos attached to the next message. They're pinned to the wall as soon as they're chosen.
+  const [attached, setAttached] = useState<string[]>([]);
+  const attachedRef = useRef<string[]>([]);
+  attachedRef.current = attached;
+  const [importing, setImporting] = useState(false);
+  const importJob = useRef<Promise<string[]> | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  useEffect(() => setAttached([]), [c.id]);
+  const attach = (files: File[]) => {
+    const job = importAll(files);
+    importJob.current = job;
+    void job.finally(() => {
+      if (importJob.current === job) importJob.current = null;
+    });
+    return job;
+  };
+  const importAll = async (files: File[]): Promise<string[]> => {
+    const photos = files.filter(isPhotoFile).slice(0, 3 - attachedRef.current.length);
+    if (!photos.length) return [];
+    setImporting(true);
+    const ids: string[] = [];
+    for (const f of photos) {
+      try {
+        const { id } = await importPhoto(f);
+        const cur = useStore.getState().cases[c.id];
+        const anchor = cur?.notes.find((n) => n.id === cur.focusNoteId) ?? cur?.notes[0] ?? { x: 0, y: 0 };
+        const spot = findFreeSpot("photo", anchor, cur?.notes ?? [], Math.random() * 6);
+        const title = f.name.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").slice(0, 40) || "Photo";
+        ids.push(useStore.getState().addPhotoNote(c.id, { imageId: id, title, x: spot.x, y: spot.y }));
+      } catch {
+        /* unreadable image: skip it */
+      }
+    }
+    const next = [...attachedRef.current, ...ids].slice(0, 3);
+    attachedRef.current = next;
+    setAttached(next);
+    setImporting(false);
+    input.current?.focus();
+    return ids;
+  };
+  const send = async () => {
+    const typed = draft.trim();
+    if (anyBusy) return;
+    // Pressed Enter while a photo is still developing: wait for it, then send both together.
+    if (importJob.current) {
+      setDraft("");
+      await importJob.current;
+    }
+    const notes = useStore.getState().cases[c.id]?.notes ?? [];
+    const photoNoteIds = attachedRef.current.filter((id) => notes.some((n) => n.id === id));
+    if (!typed && !photoNoteIds.length) return;
+    const text = typed || (photoNoteIds.length === 1 ? "Here's a photo for the case. What can you tell from it?" : "Here are some photos for the case. What can you tell from them?");
     setDraft("");
-    void ask(c.id, text);
+    attachedRef.current = [];
+    setAttached([]);
+    void ask(c.id, text, { photoNoteIds });
   };
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      send();
+      void send();
     }
     if (e.key === "Escape") input.current?.blur();
   };
@@ -126,6 +193,18 @@ export function Notepad({ c }: { c: Case }) {
               <div className="entry-meta">
                 {m.role === "user" ? "you" : m.offline ? "partner (offline)" : "partner"} · {timeOf(m.createdAt)}
               </div>
+              {m.role === "user" && m.noteIds?.some((id) => c.notes.find((n) => n.id === id)?.type === "photo") && (
+                <div className="entry-photos">
+                  {m.noteIds
+                    .map((id) => c.notes.find((n) => n.id === id))
+                    .filter((n): n is Note => n?.type === "photo")
+                    .map((n) => (
+                      <button key={n.id} onClick={() => useStore.getState().setFocus(n.id)} title={`Show “${n.title}” on the wall`}>
+                        <PhotoThumb note={n} size={52} />
+                      </button>
+                    ))}
+                </div>
+              )}
               <div className="entry-text">{m.text}</div>
               {m.noteIds && m.noteIds.length > 0 && m.role === "assistant" && (
                 <button
@@ -171,7 +250,31 @@ export function Notepad({ c }: { c: Case }) {
 
       <div className="typewriter">
         <div className="tw-paper">
+          {attached.length > 0 && (
+            <div className="tw-attached">
+              {attached.map((id) => {
+                const n = c.notes.find((x) => x.id === id);
+                if (!n) return null;
+                return (
+                  <span key={id} className="tw-chip">
+                    <PhotoThumb note={n} size={34} />
+                    <button onClick={() => setAttached((a) => a.filter((x) => x !== id))} aria-label={`Don't send “${n.title}”`} title="Don't send this one (it stays on the wall)">
+                      ×
+                    </button>
+                  </span>
+                );
+              })}
+              <span className="tw-attached-note">{attached.length === 1 ? "goes with your next message" : "go with your next message"}</span>
+            </div>
+          )}
           <textarea
+            onPaste={(e) => {
+              const files = [...e.clipboardData.files];
+              if (files.some(isPhotoFile)) {
+                e.preventDefault();
+                void attach(files);
+              }
+            }}
             ref={input}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -181,6 +284,28 @@ export function Notepad({ c }: { c: Case }) {
             aria-label="Message your research partner"
             maxLength={2000}
           />
+          <button
+            className="tw-clip"
+            onClick={() => fileInput.current?.click()}
+            disabled={importing || attached.length >= 3}
+            title="Attach a photo (it's pinned to the wall and sent with your message)"
+            aria-label="Attach a photo"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden>
+              <path d="M8 12.5 L14.2 6.3 a3 3 0 0 1 4.2 4.2 L10.6 18.3 a4.6 4.6 0 0 1 -6.5 -6.5 L11.6 4.3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            </svg>
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => {
+              void attach([...(e.target.files ?? [])]);
+              e.target.value = "";
+            }}
+          />
         </div>
         <div className="tw-body">
           <div className="tw-roller" />
@@ -189,7 +314,7 @@ export function Notepad({ c }: { c: Case }) {
               <span key={i} />
             ))}
           </div>
-          <button className="tw-return" onClick={send} disabled={!draft.trim() || anyBusy} title="Send (Enter)">
+          <button className="tw-return" onClick={() => void send()} disabled={(!draft.trim() && !attached.length && !importing) || anyBusy} title="Send (Enter)">
             {busy ? "…" : "Return"}
             <span className="lever" />
           </button>

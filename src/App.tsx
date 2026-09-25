@@ -5,6 +5,7 @@ import { Notepad } from "./components/Notepad.tsx";
 import { CaseTray } from "./components/CaseTray.tsx";
 import { Dossier, LinkPicker } from "./components/Dossier.tsx";
 import { UndoSlip } from "./components/UndoSlip.tsx";
+import { ViewTabs } from "./components/ViewTabs.tsx";
 
 // The WebGL wall is the heavy part; load it separately so the room's paper objects appear first.
 const Wall = lazy(() => import("./components/Wall.tsx").then((m) => ({ default: m.Wall })));
@@ -93,6 +94,7 @@ export function App() {
           <Wall c={c} stage={stage} />
         </Suspense>
       </div>
+      <ViewTabs left={stage.cx} />
       <CaseTray />
       <Notepad c={c} />
       <div className="plaque" aria-hidden>
@@ -107,6 +109,9 @@ export function App() {
         </span>
         <span>
           <kbd>0</kbd> overview
+        </span>
+        <span>
+          <kbd>T</kbd> timeline
         </span>
         <span>drag a pin to tie string</span>
       </div>
