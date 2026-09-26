@@ -8,6 +8,10 @@ import { COOPER_DEMO, COOPER_VERSION, coldCase } from "./lib/coldcase.ts";
 import { TYLENOL_DEMO, TYLENOL_VERSION, tylenolCase } from "./lib/tylenolcase.ts";
 import { GLICO_DEMO, GLICO_VERSION, glicoCase } from "./lib/glicocase.ts";
 import { FUCHU_DEMO, FUCHU_VERSION, fuchuCase } from "./lib/fuchucase.ts";
+import { SETAGAYA_DEMO, SETAGAYA_VERSION, setagayaCase } from "./lib/setagayacase.ts";
+import { HACHIOJI_DEMO, HACHIOJI_VERSION, hachiojiCase } from "./lib/hachiojicase.ts";
+import { FROGBOYS_DEMO, FROGBOYS_VERSION, frogBoysCase } from "./lib/frogboyscase.ts";
+import { LEEHYUNGHO_DEMO, LEEHYUNGHO_VERSION, leeHyungHoCase } from "./lib/leehyunghocase.ts";
 
 export type PartnerMode = "unknown" | "live" | "offline";
 
@@ -695,6 +699,10 @@ function claimBeat(c: Case, n: Note) {
 
 /** The built-in cases: each arrives once on every wall, and a saved copy of an older edition is brought up to date. */
 const DEMOS: { demo: string; version: number; flag: string; make: () => Case }[] = [
+  { demo: SETAGAYA_DEMO, version: SETAGAYA_VERSION, flag: "detective-wall/demo-setagaya", make: () => setagayaCase() },
+  { demo: FROGBOYS_DEMO, version: FROGBOYS_VERSION, flag: "detective-wall/demo-frogboys", make: () => frogBoysCase() },
+  { demo: HACHIOJI_DEMO, version: HACHIOJI_VERSION, flag: "detective-wall/demo-hachioji", make: () => hachiojiCase() },
+  { demo: LEEHYUNGHO_DEMO, version: LEEHYUNGHO_VERSION, flag: "detective-wall/demo-leehyungho", make: () => leeHyungHoCase() },
   { demo: GLICO_DEMO, version: GLICO_VERSION, flag: "detective-wall/demo-glico", make: () => glicoCase() },
   { demo: FUCHU_DEMO, version: FUCHU_VERSION, flag: "detective-wall/demo-fuchu", make: () => fuchuCase() },
   { demo: TYLENOL_DEMO, version: TYLENOL_VERSION, flag: "detective-wall/demo-tylenol", make: () => tylenolCase() },

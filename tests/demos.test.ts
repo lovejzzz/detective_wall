@@ -3,9 +3,13 @@ import { coldCase } from "../src/lib/coldcase.ts";
 import { tylenolCase } from "../src/lib/tylenolcase.ts";
 import { glicoCase } from "../src/lib/glicocase.ts";
 import { fuchuCase } from "../src/lib/fuchucase.ts";
+import { setagayaCase } from "../src/lib/setagayacase.ts";
+import { hachiojiCase } from "../src/lib/hachiojicase.ts";
+import { frogBoysCase } from "../src/lib/frogboyscase.ts";
+import { leeHyungHoCase } from "../src/lib/leehyunghocase.ts";
 import { layoutTimeline } from "../src/lib/timeline.ts";
 import { NOTE_SIZE } from "../src/lib/geometry.ts";
-import { commonsFile, sanitizeSubject } from "../src/lib/contract.ts";
+import { commonsFile, sanitizeDiagram, sanitizeSubject } from "../src/lib/contract.ts";
 import { SINGLE_BEATS, type Case, type Note } from "../src/lib/types.ts";
 
 const overlapping = (boxes: { id: string; x: number; y: number; w: number; h: number }[]) => {
@@ -23,6 +27,10 @@ describe.each([
   ["Tylenol", tylenolCase],
   ["Glico-Morinaga", glicoCase],
   ["300 million yen", fuchuCase],
+  ["Setagaya", setagayaCase],
+  ["Hachiōji", hachiojiCase],
+  ["Frog Boys", frogBoysCase],
+  ["Lee Hyung-ho", leeHyungHoCase],
 ] as [string, (now?: number) => Case][])("the %s case file", (_name, make) => {
   const c = make(Date.UTC(2026, 8, 26));
   const byId = new Map(c.notes.map((n) => [n.id, n]));
@@ -45,6 +53,14 @@ describe.each([
       else expect(p.imageUrl).toMatch(/^sketch:/);
       expect(c.links.some((l) => l.from === p.id || l.to === p.id), title(p)).toBe(true);
     }
+  });
+
+  it("draws within what the painter can show: every diagram is one the partner could have sent", () => {
+    for (const n of c.notes.filter((x) => x.type === "diagram")) {
+      expect(sanitizeDiagram(n.diagram), title(n)).toEqual(n.diagram);
+      expect(c.links.some((l) => l.from === n.id || l.to === n.id), title(n)).toBe(true);
+    }
+    expect(c.notes.some((n) => n.diagram?.kind === "map")).toBe(true);
   });
 
   it("asks who: an offender profile, subject files that fit their cards, and where information can go", () => {
