@@ -2243,11 +2243,15 @@ kbd {
   cursor: pointer;
   pointer-events: auto;
 }
+/* The labels share one size that fits the longest in its column (--label-em: its width in ems). */
 .tl-story b {
+  max-width: 100%;
   height: 38px;
-  font: 400 30px/38px var(--typed);
+  overflow: hidden;
+  font: 400 clamp(17px, calc((var(--step, 310px) - 26px) / var(--label-em, 11)), 30px) / 38px var(--typed);
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--beat);
 }
@@ -2263,7 +2267,11 @@ kbd {
   transition: scale 0.2s ease;
 }
 .tl-story .when {
+  max-width: 100%;
+  overflow: hidden;
   font: 29px/1.1 var(--typed);
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--ink-soft);
 }
 .tl-story .what {

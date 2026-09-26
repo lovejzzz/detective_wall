@@ -61,6 +61,11 @@ describe("key moments in the store", async () => {
     turn({ notes: [], links: [], dates: [{ note: dated.id, when: "1990", fix: "Back" }] });
   });
 
+  it("corrects a card sent earlier in the same turn", () => {
+    turn({ notes: [fact("x", "Body found", "2047-01-15")], links: [], dates: [{ note: "x", when: "1947-01-15", fix: "Typo: the body was found in 1947" }] });
+    expect(byTitle("Body found").when).toBe("1947-01-15");
+  });
+
   it("dates undated notes but never overwrites a date", () => {
     turn({ notes: [fact("u", "Undated event")], links: [], moments: [] });
     const u = byTitle("Undated event");

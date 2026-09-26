@@ -269,6 +269,9 @@ describe("key moments", () => {
       { note: "w2", beat: null },
     ]);
     expect(out.dates).toEqual([{ note: "w1", when: "1989-12-02", approx: true }]);
+    // a correction may reach a note sent this turn
+    const fixed = sanitizeWallUpdate({ notes: [{ ref: "n1", type: "fact", title: "Found", body: "", when: "2047" }], links: [], dates: [{ note: "n1", when: "1947", fix: "Typo" }] }, new Set());
+    expect(fixed.dates).toEqual([{ note: "n1", when: "1947", fix: "Typo" }]);
   });
 
   it("puts the story's key moments in time order for the heading, and makes room for them", () => {

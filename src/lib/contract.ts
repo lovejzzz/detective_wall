@@ -289,7 +289,7 @@ export const UPDATE_WALL_SCHEMA = {
     },
     dates: {
       type: "array",
-      description: "At most 20. Dates for notes already on the wall that have none, by id, so they take their place on the timeline; or, with fix, a correction to a date that is wrong.",
+      description: "At most 20. Dates for notes that have none (by id, or a ref from this turn), so they take their place on the timeline; or, with fix, a correction to a date that is wrong, including on a lead sent earlier this turn.",
       items: {
         type: "object",
         additionalProperties: false,
@@ -473,9 +473,11 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
     for (const d of raw.dates.slice(0, MAX_DATES * 2)) {
       if (!d || typeof d !== "object") continue;
       const { note, when, approx, fix } = d as Record<string, unknown>;
-      // only notes already on the wall: a new note carries its own date
-      if (typeof note !== "string" || !knownIds.has(note) || !isWhen(when) || dates.some((x) => x.note === note)) continue;
       const why = typeof fix === "string" ? fix.trim().slice(0, 80) : "";
+      // A note on the wall; a new note carries its own date, but one sent earlier this turn (a lead
+      // already up) can still be corrected before the turn ends.
+      const onWall = typeof note === "string" && knownIds.has(note);
+      if (!(onWall || (why && resolvable(note))) || !isWhen(when) || dates.some((x) => x.note === note)) continue;
       dates.push({ note, when, ...(approx === true ? { approx: true } : {}), ...(why ? { fix: why } : {}) });
     }
     if (dates.length) out.dates = dates.slice(0, MAX_DATES);

@@ -35,6 +35,8 @@ const LABEL_Z = 0.35;
 /** Zoomed out past FAR_NONE the far labels start to fade in over the cards; by FAR_FULL they're fully up. */
 const FAR_NONE = 0.58;
 const FAR_FULL = 0.54;
+/** How wide a key-moment label is in its own ems (spaced capitals, or CJK), so the labels can share one size that fits. */
+const labelEm = (label: string) => [...label].reduce((w, ch) => w + (/[\u3000-\u9fff\uac00-\ud7af]/.test(ch) ? 1.12 : 0.74), 0);
 /** A zoom the camera can come to rest at: never where the far labels are half faded over the cards. */
 const settleZ = (z: number) => (z > FAR_FULL && z < FAR_NONE ? FAR_FULL : z);
 const MAX_Z = 2.2;
@@ -1002,14 +1004,18 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                   <span>{t("{n} dated", { n: timeline.heading.count })}</span>
                 </p>
                 {story.length > 0 && (
-                  <ol className="tl-story" aria-label={t("Key moments")}>
+                  <ol className="tl-story" aria-label={t("Key moments")} style={{ ["--label-em" as string]: Math.max(...story.map((m) => labelEm(t(BEAT_LABEL[m.beat])))) }}>
                     {story.map((m) => (
                       // the moments share the page's width, so the heading never runs past it
-                      <li key={m.id} className={`beat-${m.beat}`} style={{ width: timeline.heading?.step }}>
+                      <li
+                        key={m.id}
+                        className={`beat-${m.beat}`}
+                        style={{ width: timeline.heading?.step, ["--step" as string]: `${timeline.heading?.step ?? 310}px` }}
+                      >
                         <button onClick={() => goToMoment(m.id)} title={`${t(BEAT_LABEL[m.beat])}: ${m.title}`}>
                           <b>{t(BEAT_LABEL[m.beat])}</b>
                           <i aria-hidden />
-                          <span className="when">{whenLabel(m.when!)}</span>
+                          <span className="when">{whenLabel(m.when!.slice(0, 10))}</span>
                           <span className="what">{m.title}</span>
                         </button>
                       </li>
