@@ -22,7 +22,12 @@ export async function checkPartner() {
 
 function statusLine(e: Extract<PartnerEvent, { type: "status" }>): string {
   if (e.kind === "searching") return e.detail ? t("searching “{query}”", { query: e.detail }) : t("searching the web");
-  if (e.kind === "reading") return e.detail ? t("reading {page}", { page: e.detail }) : t("reading sources");
+  if (e.kind === "reading") {
+    // "9 results" from a search is counted in the page's language
+    const n = e.detail?.match(/^(\d+) results?$/)?.[1];
+    if (n) return t(n === "1" ? "reading 1 result" : "reading {n} results", { n });
+    return e.detail ? t("reading {page}", { page: e.detail }) : t("reading sources");
+  }
   return t("pinning up evidence");
 }
 

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { ensureCases, useStore } from "../store.ts";
 import type { Case, NoteType } from "../lib/types.ts";
 import { ago, caseNumbers, caseStats, caseTitle, fileNo } from "../lib/cases.ts";
-import { t } from "../lib/i18n.ts";
+import { getLang, t } from "../lib/i18n.ts";
 
 type Sort = "recent" | "number" | "title";
 const SORTS: [Sort, string][] = [
@@ -25,7 +25,10 @@ function matchOf(c: Case, q: string): { hit: boolean; clue?: string } {
   if (!inBody) return { hit: false };
   // Show the words around the match, so it's clear why this file came up.
   const at = inBody.body.toLowerCase().indexOf(needle);
-  const from = Math.max(0, inBody.body.lastIndexOf(" ", Math.max(0, at - 24)) + 1);
+  // start at a word boundary if one is near (Chinese and Japanese have none: cut at the characters)
+  const near = Math.max(0, at - 24);
+  const space = inBody.body.lastIndexOf(" ", near);
+  const from = space >= 0 && near - space < 14 ? space + 1 : near;
   const to = Math.min(inBody.body.length, at + needle.length + 28);
   const snippet = `${from > 0 ? "…" : ""}${inBody.body.slice(from, to).trim()}${to < inBody.body.length ? "…" : ""}`;
   return { hit: true, clue: t("{snippet} (in “{title}”)", { snippet, title: inBody.title }) };
@@ -59,7 +62,8 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
   const files = useMemo(() => {
     const all = order.map((id) => cases[id]).filter((c): c is Case => !!c);
     if (sort === "number") all.sort((a, b) => (numbers.get(a.id) ?? 0) - (numbers.get(b.id) ?? 0));
-    if (sort === "title") all.sort((a, b) => caseTitle(a.title).localeCompare(caseTitle(b.title)));
+    // names in the page's language order: pinyin for Chinese
+    if (sort === "title") all.sort((a, b) => caseTitle(a.title).localeCompare(caseTitle(b.title), getLang() === "zh" ? "zh-Hans-u-co-pinyin" : "en"));
     // The drawer is read back to front: the first file stands at the back, the last at the front.
     return all.map((c) => ({ c, ...matchOf(c, q.trim()) })).filter((f) => f.hit);
   }, [order, cases, sort, q, numbers]);

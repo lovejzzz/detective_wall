@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { normalizeRanks } from "./lib/suspects.ts";
 import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 import { SINGLE_BEATS, type Beat, type Camera, type Case, type Link, type Message, type Note, type NoteType, type Relation, type StickyColor, type TrailStep } from "./lib/types.ts";
 import type { ProposedNote, WallUpdate } from "./lib/contract.ts";
@@ -263,6 +264,7 @@ export const useStore = create<Store>()(
         if (!activeId || !cases[activeId]) return;
         const draft = structuredClone(cases[activeId]);
         const result = fn(draft) ?? draft;
+        normalizeRanks(result.notes);
         result.updatedAt = Date.now();
         set({ cases: { ...cases, [activeId]: result } });
       };
@@ -271,6 +273,7 @@ export const useStore = create<Store>()(
         if (!c) return;
         const draft = structuredClone(c);
         fn(draft);
+        normalizeRanks(draft.notes);
         draft.updatedAt = Date.now();
         set({ cases: { ...get().cases, [caseId]: draft } });
       };
@@ -298,7 +301,8 @@ export const useStore = create<Store>()(
         activeId: null,
         dossierId: null,
         busyCaseId: null,
-        notepadOpen: true,
+        // on a tablet-sized window the notepad starts folded, so the wall has room
+        notepadOpen: typeof window === "undefined" || window.innerWidth >= 1100,
         cabinetOpen: false,
         setCabinetOpen(open) {
           set({ cabinetOpen: open });
@@ -311,6 +315,14 @@ export const useStore = create<Store>()(
         visitStart: Date.now(),
 
         newCase(question) {
+          // "+" on top of a blank case opens that one rather than stacking identical empty folders
+          if (!question?.trim()) {
+            const empty = get().order.map((o) => get().cases[o]).find((x) => x && !x.demo && !x.notes.length && !x.messages.length);
+            if (empty) {
+              set({ activeId: empty.id, dossierId: null, pendingLink: null, view: "wall" });
+              return empty.id;
+            }
+          }
           const c = blankCase(question?.trim() || "Untitled case");
           set((s) => ({ cases: { ...s.cases, [c.id]: c }, order: [c.id, ...s.order], activeId: c.id, dossierId: null }));
           return c.id;
@@ -327,10 +339,16 @@ export const useStore = create<Store>()(
             const cases = { ...s.cases };
             delete cases[id];
             const order = s.order.filter((o) => o !== id);
+            // The last folder shredded: a blank case takes its place, so the wall is never empty.
+            if (!order.length) {
+              const blank = blankCase("Untitled case");
+              cases[blank.id] = blank;
+              order.push(blank.id);
+            }
             return {
               cases,
               order,
-              activeId: s.activeId === id ? (order[0] ?? null) : s.activeId,
+              activeId: s.activeId === id || !order.includes(s.activeId ?? "") ? order[0] : s.activeId,
               dossierId: null,
               // Shredding is undoable like everything else: the slip can put the whole file back.
               shredded: { case: gone, index: s.order.indexOf(id), wasActive: s.activeId === id },
@@ -855,7 +873,14 @@ export function ensureCases() {
     const d = DEMOS.find((x) => x.demo === c.demo);
     if (!d || ((c.demoVersion ?? 1) >= d.version && (c.lang ?? "en") === getLang())) continue;
     const next = d.make();
-    useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...next, id: c.id, lastOpenedAt: c.lastOpenedAt } } }));
+    // same folder, same place in the numbering: it keeps its id and the day it was opened
+    useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...next, id: c.id, createdAt: c.createdAt, lastOpenedAt: c.lastOpenedAt } } }));
+  }
+
+  // Never a page with no case at all (every folder shredded): start a blank one.
+  if (!useStore.getState().order.length) {
+    const blank = blankCase("Untitled case");
+    useStore.setState((s2) => ({ cases: { ...s2.cases, [blank.id]: blank }, order: [blank.id], activeId: blank.id }));
   }
 
   const s = useStore.getState();

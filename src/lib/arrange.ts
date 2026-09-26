@@ -39,6 +39,14 @@ export function arrangeWall(notes: Note[], links: Link[], phases?: Phase[]): Arr
   const hunches = loose.filter((n) => n.type === "hypothesis");
   if (evidence.length) sections.push(evidence);
   if (hunches.length) sections.push(hunches);
+  // A small wall shouldn't read as a tall thin column: after the question and the subjects, short
+  // sections next to each other share a row (still in order) as long as it holds.
+  const fixed = sections.filter((sec) => sec === top || sec[0]?.type === "subject");
+  for (let i = sections.length - 1; i > 0; i--) {
+    const [a, b] = [sections[i - 1], sections[i]];
+    if (fixed.includes(a) || fixed.includes(b)) continue;
+    if (a.length + b.length <= ARRANGE_COLS) sections.splice(i - 1, 2, [...a, ...b]);
+  }
 
   const out: Arrangement = new Map();
   const x0 = (-(ARRANGE_COLS - 1) / 2) * CELL_W;

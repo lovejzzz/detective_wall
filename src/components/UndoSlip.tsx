@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useStore } from "../store.ts";
 import { t } from "../lib/i18n.ts";
+import { caseTitle } from "../lib/cases.ts";
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
@@ -8,7 +9,7 @@ const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigat
 export function undoLabel(label: string): string {
   const quoted = (s: string) => (s === "a note" ? t("a note") : s);
   let m: RegExpMatchArray | null;
-  if ((m = label.match(/^Shredded “([\s\S]*)”$/))) return t("Shredded “{title}”", { title: m[1] });
+  if ((m = label.match(/^Shredded “([\s\S]*)”$/))) return t("Shredded “{title}”", { title: caseTitle(m[1]) });
   if ((m = label.match(/^Took down ([\s\S]*)$/))) return t("Took down {what}", { what: quoted(m[1]) });
   if ((m = label.match(/^Changed ([\s\S]*)$/))) return t("Changed {what}", { what: quoted(m[1]) });
   if ((m = label.match(/^Pinned (\d+) leads?$/))) return t(m[1] === "1" ? "Pinned 1 lead" : "Pinned {n} leads", { n: m[1] });

@@ -2,13 +2,13 @@
 import type { DemoTranslation } from "../demo.ts";
 
 export const COOPER_ZH: DemoTranslation = {
-  title: "305航班劫机者（“D. B. Cooper”）",
+  title: "305航班劫机者（D·B·库珀）",
   phases: ["劫机", "追捕与模仿者", "赎金现身", "撤下资源，未结案"],
   notes: {
     q: { title: "“Dan Cooper”是谁？他跳机后活下来了吗？" },
     verdict: {
       title: "最可能：他没能活着花掉这笔钱",
-      body: "一名四十多岁、熟悉727的策划者约在20:13跳机，落点可能在搜索区以南或以东。FBI从未指认头号嫌疑人；每个被公开点名的人选，在体貌描述、行踪或FBI自身结论上都有严重问题。什么能改变结论：对领带上的DNA做遗传谱系分析，或找到一张流转链条可追溯的赎金钞票。",
+      body: "一名四十多岁、熟悉727的策划者约在20:13跳机，落点可能在搜索区以南或以东。FBI从未指认头号嫌疑人；每个被公开点名的人选，在体貌描述、行踪或FBI自身结论上都有严重问题。能改写结论的是：对领带上的DNA做遗传谱系分析，或找到一张流转链条可追溯的赎金钞票。",
     },
     tips: {
       title: "线索提供渠道",
@@ -16,7 +16,7 @@ export const COOPER_ZH: DemoTranslation = {
     },
 
     unsub: {
-      title: "未知嫌疑人：“Dan Cooper”",
+      title: "未知嫌犯：“Dan Cooper”",
       body: "四十五岁上下，5英尺10英寸至6英尺，170–180磅，棕色眼睛；吸烟，点了波本威士忌。",
       subject: {
         verdict: "点过名的人都没通过FBI的核查；一名四十多岁、未被点名的策划者最吻合。",

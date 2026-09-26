@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Case, Note, NoteType, Relation, SubjectFile } from "../lib/types.ts";
 import { parseWhenInput, whenLabel } from "../lib/when.ts";
 import { photoIdOf, photoURL } from "../lib/images.ts";
@@ -8,6 +8,9 @@ import { ask } from "../ai/partner.ts";
 import { BEATS, BEAT_LABEL, NOTE_TYPES, RELATIONS, STAMPS, STICKY_COLORS } from "../lib/types.ts";
 import { typeLabel, useStore } from "../store.ts";
 import { RELATION_INFO } from "../lib/relations.ts";
+import { plainText, withoutRefs } from "./Typed.tsx";
+import { paintKey, paintNote } from "../scene/paint.ts";
+import { isSettled } from "../lib/suspects.ts";
 import { getLang, t } from "../lib/i18n.ts";
 
 function when(ts: number) {
@@ -51,7 +54,7 @@ function SubjectSections({ file }: { file: SubjectFile }) {
       {list("Against", "is-against", file.against)}
       {file.settle && (
         <p className="d-subject-settle">
-          <b>{t("Settle it:")}</b> {file.settle}
+          {!isSettled(file.settle) && <b>{t("Settle it:")}</b>} {file.settle}
         </p>
       )}
     </section>
@@ -66,18 +69,26 @@ function WhenField({ note }: { note: Note }) {
     setText(note.when ? whenLabel(note.when) : "");
     setBad(false);
   }, [note.id, note.when]);
-  const commit = () => {
+  /** Saves what's typed. A date typed with "c." or 约 is approximate; one typed without isn't. */
+  const save = (typed: string): boolean => {
     const s = useStore.getState();
-    if (!text.trim()) {
-      if (note.when) s.updateNote(note.id, { when: undefined, approx: undefined });
-      setBad(false);
-      return;
+    const n = s.cases[s.activeId ?? ""]?.notes.find((x) => x.id === note.id);
+    if (!n) return true;
+    if (!typed.trim()) {
+      if (n.when) s.updateNote(n.id, { when: undefined, approx: undefined });
+      return true;
     }
-    const w = parseWhenInput(text);
-    if (!w) return setBad(true);
-    setBad(false);
-    if (w !== note.when) s.updateNote(note.id, { when: w, ...(/^(c\.?\s|约)/i.test(text.trim()) ? { approx: true } : {}) });
+    const w = parseWhenInput(typed);
+    if (!w) return false;
+    if (typed.trim() === (n.when ? whenLabel(n.when) : "")) return true; // untouched
+    s.updateNote(n.id, { when: w, approx: /^(c\.?\s|约)/i.test(typed.trim()) || undefined });
+    return true;
   };
+  const commit = () => setBad(!save(text));
+  // Closing the file (Esc, the backdrop, a page turn) keeps what was typed, as leaving the field would.
+  const typed = useRef(text);
+  typed.current = text;
+  useEffect(() => () => void save(typed.current), [note.id]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="d-row d-when">
       <span className="d-label">{t("When")}</span>
@@ -105,6 +116,17 @@ function WhenField({ note }: { note: Note }) {
 }
 
 /** The photo itself, big, credited, with a way to ask the partner about it. */
+/** A sketch or a map, drawn large: the file shows the drawing itself, as it shows a photo's print. */
+function DiagramPrint({ note }: { note: Note }) {
+  const key = paintKey(note);
+  const src = useMemo(() => paintNote(note, 3).toDataURL("image/png"), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <figure className="d-photo d-drawing">
+      <img src={src} alt={note.title} />
+    </figure>
+  );
+}
+
 function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
   const id = photoIdOf(note.imageUrl);
   const commons = commonsFileOf(note.imageUrl);
@@ -231,10 +253,21 @@ export function Dossier({ c }: { c: Case }) {
     .filter((x) => x.other);
 
   const originWho =
-    note.origin.kind === "user" ? t("You") : seeded ? t("Case file") : note.origin.kind === "web" ? t("Partner, from the web") : t("Partner");
+    note.origin.kind === "user" && !c.demo ? t("You") : seeded || note.origin.kind === "user" ? t("Case file") : note.origin.kind === "web" ? t("Partner, from the web") : t("Partner");
 
   return (
     <div className="dossier-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
+      {/* The page turns stay put on the screen while the file's height changes from page to page. */}
+        <button className="dossier-turn is-prev" onClick={() => go("prev")} disabled={!prevId} aria-label={t("Previous exhibit (←)")} title={t("Previous exhibit (←)")}>
+        <svg viewBox="0 0 24 24" aria-hidden>
+          <path d="M15 5l-7 7 7 7" />
+        </svg>
+      </button>
+      <button className="dossier-turn is-next" onClick={() => go("next")} disabled={!nextId} aria-label={t("Next exhibit (→)")} title={t("Next exhibit (→)")}>
+        <svg viewBox="0 0 24 24" aria-hidden>
+          <path d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
       <div className="dossier" role="dialog" aria-modal="true" aria-label={t("Exhibit {n}: {title}", { n: exhibitNo, title: note.title })} tabIndex={-1} ref={panel}>
         <div className="dossier-tab">
           {t("Exhibit {n}", { n: String(exhibitNo).padStart(2, "0") })}
@@ -243,16 +276,7 @@ export function Dossier({ c }: { c: Case }) {
         <button className="dossier-close" onClick={close} aria-label={t("Close (Esc)")}>
           ×
         </button>
-        <button className="dossier-turn is-prev" onClick={() => go("prev")} disabled={!prevId} aria-label={t("Previous exhibit (←)")} title={t("Previous exhibit (←)")}>
-          <svg viewBox="0 0 24 24" aria-hidden>
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-        </button>
-        <button className="dossier-turn is-next" onClick={() => go("next")} disabled={!nextId} aria-label={t("Next exhibit (→)")} title={t("Next exhibit (→)")}>
-          <svg viewBox="0 0 24 24" aria-hidden>
-            <path d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+
 
         <div className={`dossier-sheet ${turned.current ? `from-${turned.current}` : ""}`} key={note.id}>
           <div className="type-tabs" role="radiogroup" aria-label={t("Note type")}>
@@ -264,12 +288,14 @@ export function Dossier({ c }: { c: Case }) {
                 className={note.type === type ? "is-on" : ""}
                 onClick={() => s.updateNote(note.id, { type })}
               >
-                {typeLabel(type)}
+                {/* the chips fit one row: the subject file's is just "Subject" */}
+                {type === "subject" ? t("Subject") : typeLabel(type)}
               </button>
             ))}
           </div>
 
           {note.type === "photo" && <PhotoPrint note={note} caseId={c.id} />}
+          {note.type === "diagram" && note.diagram && <DiagramPrint note={note} />}
           <textarea
             className="d-title"
             value={note.title}
@@ -344,7 +370,7 @@ export function Dossier({ c }: { c: Case }) {
               {!(seeded || (c.demo && !note.origin.messageId)) && <> · {when(note.createdAt)}</>}
               {note.confidence && <> · {t("confidence {level}", { level: t(note.confidence) })}</>}
             </p>
-            {(note.origin.excerpt || msg) && <blockquote>{note.origin.excerpt ?? msg?.text}</blockquote>}
+            {(note.origin.excerpt || msg) && <blockquote>{plainText(withoutRefs(note.origin.excerpt ?? msg?.text ?? ""))}</blockquote>}
             {note.origin.url && (
               <a className="d-url" href={note.origin.url} target="_blank" rel="noreferrer" title={note.origin.url}>
                 {shortUrl(note.origin.url)}

@@ -66,7 +66,7 @@ const DGPOLICE = "https://www.dgpolice.go.kr/dgpo/PageLink.do?link=/dgpo/06/02_0
 export const FROGBOYS_SPEC: DemoSpec = {
   demo: FROGBOYS_DEMO,
   title: "The Frog Boys of Waryongsan",
-  openedMinutesAgo: 270,
+  openedMinutesAgo: 272,
   phases: FROGBOYS_PHASES,
   notes: [
     { key: "q", type: "hypothesis", title: "What happened to the five boys on Waryongsan, and who killed them?" },

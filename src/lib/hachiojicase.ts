@@ -44,7 +44,7 @@ const BUNSHUN = "https://bunshun.jp/articles/-/82476?page=4";
 export const HACHIOJI_SPEC: DemoSpec = {
   demo: HACHIOJI_DEMO,
   title: "The Hachiōji supermarket murders",
-  openedMinutesAgo: 250,
+  openedMinutesAgo: 252,
   phases: HACHIOJI_PHASES,
   notes: [
     { key: "q", type: "hypothesis", title: "Who shot three women in the Nanpei office, and why was nothing taken?" },

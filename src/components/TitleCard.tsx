@@ -46,7 +46,7 @@ export function TitleCard() {
       key: `${c.id}-${Date.now()}`,
       no: t("Case file {no}", { no: fileNo(caseNumbers(s.cases).get(c.id)) }),
       title: caseTitle(c.title),
-      meta: [st.span, t(st.exhibits === 1 ? "1 exhibit" : "{n} exhibits", { n: st.exhibits }), st.verdict && t(st.verdict)].filter(Boolean).join("  ·  "),
+      meta: [st.span, t(st.exhibits === 1 ? "1 exhibit" : "{n} exhibits", { n: st.exhibits }), st.verdict && t("Verdict: {stamp}", { stamp: t(st.verdict) })].filter(Boolean).join("  ·  "),
     });
   }, [activeId]);
   useEffect(() => {
@@ -82,7 +82,8 @@ export function TitleCard() {
     >
       <div className="title-inner">
         <p className="title-no">{card.no}</p>
-        <h1 className="title-name">{card.title}</h1>
+        {/* a hyphenated name (Lee Hyung-ho) never breaks at its hyphen */}
+        <h1 className="title-name">{card.title.replace(/(\p{L})-(\p{L})/gu, "$1\u2011$2")}</h1>
         <span className="title-rule" aria-hidden />
         {card.meta && <p className="title-meta">{card.meta}</p>}
       </div>

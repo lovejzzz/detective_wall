@@ -16,7 +16,7 @@ export const HACHIOJI_ZH: DemoTranslation = {
     },
 
     unsub: {
-      title: "未知嫌疑人：办公室里的枪手",
+      title: "未知嫌犯：办公室里的枪手",
       body: "屋内一名男子；外面是否有人接应不明。",
       subject: {
         verdict: "抢劫失手的单独枪手（警方的主要看法）；他的指纹至今未比中。",
@@ -31,7 +31,7 @@ export const HACHIOJI_ZH: DemoTranslation = {
       },
     },
     sMotomura: {
-      title: "“モトムラ”，抢劫团伙人物",
+      title: "化名“Motomura”的抢劫团伙人物",
       body: "约2010年追查到的化名；背后的人始终未查明身份。",
       subject: {
         verdict: "狱友称化名者自认作案；全是转述，没有实物证据相连。",
@@ -207,8 +207,8 @@ export const HACHIOJI_ZH: DemoTranslation = {
     },
 
     motomura: {
-      title: "《东京新闻》：追查“モトムラ”",
-      body: "一组十篇的系列报道称，约2010年刑警追查一名自称モトムラ、出生于福建的抢劫团伙人物，后来一名高级警官决定不再追查中国抢劫团伙这条线，专案组随之缩编。此后再无人尝试查明他的身份。",
+      title: "《东京新闻》：追查“Motomura”",
+      body: "一组十篇的系列报道称，约2010年刑警追查一名自称“Motomura”（モトムラ）、出生于福建的抢劫团伙人物，后来一名高级警官决定不再追查中国抢劫团伙这条线，专案组随之缩编。此后再无人尝试查明他的身份。",
     },
     sevenPrints: {
       title: "7枚无人认领的指纹",

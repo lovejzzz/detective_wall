@@ -4,5 +4,5 @@ export const RELATION_INFO: Record<Relation, { glyph: string; name: string; blur
   supports: { glyph: "✓", name: "Supports", blurb: "is evidence for" },
   causes: { glyph: "→", name: "Causes", blurb: "leads to" },
   contradicts: { glyph: "✕", name: "Contradicts", blurb: "is in tension with" },
-  references: { glyph: "↗", name: "References", blurb: "points to" },
+  references: { glyph: "↗", name: "Points to", blurb: "points to" },
 };

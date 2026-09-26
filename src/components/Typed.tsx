@@ -51,10 +51,12 @@ const LEAD = /^\s*(?:[–-]\s*)?(?:\*\*)?((?:next|first|second|third|another|one
 const LEAD_ZH = /^\s*(?:[–-]\s*)?(?:\*\*)?((?:下一条|下条|第[一二三]条|另一条|再一条)?线索[一二三123]?)(?:\*\*)?\s*[:：]\s*(?:\*\*)?\s*(.{4,})$/;
 
 /** Plain words for the typewriter: Markdown marks and link targets stripped. */
-const plainText = (s: string) => s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\*\*?([^*]+)\*\*?/g, "$1").trim();
+export const plainText = (s: string) => s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\*\*?([^*]+)\*\*?/g, "$1").trim();
+/** The partner's internal note refs, "(n3)" or "（n1、n4）", which mean nothing to a reader. */
+export const withoutRefs = (s: string) => s.replace(/\s?[(（](?:n|ref|lead|note)\d{1,3}(?:\s*[,，、]\s*(?:n|ref|lead|note)\d{1,3})*[)）]/g, "");
 
 export function Typed({ text, onLead }: { text: string; onLead?: (lead: string) => void }) {
-  const lines = text.split("\n");
+  const lines = withoutRefs(text).split("\n");
   let inLeads = false; // under a "Next leads" heading, each bullet is a lead
   return (
     <>

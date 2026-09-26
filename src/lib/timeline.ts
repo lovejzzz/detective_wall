@@ -475,7 +475,7 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
   const headingH = moments.some((m) => m.when) ? HEADING_STORY_H : HEADING_H;
   const settledDated = settledOf(dated);
   // The key moments share the page's width (down to a readable minimum) rather than widening it.
-  const storyN = moments.filter((m) => m.when).length;
+  const storyN = storyMoments(moments).length;
   const step = storyN ? Math.max(STORY_MIN, Math.min(STORY_STEP, (right - left - 140) / storyN)) : STORY_STEP;
   const heading = dated.length
     ? { title: opts.title?.trim() || t("Chronology"), range: rangeLabel(settledDated[0].when!, settledDated[settledDated.length - 1].when!), count: dated.length, x: left, y: -headingH, step }
@@ -499,4 +499,15 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
       y1: bottom,
     },
   };
+}
+
+/** The heading's story line: at most six key moments, so each stays readable. The case's beginning,
+ * its resolution and where it stands always show; then the turning points, the rest after. In time order. */
+export const STORY_MAX = 6;
+const STORY_PRIORITY: Beat[] = ["origin", "resolved", "latest", "breakthrough", "twist", "escalation", "dead_end"];
+export function storyMoments<M extends { beat: Beat; when?: string }>(moments: M[]): M[] {
+  const dated = moments.filter((m) => m.when);
+  if (dated.length <= STORY_MAX) return dated;
+  const keep = new Set([...dated].sort((a, b) => STORY_PRIORITY.indexOf(a.beat) - STORY_PRIORITY.indexOf(b.beat)).slice(0, STORY_MAX));
+  return dated.filter((m) => keep.has(m));
 }

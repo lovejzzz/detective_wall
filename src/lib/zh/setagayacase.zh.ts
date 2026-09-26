@@ -17,7 +17,7 @@ export const SETAGAYA_ZH: DemoTranslation = {
     pSeijoPS: { title: "成城警察署", body: "特别搜查本部所在地（摄于2011年1月）。" },
 
     unsub: {
-      title: "未知嫌疑人：12月30日的闯入者",
+      title: "未知嫌犯：12月30日的闯入者",
       body: "一名男子，手部受伤，在屋内停留了数小时。",
       subject: {
         verdict: "一名A型血男子，日本没有他的档案：警方的看法，也是证据的指向。",

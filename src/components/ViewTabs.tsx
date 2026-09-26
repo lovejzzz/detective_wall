@@ -15,7 +15,7 @@ export function ViewTabs({ left }: { left: number }) {
           ["timeline", t("Timeline")],
         ] as const
       ).map(([v, label]) => (
-        <button key={v} role="tab" aria-selected={view === v} className={view === v ? "is-on" : ""} onClick={() => setView(v)} title={`${label} (T)`}>
+        <button key={v} role="tab" aria-selected={view === v} className={view === v ? "is-on" : ""} onClick={() => setView(v)} title={t("{label} (T)", { label })}>
           {label}
         </button>
       ))}

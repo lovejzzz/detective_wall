@@ -70,3 +70,6 @@ export function t(en: string, vars?: Record<string, string | number>): string {
 export function setLangForTest(next: Lang) {
   lang = next;
 }
+
+/** Keeps a number with the Chinese unit after it ("12月", "30日", "71岁") so a line never breaks between them. */
+export const keepTogether = (s: string) => s.replace(/(\d)(?=[年月日号时分秒岁])/g, "$1\u2060");

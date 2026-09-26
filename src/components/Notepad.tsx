@@ -81,7 +81,7 @@ function TurnNotes({ c, noteIds }: { c: Case; noteIds: string[] }) {
       </button>
       {waiting.length > 0 ? (
         <button className="entry-pinall" onClick={() => useStore.getState().pinAll(waiting.map((x) => x.id))} title={t("Pin every lead from this reply, with the strings between them")}>
-          {waiting.length === n ? (n === 1 ? t("pin it") : n === 2 ? t("pin both") : t("pin all {n}", { n })) : t("pin the other {n}", { n: waiting.length })}
+          {waiting.length === n ? (n === 1 ? t("pin it") : n === 2 ? t("pin both") : t("pin all {n}", { n })) : waiting.length === 1 ? t("pin the last one") : t("pin the other {n}", { n: waiting.length })}
         </button>
       ) : notes.length > 0 ? (
         <span className="entry-settled">{notes.length === n ? t("all on the wall") : t("{n} kept", { n: notes.length })}</span>
@@ -128,10 +128,18 @@ export function Notepad({ c }: { c: Case }) {
   const scroller = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
-  // Keep the newest words in view as they're typed out.
+  // Keep the newest words in view as they're typed out; a finished reply opens at its start, so
+  // the page never begins mid-sentence.
   useLayoutEffect(() => {
     const el = scroller.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    const last = !live ? [...el.querySelectorAll<HTMLElement>(".entry-assistant")].pop() : undefined;
+    if (!last) {
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+    const top = last.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - 10;
+    el.scrollTop = Math.min(top, el.scrollHeight);
   }, [c.messages.length, live?.text, live?.status, c.id, open]);
 
   useEffect(() => {
@@ -255,6 +263,11 @@ export function Notepad({ c }: { c: Case }) {
         : null;
 
   const proposals = c.notes.filter((n) => n.status === "proposed").sort((a, b) => a.createdAt - b.createdAt);
+  // Besides new leads, the partner may ask to take a note down or to tie two notes already up.
+  const retiring = c.notes.filter((n) => n.retire && n.status !== "proposed");
+  const up = new Set(c.notes.filter((n) => n.status === "pinned").map((n) => n.id));
+  const ties = c.links.filter((l) => l.status === "proposed" && up.has(l.from) && up.has(l.to));
+  const asks = [...new Set([...proposals.map((n) => n.id), ...retiring.map((n) => n.id), ...ties.map((l) => l.from)])];
 
   const partnerLabel =
     partner.mode === "live" ? (partner.provider === "claude-cli" ? t("Claude · your subscription") : t("Claude · on the line")) : partner.mode === "offline" ? t("offline partner (demo)") : t("dialing…");
@@ -270,20 +283,28 @@ export function Notepad({ c }: { c: Case }) {
         <div className="pad-binding" />
         <header className="pad-head">
           <h2 title={caseTitle(c.title)}>{caseTitle(c.title)}</h2>
-          <div className={`partner-line mode-${partner.mode}`} title={partner.model}>
+          <div className={`partner-line mode-${partner.mode}`} title={partner.model?.replace(/\b(high|medium|low) effort$/, (e) => t(e))}>
             <span className="dot" /> {partnerLabel}
           </div>
-          {proposals.length > 0 && (
+          {asks.length > 0 && (
             <button
               className="leads-waiting"
               onClick={() => {
-                // Walk through the waiting proposals one by one.
-                const i = proposals.findIndex((n) => n.id === c.focusNoteId);
-                useStore.getState().setFocus(proposals[(i + 1) % proposals.length].id);
+                // Walk through everything waiting on a decision, one by one.
+                const i = asks.indexOf(c.focusNoteId ?? "");
+                useStore.getState().setFocus(asks[(i + 1) % asks.length]);
               }}
-              title={t("Show the next lead on the wall")}
+              title={t("Show the next one on the wall")}
             >
-              {t(proposals.length === 1 ? "1 lead waiting on the wall: pin what holds up, toss the rest →" : "{n} leads waiting on the wall: pin what holds up, toss the rest →", { n: proposals.length })}
+              {[
+                proposals.length === 1 && t("1 lead waiting on the wall: pin it if it holds up, or toss it"),
+                proposals.length > 1 && t("{n} leads waiting on the wall: pin what holds up, toss the rest", { n: proposals.length }),
+                retiring.length > 0 && t(retiring.length === 1 ? "1 note to take down?" : "{n} notes to take down?", { n: retiring.length }),
+                ties.length > 0 && t(ties.length === 1 ? "1 string to decide" : "{n} strings to decide", { n: ties.length }),
+              ]
+                .filter(Boolean)
+                .join(t(" · "))}{" "}
+              →
             </button>
           )}
         </header>

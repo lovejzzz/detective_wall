@@ -4,6 +4,7 @@ import type { DiagramItem, DiagramSpec, Note, Relation, SubjectStatus } from "..
 import { NOTE_SIZE } from "../lib/geometry.ts";
 import { hashString, mulberry32, paperGrain } from "./textures.ts";
 import { getLang, t } from "../lib/i18n.ts";
+import { isSettled } from "../lib/suspects.ts";
 
 export const TEXEL = 3; // canvas pixels per world px
 
@@ -580,7 +581,7 @@ function paintSubject(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
   if (file?.settle) {
     const sy = h - 14 * u - settleH + 8 * u;
     penLine(g, [[m, sy], [w - m, sy - 1 * u]], { color: "rgba(140,30,20,0.55)", width: 1.1 * u, rand, wobble: 0.6 });
-    handwrite(g, t("Settle it: {test}", { test: file.settle }), m, sy + 18 * u, { size: 15 * u, weight: 700, lineH: 16 * u, maxW: w - m * 2, maxLines: 2, color: "#8f1d15", rand });
+    handwrite(g, isSettled(file.settle) ? file.settle : t("Settle it: {test}", { test: file.settle }), m, sy + 18 * u, { size: 15 * u, weight: 700, lineH: 16 * u, maxW: w - m * 2, maxLines: 2, color: "#8f1d15", rand });
   }
 }
 
@@ -1269,7 +1270,7 @@ export const RELATION_STYLE: Record<Relation, { glyph: string; color: string; na
   supports: { glyph: "✓", color: "#a11c15", name: "Supports" },
   causes: { glyph: "→", color: "#1f1a16", name: "Causes" },
   contradicts: { glyph: "✕", color: "#2a5698", name: "Contradicts" },
-  references: { glyph: "↗", color: "#8a7040", name: "References" },
+  references: { glyph: "↗", color: "#8a7040", name: "Points to" },
 };
 
 /** Small manila tag hung on a string, showing the relation glyph. */

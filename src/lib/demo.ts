@@ -173,7 +173,8 @@ export function buildDemo(spec: DemoSpec, now = Date.now()): Case {
     id: uid(),
     role: m.role,
     text: m.text,
-    createdAt: i === 0 ? at(0) : now - Math.max(2, 8 - i) * 60_000,
+    // the answer follows the question by a few minutes, not by hours
+    createdAt: at(0) + i * 3 * 60_000,
     ...(m.notes ? { noteIds: m.notes.map(id) } : {}),
     ...(m.sources ? { sources: m.sources } : {}),
   }));

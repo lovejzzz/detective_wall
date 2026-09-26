@@ -16,10 +16,10 @@ import { CameraRig, Cork, Dust, LITE, Lens, Lights, type LightRig, type View } f
 import { rustle } from "../lib/sound.ts";
 import { Wastebasket } from "./Wastebasket.tsx";
 import { fontsReady, paintedWords } from "../scene/paint.ts";
-import { t } from "../lib/i18n.ts";
+import { keepTogether, t } from "../lib/i18n.ts";
 import { caseTitle } from "../lib/cases.ts";
 import { Timeline3D } from "../scene/Timeline3D.tsx";
-import { layoutTimeline } from "../lib/timeline.ts";
+import { layoutTimeline, storyMoments } from "../lib/timeline.ts";
 import { importPhoto, isPhotoFile } from "../lib/images.ts";
 
 export interface Stage {
@@ -113,7 +113,10 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.id]);
   useEffect(() => {
-    const t = setTimeout(() => store().setCamera(caseIdRef.current, cam), 250);
+    // The case keeps its wall camera; the timeline frames itself, so its camera is never saved (a
+    // reload or a case switch on the timeline must not bring the wall back at the timeline's view).
+    if (useStore.getState().view !== "wall") return;
+    const t = setTimeout(() => useStore.getState().view === "wall" && store().setCamera(caseIdRef.current, cam), 250);
     return () => clearTimeout(t);
   }, [cam, store]);
 
@@ -180,9 +183,10 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const ys = pts.flatMap((n) => [n.y - NOTE_SIZE[n.type].h / 2, n.y + NOTE_SIZE[n.type].h / 2 + 44]);
       const bw = Math.max(...xs) - Math.min(...xs) + 120;
       const bh = Math.max(...ys) - Math.min(...ys) + 200;
-      // The case folders take the stage's left 70px: frame what's left of it.
-      const zoom = settleZ(clampZ(Math.min((stage.w - TRAY_W) / bw, stage.h / bh, maxZoom)));
-      return { x: (Math.max(...xs) + Math.min(...xs)) / 2 - TRAY_W / 2 / zoom, y: (Math.max(...ys) + Math.min(...ys)) / 2 - 20, zoom };
+      // The case folders take the stage's left 70px and the view tabs its top 64px: frame what's left.
+      const TOP = 64;
+      const zoom = settleZ(clampZ(Math.min((stage.w - TRAY_W) / bw, (stage.h - TOP) / bh, maxZoom)));
+      return { x: (Math.max(...xs) + Math.min(...xs)) / 2 - TRAY_W / 2 / zoom, y: (Math.max(...ys) + Math.min(...ys)) / 2 - 20 - TOP / 2 / zoom, zoom };
     },
     [stage.w, stage.h],
   );
@@ -276,16 +280,22 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   // Switching views: remember the wall's camera, frame the timeline, and come back to the same spot.
   const wallCam = useRef<Camera | null>(null);
   const [settling, setSettling] = useState(false);
-  const firstView = useRef(true);
+  const prevMode = useRef<typeof mode | null>(null);
   useEffect(() => {
-    if (firstView.current) {
-      firstView.current = false;
-      return;
-    }
-    setSettling(true);
+    if (!settling) return;
     const t = setTimeout(() => setSettling(false), reducedMotion() ? 0 : 1100);
+    return () => clearTimeout(t);
+  }, [settling]);
+  useEffect(() => {
+    // Only a real change of view moves the camera (a repeated run of this effect changes nothing).
+    // Opening on the wall needs no move; opening on the timeline (a reload, a case or language
+    // switch while reading it) frames the timeline, with the case's saved wall camera to go back to.
+    const from = prevMode.current;
+    prevMode.current = mode;
+    if (from === mode || (from === null && mode === "wall")) return;
+    setSettling(true);
     if (mode === "timeline") {
-      wallCam.current = { ...camRef.current };
+      wallCam.current = from === null ? { ...c.camera } : { ...camRef.current };
       // Read it like a page: the case's name at the top, every chapter's width in view, from the top down.
       if (timeline && (timeline.chapters.length || timeline.aside)) {
         const b = timeline.bounds;
@@ -303,11 +313,10 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
         const y = fitsH ? (b.y0 + b.y1) / 2 - 10 / zoom : b.y0 + (stage.h / 2 - 100) / zoom;
         flyTo({ zoom, x, y }, 900);
       }
-    } else if (wallCam.current) {
-      flyTo(wallCam.current, 900);
+    } else {
+      flyTo(wallCam.current ?? c.camera, 900);
       wallCam.current = null;
     }
-    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
@@ -455,12 +464,15 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   /** The chapter under the upper part of the screen: the one being read. */
   const readingChapter = useMemo(() => {
     const y = cam.y + (stage.h * 0.4 - stage.cy) / cam.zoom;
+    // past the chapters, in the suspects' tray: no chapter is the one being read (-1)
+    const tray = timelineLayout.suspects;
+    if (tray && y >= tray.y) return -1;
     let n = chapterStarts[0]?.n ?? 0;
     for (const ch of chapterStarts) if (ch.y <= y) n = ch.n;
     return n;
-  }, [cam.y, cam.zoom, stage.h, stage.cy, chapterStarts]);
+  }, [cam.y, cam.zoom, stage.h, stage.cy, chapterStarts, timelineLayout.suspects]);
   /** The key moments in time order, for the story line under the heading. */
-  const story = useMemo(() => timelineLayout.moments.filter((m) => m.when), [timelineLayout]);
+  const story = useMemo(() => storyMoments(timelineLayout.moments), [timelineLayout]);
   const goToMoment = useCallback(
     (id: string) => {
       const m = timelineLayout.moments.find((x) => x.id === id);
@@ -471,15 +483,15 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     },
     [timelineLayout, flyTo, store, c.focusNoteId],
   );
-  /** Fly to a card and put the spotlight on it (the suspects card's lines). */
+  /** The suspects card's lines: open that file, with the wall behind moved to its card. */
   const goToFile = useCallback(
     (id: string) => {
       const n = placedById.get(id);
       if (!n) return;
       justFramed.current = c.focusNoteId !== id;
-      store().setFocus(id);
+      store().openDossier(id);
       const k = live(n);
-      flyTo({ x: k.x, y: k.y, zoom: Math.max(camRef.current.zoom, 0.6) }, 800);
+      flyTo({ x: k.x, y: k.y, zoom: Math.max(camRef.current.zoom, 0.9) }, 800);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [placedById, flyTo, store, c.focusNoteId],
@@ -553,6 +565,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     if (!grab) return;
     let tilt = 0;
     let hot = false;
+    let armTimer: ReturnType<typeof setTimeout> | 0 = 0;
     // Holding a loose lead still presses its pin in.
     const lead = grab.kind === "note" && store().cases[caseIdRef.current]?.notes.find((x) => x.id === grab.id)?.status === "proposed";
     const holdTimer =
@@ -582,9 +595,16 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
         rustle(0.5); // lifted off the cork
       }
       grab.moved = true;
+      // The bin takes a card only once it has been held over it for a moment, so a card dragged past
+      // it on the way somewhere else is never thrown away.
       const bin = binRef.current?.getBoundingClientRect();
-      const over = !!bin && e.clientX > bin.left - 24 && e.clientX < bin.right + 24 && e.clientY > bin.top - 40 && e.clientY < bin.bottom + 10;
-      if (over !== hot) setBinHot((hot = over));
+      const over = !!bin && e.clientX > bin.left && e.clientX < bin.right && e.clientY > bin.top - 16 && e.clientY < bin.bottom + 10;
+      if (over && !armTimer) armTimer = setTimeout(() => setBinHot((hot = true)), 350);
+      else if (!over && armTimer) {
+        clearTimeout(armTimer);
+        armTimer = 0;
+        if (hot) setBinHot((hot = false));
+      }
       const z = camRef.current.zoom;
       store().moveNote(grab.id, Math.round(grab.x + dx / z), Math.round(grab.y + dy / z));
       if (!reducedMotion()) {
@@ -631,6 +651,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     window.addEventListener("keydown", esc);
     return () => {
       clearTimeout(holdTimer);
+      clearTimeout(armTimer);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("keydown", esc);
@@ -771,7 +792,12 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const q = toScreen(n);
       return { x: q.x, y: q.y, hw: (NOTE_SIZE[n.type].w * cam.zoom) / 2, hh: (NOTE_SIZE[n.type].h * cam.zoom) / 2 };
     });
+    // a tag must be readable: never under the case folders, the notepad or the top strip
+    const x0 = TRAY_W + tw / 2 + 6;
+    const x1 = stage.w - tw / 2 - 10;
+    const offStage = (p: { x: number; y: number }) => p.x < x0 || p.x > x1 || p.y < 70 || p.y > stage.h - 30;
     const hits = (p: { x: number; y: number }) =>
+      (offStage(p) ? 10 : 0) +
       taken.filter((q) => Math.abs(q.x - p.x) < tw && Math.abs(q.y - p.y) < th).length * 3 +
       cards.filter((r) => Math.abs(r.x - p.x) < r.hw + tw / 2 - 6 && Math.abs(r.y - p.y) < r.hh + th / 2 - 6).length;
     for (const l of proposed) {
@@ -790,6 +816,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
         if (h === 0) break;
       }
       const p = best ?? toScreen(stringMid(a, b));
+      // a string that runs under the notepad keeps its tag at the edge of what's in view
+      if (!offStage(toScreen(a)) || !offStage(toScreen(b))) p.x = Math.max(x0, Math.min(x1, p.x));
       // still crowded: step down past the tags already there
       for (let i = 0; i < 8 && taken.some((q) => Math.abs(q.x - p.x) < tw && Math.abs(q.y - p.y) < th); i++) p.y += th;
       taken.push(p);
@@ -803,6 +831,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     <div
       ref={viewportRef}
       className={`wall3d ${grab?.kind === "pin" ? "is-linking" : ""} ${dropping ? "is-dropping" : ""}`}
+      tabIndex={0}
+      aria-label={t("The wall. Tab walks the evidence, Enter opens it.")}
       onDragOver={(e) => {
         if (![...e.dataTransfer.items].some((i) => i.kind === "file")) return;
         e.preventDefault();
@@ -926,9 +956,9 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                 />
                 <div className="proposal-anchor" style={{ left: p.x, top: p.y }}>
                   <div className="retire-slip" style={{ transform: `scale(${tabScale})`, transformOrigin: "50% 0" }}>
-                    <span className="retire-why">{n.retire}</span>
+                    <span className="retire-why">{n.retire === "No longer needed" ? t("No longer needed") : n.retire}</span>
                     <span className="retire-actions">
-                      <button className="retire-down" onClick={() => onToss(n.id)} title={t("Take this card down")}>
+                      <button className="retire-down" onClick={() => onToss(n.id)} title={t("Take this note down")}>
                         {t("Take it down")}
                       </button>
                       <button className="retire-keep" onClick={() => store().keepNote(n.id)} title={t("Keep it on the wall")}>
@@ -954,7 +984,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                 style={{ left: p.x, top: p.y, maxWidth: w, opacity: farOpacity, transform: `translate(-50%, -50%) rotate(${n.rotation}deg) scale(${shrink})` }}
                 aria-hidden
               >
-                {n.title}
+                {keepTogether(n.title)}
               </div>
             );
           })}
@@ -1075,7 +1105,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                 {timeline.suspects && timelineSuspects.length > 0 && (
                   // after the chapters, the most likely suspects' section
                   <button
-                    className="is-suspects"
+                    className={`is-suspects ${readingChapter === -1 ? "is-on" : ""}`}
                     onClick={() => flyTo({ ...camRef.current, y: timeline.suspects!.y + (stage.cy - 110) / camRef.current.zoom }, 700)}
                     title={t("Most likely suspects")}
                   >
@@ -1162,7 +1192,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             )}
             {timeline.stops.length === 0 && (
               <div className="tag-anchor" style={{ left: stage.cx, top: stage.cy * 0.35 }}>
-                <div className="tl-empty">{t("Nothing on this wall has a date yet. Open a note's file and give it a “When”.")}</div>
+                <div className="tl-empty">
+                  {c.notes.length
+                    ? t("Nothing on this wall has a date yet. Open a note's file and give it a “When”.")
+                    : t("The timeline fills in as dated evidence goes up on the wall. Ask a question to begin.")}
+                </div>
               </div>
             )}
           </>
@@ -1210,9 +1244,9 @@ function SuspectsCard({ list, at, width, zoom, onPick }: { list: Note[]; at: { x
       <ol>
         {list.map((n) => (
           <li key={n.id}>
-            <button onClick={() => onPick(n.id)} title={n.subject?.verdict ? `${n.title}: ${n.subject.verdict}` : n.title}>
+            <button onClick={() => onPick(n.id)} title={n.subject?.verdict ? t("{title}: {why}", { title: n.title, why: n.subject.verdict }) : n.title}>
               <b aria-hidden>{n.subject!.rank}</b>
-              <span className="who">{n.title}</span>
+              <span className="who">{keepTogether(n.title)}</span>
               {n.subject?.verdict && <span className="why">{n.subject.verdict}</span>}
             </button>
           </li>

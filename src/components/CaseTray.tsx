@@ -1,11 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ensureCases, useStore } from "../store.ts";
 import { caseNumbers, caseTitle, fileNo } from "../lib/cases.ts";
 import { t } from "../lib/i18n.ts";
 
 /** What's written on a case file's spine: the name people know it by, never a word cut in half. */
 const SPINES: Record<string, string> = {
-  "cooper-1971": "D.B. Cooper",
+  "cooper-1971": "D. B. Cooper",
   "tylenol-1982": "Tylenol",
   "glico-morinaga-1984": "Glico-Morinaga",
   "fuchu-300m-1968": "¥300 million",
@@ -28,8 +28,21 @@ export function spineOf(c: { title: string; demo?: string }): string {
   return out || `${words[0].slice(0, 14)}…`;
 }
 
-/** The tray keeps the most recent cases at hand; the rest wait in the cabinet. */
-const AT_HAND = 5;
+/** The tray keeps the most recent cases at hand (as many as the window's height has room for, up to
+ * five); the rest wait in the cabinet. A folder is about 110px tall; the rail also holds its label,
+ * the "+" folder, the cabinet pull and, under it, the keys plate. */
+const FOLDER_H = 110;
+const RAIL_EXTRA = 96 + 110 + 70 + 60;
+function useAtHand() {
+  const fit = () => Math.max(2, Math.min(5, Math.floor((window.innerHeight - RAIL_EXTRA) / FOLDER_H)));
+  const [n, setN] = useState(fit);
+  useEffect(() => {
+    const on = () => setN(fit());
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
+  return n;
+}
 
 /** Manila folders poking out of the left edge, one per case (SPEC §4). */
 export function CaseTray() {
@@ -45,8 +58,10 @@ export function CaseTray() {
   const placed = useRef<string[]>([]);
   const known = new Set(placed.current);
   placed.current = [...order.filter((id) => !known.has(id)), ...placed.current.filter((id) => order.includes(id))];
-  const atHand = placed.current.slice(0, AT_HAND);
-  if (activeId && !atHand.includes(activeId) && cases[activeId]) atHand.push(activeId);
+  const room = useAtHand();
+  const atHand = placed.current.slice(0, room);
+  // the open case is always at hand, in place of the least recent, so the rail never grows past its room
+  if (activeId && !atHand.includes(activeId) && cases[activeId]) atHand.splice(atHand.length - 1, 1, activeId);
   const filed = order.length - atHand.length;
 
   return (
@@ -94,7 +109,7 @@ export function CaseTray() {
                   <button onClick={() => setShredding(null)}>{t("keep")}</button>
                 </span>
               ) : (
-                <button className="folder-x" onClick={() => setShredding(id)} aria-label={t("Delete case {title}", { title: caseTitle(c.title) })} title={t("Shred this case")}>
+                <button className="folder-x" onClick={() => setShredding(id)} aria-label={t("Shred {title}", { title: caseTitle(c.title) })} title={t("Shred this case")}>
                   ×
                 </button>
               )}

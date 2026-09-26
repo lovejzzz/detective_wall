@@ -69,13 +69,17 @@ function useWallKeys() {
       if (!c || s.pendingLink) return;
       const notes = [...c.notes].sort((a, b) => a.createdAt - b.createdAt);
       const focus = notes.find((n) => n.id === c.focusNoteId);
-      // Tab walks the wall only while the wall has focus; elsewhere it keeps its normal job.
-      const onWall = t === document.body || !!t.closest(".note, .wall");
-      if (e.key === "Tab" && notes.length && onWall) {
-        e.preventDefault();
+      // The wall's keys work only while the wall itself has focus (or nothing does): a focused
+      // button keeps Enter, and Tab from the page goes to the wall first like any other stop.
+      const wallHas = t.classList.contains("wall3d");
+      if (!wallHas && t !== document.body) return;
+      if (e.key === "Tab" && notes.length && wallHas) {
+        // Tab walks the notes; past the last one (or before the first) it moves on out of the wall.
         const i = focus ? notes.indexOf(focus) : -1;
-        const next = notes[(i + (e.shiftKey ? -1 : 1) + notes.length) % notes.length];
-        s.setFocus(next.id);
+        const j = i + (e.shiftKey ? -1 : 1);
+        if ((i === -1 && e.shiftKey) || j < 0 || j >= notes.length) return;
+        e.preventDefault();
+        s.setFocus(notes[i === -1 ? 0 : j].id);
       } else if (e.key === "Enter" && focus) {
         e.preventDefault();
         s.openDossier(focus.id);
@@ -147,9 +151,23 @@ function KeyPlaque() {
     ["C", t("cabinet")],
     ["P / X", t("pin / toss a lead")],
     [/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘Z" : "Ctrl Z", t("undo")],
+    ["M", t("sound")],
+    ["Esc", t("close")],
   ];
+  // Opens on hover, and on a click or keyboard focus too, so it isn't only for a mouse.
   return (
-    <div className={`plaque ${open ? "is-open" : ""}`} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} aria-hidden>
+    <div
+      className={`plaque ${open ? "is-open" : ""}`}
+      role="button"
+      tabIndex={0}
+      aria-expanded={open}
+      aria-label={t("Keys")}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+      onClick={() => setOpen((o) => !o)}
+    >
       <b className="plaque-label">{t("Keys")}</b>
       <span className="plaque-keys">
         {keys.map(([k, what]) => (
@@ -158,7 +176,7 @@ function KeyPlaque() {
           </span>
         ))}
         <span>{t("hold a lead to pin it")}</span>
-        <span>{t("drag a pin to tie string")}</span>
+        <span>{t("drag from a pin to tie a string")}</span>
       </span>
     </div>
   );

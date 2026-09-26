@@ -8,7 +8,15 @@ export const WHEN_PATTERN = /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01])(T([0
 export type Precision = "year" | "month" | "day" | "time";
 
 export function isWhen(v: unknown): v is string {
-  return typeof v === "string" && WHEN_PATTERN.test(v);
+  return typeof v === "string" && WHEN_PATTERN.test(v) && onTheCalendar(v);
+}
+
+/** A day that exists: 31 February doesn't. */
+function onTheCalendar(v: string): boolean {
+  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return true;
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3];
 }
 
 export function precisionOf(when: string): Precision {
@@ -74,16 +82,16 @@ export function parseWhenInput(input: string): string | null {
     if (mo) out += `-${mo.padStart(2, "0")}`;
     if (mo && d) out += `-${d.padStart(2, "0")}`;
     if (mo && d && hh) out += `T${hh.padStart(2, "0")}:${mm}`;
-    return WHEN_PATTERN.test(out) ? out : null;
+    return isWhen(out) ? out : null;
   }
   const iso = s.replace(" ", "T").replace(/\s*·\s*/, "T");
-  if (WHEN_PATTERN.test(iso)) return iso;
+  if (isWhen(iso)) return iso;
   const m = s.match(/^(\d{1,2})\s+([A-Za-z]{3})[a-z]*\.?\s+(\d{4})(?:\s*(?:·|,|at)?\s*(\d{1,2}):(\d{2}))?$/);
   if (m) {
     const mi = MONTHS.findIndex((x) => x.toLowerCase() === m[2].slice(0, 3).toLowerCase());
     if (mi < 0) return null;
     const out = `${m[3]}-${String(mi + 1).padStart(2, "0")}-${m[1].padStart(2, "0")}${m[4] ? `T${m[4].padStart(2, "0")}:${m[5]}` : ""}`;
-    return WHEN_PATTERN.test(out) ? out : null;
+    return isWhen(out) ? out : null;
   }
   const my = s.match(/^([A-Za-z]{3})[a-z]*\.?\s+(\d{4})$/);
   if (my) {
