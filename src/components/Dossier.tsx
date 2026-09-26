@@ -37,6 +37,15 @@ function SubjectSections({ file }: { file: SubjectFile }) {
           </span>
         ))}
       </h4>
+      {file.rank && (
+        <p className="d-subject-rank">
+          <b aria-hidden>{file.rank}</b>
+          <span>
+            <em>{t("Most likely suspect no. {n}", { n: file.rank })}</em>
+            {file.verdict && <> · {file.verdict}</>}
+          </span>
+        </p>
+      )}
       {list("What the evidence says about the offender", "is-profile", file.profile)}
       {list("For", "is-for", file.for)}
       {list("Against", "is-against", file.against)}

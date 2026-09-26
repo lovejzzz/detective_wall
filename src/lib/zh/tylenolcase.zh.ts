@@ -19,6 +19,7 @@ export const TYLENOL_ZH: DemoTranslation = {
       title: "未知嫌疑人：泰诺投毒者",
       body: "证据表明投毒者必须具备的条件。",
       subject: {
+        verdict: "单独下毒者至今身份不明；药瓶上的DNA与所有被点名的人都不符。",
         profile: [
           "持有氰化钾，并知道致死剂量。",
           "在药瓶出厂后手工投毒。",
@@ -33,6 +34,7 @@ export const TYLENOL_ZH: DemoTranslation = {
       title: "James W. Lewis（敲诈信作者）",
       body: "写下索要100万美元的信；1983年被判敲诈罪。",
       subject: {
+        verdict: "调查人员最怀疑的人，但没有证据显示他当时在芝加哥，药瓶DNA也不是他的。",
         for: [
           "假释委员会，1989年：依证据优势认定他“应负责”。",
           "专案组于2012年和2022年向检方提交间接证据案。",

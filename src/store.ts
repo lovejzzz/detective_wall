@@ -484,6 +484,18 @@ export const useStore = create<Store>()(
               const n = c.notes.find((x) => x.id === r.note);
               if (n) n.retire = r.reason || "No longer needed";
             }
+            // Re-ranking the most likely suspects already on the wall.
+            for (const r of update.ranks ?? []) {
+              const n = c.notes.find((x) => x.id === r.note);
+              if (!n?.subject) continue;
+              if (r.rank === null) {
+                delete n.subject.rank;
+                delete n.subject.verdict;
+              } else {
+                n.subject.rank = r.rank;
+                if (r.verdict) n.subject.verdict = r.verdict;
+              }
+            }
             // Tidying the board at the end of the turn, in the same undo step as the turn's cards.
             if (update.arrange) {
               const at = arrangeWall(c.notes, c.links, c.phases);

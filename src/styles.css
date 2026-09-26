@@ -1215,6 +1215,31 @@ kbd {
 .d-subject-list li + li {
   margin-top: 4px;
 }
+/* its place among the most likely suspects: the rank circled in red pencil, and why */
+.d-subject-rank {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 12px;
+  font: 700 19px/1.25 var(--hand);
+  color: #3a3226;
+}
+.d-subject-rank b {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid rgba(143, 29, 21, 0.85);
+  border-radius: 52% 48% 55% 45% / 48% 55% 45% 52%;
+  font: 700 21px/1 var(--hand);
+  color: #8f1d15;
+  rotate: -6deg;
+}
+.d-subject-rank em {
+  font-style: normal;
+  color: #8f1d15;
+}
 .d-subject-settle {
   margin: 14px 0 0;
   font: 700 19px/1.2 var(--hand);
@@ -1748,19 +1773,6 @@ kbd {
   height: 17px;
   fill: currentColor;
 }
-/* sound off: a small red slash on the gear, so the state reads at a glance */
-.settings-muted {
-  position: absolute;
-  right: 4px;
-  bottom: 3px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background:
-    linear-gradient(45deg, transparent 42%, #f4e4c4 42%, #f4e4c4 58%, transparent 58%),
-    #9b2a1c;
-  box-shadow: 0 0 0 1.5px #241710;
-}
 .settings-card {
   position: absolute;
   top: calc(100% + 14px);
@@ -2031,6 +2043,22 @@ kbd {
 }
 .tl-rail button.is-on b {
   color: #8f1d15;
+}
+/* after the chapters, the most likely suspects: a rank circled in red pencil, set a little apart */
+.tl-rail button.is-suspects {
+  margin-top: 8px;
+}
+.tl-rail button.is-suspects b {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0 5px;
+  border: 1.5px solid rgba(214, 120, 100, 0.9);
+  border-radius: 52% 48% 55% 45% / 48% 55% 45% 52%;
+  font: 700 15px/1 var(--hand);
+  color: #e7a08f;
 }
 /* the current chapter names itself only when you reach for the index: at rest the rail is
    numerals only, so it never covers the page (the chapter's own card names it) */
@@ -3439,4 +3467,103 @@ kbd {
 .retire-keep {
   color: #3b2d17;
   background: rgba(59, 45, 23, 0.12);
+}
+
+/* The most likely suspects: a manila index card heading the row of subject files (and their tray
+   on the timeline). One line each: the rank circled in red pencil, the file's name typed, and why,
+   in pencil. Wall units, scaled with the wall; heights match PLAQUE in lib/suspects.ts. */
+.suspects-card {
+  position: absolute;
+  box-sizing: border-box;
+  transform-origin: 0 0;
+  padding: 20px 34px 22px;
+  color: var(--ink);
+  background: #e9d6a6 var(--grain);
+  box-shadow:
+    0 2px 2px rgba(0, 0, 0, 0.35),
+    0 30px 46px -24px rgba(0, 0, 0, 0.85);
+  rotate: -0.35deg;
+  pointer-events: none;
+}
+.suspects-card header {
+  display: flex;
+  align-items: baseline;
+  gap: 22px;
+  height: 52px;
+  margin-bottom: 18px;
+  border-bottom: 2px solid rgba(143, 29, 21, 0.55);
+}
+.suspects-card h3 {
+  margin: 0;
+  font: 400 34px/52px var(--typed);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8f1d15;
+  white-space: nowrap;
+}
+.suspects-card small {
+  overflow: hidden;
+  font: 20px/1 var(--typed);
+  letter-spacing: 0.06em;
+  color: rgba(59, 45, 23, 0.62);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.suspects-card ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.suspects-card li {
+  height: 50px;
+}
+.suspects-card button {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 34%) minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  text-align: left;
+  color: inherit;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+/* the rank, circled by hand in red pencil */
+.suspects-card b {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 2.5px solid rgba(143, 29, 21, 0.85);
+  border-radius: 52% 48% 55% 45% / 48% 55% 45% 52%;
+  font: 700 30px/1 var(--hand);
+  color: #8f1d15;
+  rotate: -6deg;
+}
+.suspects-card .who {
+  overflow: hidden;
+  font: 27px/1.1 var(--typed);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.suspects-card .why {
+  overflow: hidden;
+  font: 600 27px/1.1 var(--hand);
+  color: #3a3226;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.suspects-card button:hover .who,
+.suspects-card button:focus-visible .who {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+.suspects-card button:focus-visible {
+  outline: 3px solid #8f1d15;
+  outline-offset: 4px;
 }

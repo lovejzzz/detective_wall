@@ -304,6 +304,9 @@ export const ZH: Record<string, string> = {
   "{n} events": "{n} 件事",
   "No date": "无日期",
   "Undated evidence": "未注日期的证据",
+  "Most likely suspects": "最可能的嫌疑人",
+  "Most likely suspect no. {n}": "最可能的嫌疑人第 {n} 位",
+  "Ranked on the public evidence · not an accusation": "按公开证据排序 · 不构成指控",
   "give one a “When” in its file to put it on the line": "在档案里填上“时间”，它就会挂上时间线",
   "Nothing on this wall has a date yet. Open a note's file and give it a “When”.": "这面墙上还没有带日期的证据。打开一张卡片的档案，给它填上“时间”。",
 

@@ -64,7 +64,6 @@ function SettingsSwitch() {
         <svg viewBox="0 0 20 20" aria-hidden>
           <path d="M10 6.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8zm7.3 4.6-1.6-.3a5.8 5.8 0 0 1-.6 1.5l1 1.3-1.5 1.5-1.3-1a5.8 5.8 0 0 1-1.5.6l-.3 1.6h-2.1l-.3-1.6a5.8 5.8 0 0 1-1.5-.6l-1.3 1-1.5-1.5 1-1.3a5.8 5.8 0 0 1-.6-1.5l-1.6-.3V9.1l1.6-.3c.1-.5.3-1 .6-1.5l-1-1.3 1.5-1.5 1.3 1c.5-.3 1-.5 1.5-.6l.3-1.6h2.1l.3 1.6c.5.1 1 .3 1.5.6l1.3-1 1.5 1.5-1 1.3c.3.5.5 1 .6 1.5l1.6.3z" />
         </svg>
-        {!sound && <span className="settings-muted" aria-hidden />}
       </button>
       {open && (
         <div className="settings-card" role="dialog" aria-label={t("Settings")}>

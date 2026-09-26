@@ -521,7 +521,14 @@ function paintSubject(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
   const m = 18 * u;
   const file = n.subject;
   const unsub = !!file?.profile?.length;
-  typewrite(g, t(unsub ? "UNSUB PROFILE" : "SUBJECT FILE"), m, 26 * u, { size: 10 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#4a3b22", letterSpacing: 1.6 * u });
+  // Among the most likely suspects: the rank, circled in red pencil before the file's label.
+  const rank = file?.rank;
+  const lx = rank ? m + 30 * u : m;
+  if (rank) {
+    handCircle(g, m + 11 * u, 21 * u, 12 * u, "#8f1d15", 1.7 * u, rand);
+    handwrite(g, String(rank), m + 5.5 * u, 28.5 * u, { size: 19 * u, weight: 700, lineH: 19 * u, maxW: 20 * u, maxLines: 1, color: "#8f1d15", rand });
+  }
+  typewrite(g, t(unsub ? "UNSUB PROFILE" : "SUBJECT FILE"), lx, 26 * u, { size: 10 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#4a3b22", letterSpacing: 1.6 * u });
   g.fillStyle = "rgba(60,40,16,0.5)";
   g.fillRect(m, 34 * u, w - m * 2, 1.2 * u);
   const status = file?.status?.[0];

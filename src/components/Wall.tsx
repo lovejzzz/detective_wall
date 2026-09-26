@@ -4,6 +4,7 @@ import { markWallDrawn } from "../lib/boot.ts";
 import { livePose } from "../scene/live.ts";
 import * as THREE from "three";
 import { BEAT_LABEL, type Camera, type Case, type Link, type Note } from "../lib/types.ts";
+import { PLAQUE, plaqueHeight, rankedSuspects } from "../lib/suspects.ts";
 import { whenLabel } from "../lib/when.ts";
 import { NOTE_SIZE } from "../lib/geometry.ts";
 import { useStore } from "../store.ts";
@@ -470,6 +471,19 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     },
     [timelineLayout, flyTo, store, c.focusNoteId],
   );
+  /** Fly to a card and put the spotlight on it (the suspects card's lines). */
+  const goToFile = useCallback(
+    (id: string) => {
+      const n = placedById.get(id);
+      if (!n) return;
+      justFramed.current = c.focusNoteId !== id;
+      store().setFocus(id);
+      const k = live(n);
+      flyTo({ x: k.x, y: k.y, zoom: Math.max(camRef.current.zoom, 0.6) }, 800);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [placedById, flyTo, store, c.focusNoteId],
+  );
   // While the camera is still flying to a chapter, the next press counts on from that one.
   const aimedChapter = useRef<{ n: number; until: number } | null>(null);
   const goToChapter = useCallback(
@@ -679,6 +693,28 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     const l = livePose.get(n.id);
     return l ? { ...n, x: l.x, y: l.y, rotation: l.rotation } : n;
   };
+  // The most likely suspects' card heads the row of subject files, when the wall leaves it room
+  // (an arranged wall always does); in the timeline it heads their tray.
+  const wallSuspects = (() => {
+    if (timeline) return null;
+    const list = rankedSuspects(placed);
+    if (!list.length) return null;
+    const files = placed.filter((n) => n.type === "subject").map(live);
+    const top = Math.min(...files.map((n) => n.y - NOTE_SIZE[n.type].h / 2));
+    const row = files.filter((n) => n.y - NOTE_SIZE[n.type].h / 2 < top + 60);
+    const at = { x: Math.min(...row.map((n) => n.x - NOTE_SIZE[n.type].w / 2)), y: top - PLAQUE.gap - plaqueHeight(list.length) };
+    // as wide as the row of files it heads
+    const width = Math.max(PLAQUE.width, Math.max(...row.map((n) => n.x + NOTE_SIZE[n.type].w / 2)) - at.x);
+    const box = { x0: at.x, y0: at.y, x1: at.x + width, y1: top - PLAQUE.gap / 2 };
+    const clash = placed.some((n) => {
+      if (n.type === "subject") return false;
+      const k = live(n);
+      const { w, h } = NOTE_SIZE[n.type];
+      return k.x + w / 2 > box.x0 && k.x - w / 2 < box.x1 && k.y + h / 2 > box.y0 && k.y - h / 2 < box.y1;
+    });
+    return clash ? null : { list, at, width };
+  })();
+  const timelineSuspects = timeline?.suspects ? rankedSuspects(placed) : [];
   // Whether the wall is being walked by keyboard (Tab), so the focused note shows where you are.
   const [kbFocus, setKbFocus] = useState(false);
   useEffect(() => {
@@ -868,6 +904,9 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               </div>
             );
           })}
+        {wallSuspects && (
+          <SuspectsCard list={wallSuspects.list} at={toScreen(wallSuspects.at)} width={wallSuspects.width} zoom={cam.zoom} onPick={goToFile} />
+        )}
         {placed
           .filter((n) => n.retire && n.status !== "proposed")
           .map(live)
@@ -1024,14 +1063,26 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                 )}
               </div>
             )}
-            {chapterStarts.length > 1 && (
+            {(chapterStarts.length > 1 || (timeline.suspects && timelineSuspects.length > 0)) && (
               <nav className="tl-rail" style={{ left: stage.cx + stage.w / 2 - 18, top: stage.cy }} aria-label={t("Chapters")}>
-                {chapterStarts.map((ch) => (
-                  <button key={ch.n} className={ch.n === readingChapter ? "is-on" : ""} onClick={() => goToChapter(ch.n)} title={`${ch.title ?? ch.range} · ${ch.range}`}>
-                    <b>{roman(ch.n)}</b>
-                    <span>{ch.title ?? ch.range}</span>
+                {chapterStarts.length > 1 &&
+                  chapterStarts.map((ch) => (
+                    <button key={ch.n} className={ch.n === readingChapter ? "is-on" : ""} onClick={() => goToChapter(ch.n)} title={`${ch.title ?? ch.range} · ${ch.range}`}>
+                      <b>{roman(ch.n)}</b>
+                      <span>{ch.title ?? ch.range}</span>
+                    </button>
+                  ))}
+                {timeline.suspects && timelineSuspects.length > 0 && (
+                  // after the chapters, the most likely suspects' section
+                  <button
+                    className="is-suspects"
+                    onClick={() => flyTo({ ...camRef.current, y: timeline.suspects!.y + (stage.cy - 110) / camRef.current.zoom }, 700)}
+                    title={t("Most likely suspects")}
+                  >
+                    <b aria-hidden>1</b>
+                    <span>{t("Most likely suspects")}</span>
                   </button>
-                ))}
+                )}
               </nav>
             )}
             {timeline.chapters.map((ch, i) => {
@@ -1082,6 +1133,15 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                 </div>
               );
             })}
+            {timeline.suspects && timelineSuspects.length > 0 && (
+              <SuspectsCard
+                list={timelineSuspects}
+                at={toScreen({ x: timeline.suspects.x + 70, y: timeline.suspects.y + 20 })}
+                width={Math.min(1900, timeline.suspects.w - 140)}
+                zoom={cam.zoom}
+                onPick={goToFile}
+              />
+            )}
             {timeline.aside && (
               <div
                 className="tl-chapter is-aside"
@@ -1135,6 +1195,33 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
 }
 
 /** Tells the page the wall is on screen: two frames drawn after the cards were painted in their fonts. */
+/**
+ * The most likely suspects, in order: an index card heading the section of the wall (or the
+ * timeline) where their files hang, one line each with the reason for the rank. Drawn in wall
+ * units and scaled with the wall. A line takes you to the file.
+ */
+function SuspectsCard({ list, at, width, zoom, onPick }: { list: Note[]; at: { x: number; y: number }; width: number; zoom: number; onPick: (id: string) => void }) {
+  return (
+    <section className="suspects-card" style={{ left: at.x, top: at.y, width: Math.max(PLAQUE.width, width), transform: `scale(${zoom})` }} aria-label={t("Most likely suspects")}>
+      <header>
+        <h3>{t("Most likely suspects")}</h3>
+        <small>{t("Ranked on the public evidence · not an accusation")}</small>
+      </header>
+      <ol>
+        {list.map((n) => (
+          <li key={n.id}>
+            <button onClick={() => onPick(n.id)} title={n.subject?.verdict ? `${n.title}: ${n.subject.verdict}` : n.title}>
+              <b aria-hidden>{n.subject!.rank}</b>
+              <span className="who">{n.title}</span>
+              {n.subject?.verdict && <span className="why">{n.subject.verdict}</span>}
+            </button>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 function FirstFrames() {
   const frames = useRef(0);
   useFrame(() => {

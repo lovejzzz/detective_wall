@@ -1,10 +1,11 @@
 // Tidies a wall so it reads like a case file, top to bottom: the question and the current answer
-// on the first row; then the subjects (the unknown offender's profile, then each person of
-// interest); then the evidence in time order, each chapter starting a new row and each
+// on the first row; then the subjects (the most likely suspects in order, under the card that
+// lists them, then the rest on file); then the evidence in time order, each chapter starting a new row and each
 // event followed by the photos strung to it; then the undated evidence, and the hunches last.
 import type { Link, Note, Phase } from "./types.ts";
 import { NOTE_SIZE } from "./geometry.ts";
 import { byTime, chapters, groupByDay, hangers } from "./timeline.ts";
+import { bySuspicion, plaqueRoom, rankedSuspects } from "./suspects.ts";
 
 export const ARRANGE_COLS = 6;
 const CELL_W = 316; // the widest note (288) and a gap
@@ -29,10 +30,10 @@ export function arrangeWall(notes: Note[], links: Link[], phases?: Phase[]): Arr
   const sections: Note[][] = [];
   const top = [...(question ? [question] : []), ...answers];
   if (top.length) sections.push(top);
-  // Then who: the unknown offender's profile first, then each person of interest.
-  const profiles = subjects.filter((n) => n.subject?.profile?.length);
-  const people = subjects.filter((n) => !n.subject?.profile?.length);
-  if (subjects.length) sections.push([...profiles, ...people]);
+  // Then who: the most likely suspects in their order (under the card that lists them), then the
+  // unknown offender's profile if it isn't ranked, then everyone else on file.
+  if (subjects.length) sections.push(bySuspicion(subjects));
+  const suspects = rankedSuspects(subjects).length;
   for (const ch of chapters(groupByDay(dated), phases)) sections.push(ch.groups.flat().flatMap((n) => [n, ...(hung.get(n.id) ?? [])]));
   const evidence = loose.filter((n) => n.type !== "hypothesis");
   const hunches = loose.filter((n) => n.type === "hypothesis");
@@ -44,6 +45,8 @@ export function arrangeWall(notes: Note[], links: Link[], phases?: Phase[]): Arr
   let y = 0;
   sections.forEach((section, si) => {
     if (si) y += SECTION_GAP;
+    // the most likely suspects' section opens with its index card: leave room for it
+    if (suspects && section[0]?.type === "subject") y += plaqueRoom(suspects);
     // Rows are filled evenly (seven cards read as 4 + 3, not 6 + 1), so no card sits alone.
     const perRow = Math.ceil(section.length / Math.ceil(section.length / ARRANGE_COLS));
     for (let i = 0; i < section.length; i += perRow) {

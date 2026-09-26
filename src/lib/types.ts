@@ -26,6 +26,10 @@ export interface SubjectFile {
   profile?: string[];
   /** The one test that would confirm or rule them out. */
   settle?: string;
+  /** Where they stand among the case's most likely suspects: 1 is the most likely. Unranked files aren't among them. */
+  rank?: number;
+  /** One line on why they rank there, from the evidence and attributed (not an accusation). */
+  verdict?: string;
 }
 
 /** A key moment in the story of a case, marked on its note: the shape of the case at a glance. */

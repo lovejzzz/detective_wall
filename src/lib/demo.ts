@@ -64,7 +64,7 @@ export interface DemoTranslation {
     {
       title?: string;
       body?: string;
-      subject?: { for?: string[]; against?: string[]; profile?: string[]; settle?: string };
+      subject?: { for?: string[]; against?: string[]; profile?: string[]; settle?: string; verdict?: string };
       /** The diagram's labels, in the order of its items. */
       diagram?: string[];
     }
@@ -95,6 +95,7 @@ export function localize(spec: DemoSpec, tr?: DemoTranslation): DemoSpec {
                 ...(t.subject.against && n.subject.against ? { against: t.subject.against } : {}),
                 ...(t.subject.profile && n.subject.profile ? { profile: t.subject.profile } : {}),
                 ...(t.subject.settle && n.subject.settle ? { settle: t.subject.settle } : {}),
+                ...(t.subject.verdict && n.subject.verdict ? { verdict: t.subject.verdict } : {}),
               },
             }
           : {}),

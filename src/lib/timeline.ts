@@ -2,6 +2,7 @@
 // the top, then one chapter per row, each with its own cord. Dated notes hang above and below
 // their chapter's cord in order, a photo strung to an event hangs with that event, long silences
 // are marked, and anything else undated waits in a tray at the end.
+import { bySuspicion, plaqueRoom, rankedSuspects } from "./suspects.ts";
 import type { Beat, Link, Note, Phase } from "./types.ts";
 import { NOTE_SIZE } from "./geometry.ts";
 import { isWhen, precisionOf, whenDay, whenKey, whenLabel, whenYears } from "./when.ts";
@@ -52,6 +53,9 @@ export interface TimelineLayout {
   threads: { from: { x: number; y: number }; to: { x: number; y: number } }[];
   /** The tray of undated evidence after the last chapter: its band's top-left corner and size. */
   aside: { x: number; y: number; w: number; h: number; count: number } | null;
+  /** When the case ranks its most likely suspects, the subject files get their own tray before the
+   * undated evidence, headed by the card that lists them: its top-left corner and size. */
+  suspects: { x: number; y: number; w: number; h: number } | null;
   /** The case's key moments where they hang, dated ones first and in order: the story at a glance. */
   moments: { id: string; beat: Beat; title: string; when?: string; x: number; y: number; w: number; h: number; anchor: { x: number; y: number } | null }[];
   bounds: { x0: number; y0: number; x1: number; y1: number };
@@ -240,7 +244,11 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
   const undatedAll = notes.filter((n) => !n.when).sort((a, b) => a.createdAt - b.createdAt);
   const hung = hangers(dated, undatedAll, links);
   const hungIds = new Set([...hung.values()].flat().map((n) => n.id));
-  const undated = undatedAll.filter((n) => !hungIds.has(n.id));
+  const loose = undatedAll.filter((n) => !hungIds.has(n.id));
+  // With a ranking, the subject files are a section of their own (the most likely first).
+  const ranked = rankedSuspects(loose).length;
+  const files = ranked ? bySuspicion(loose.filter((n) => n.type === "subject")) : [];
+  const undated = loose.filter((n) => !files.includes(n));
 
   const groups = groupByDay(dated);
 
@@ -419,18 +427,19 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
     r.w = Math.min(right - left, Math.max(end - left, BAND_MIN));
   }
 
-  // Undated evidence waits in a tray below the last chapter.
-  let aside: TimelineLayout["aside"] = null;
+  // Undated cards wait in trays below the last chapter: the suspects first, if ranked, then the
+  // undated evidence.
   let bottom = rows.length ? cursorY - ROW_GAP : 0;
-  if (undated.length) {
+  let nextTop = rows.length ? cursorY : 0;
+  const tray = (list: Note[], head: number) => {
     const x0 = left + PAD;
     const span = Math.max(right - left - PAD * 2, 1100);
-    const sectionTop = rows.length ? cursorY : 0;
-    const top = sectionTop + CHAPTER_HEAD;
+    const sectionTop = nextTop;
+    const top = sectionTop + head;
     let ax = x0;
     let rowTop = top;
     let rowH = 0;
-    for (const n of undated) {
+    for (const n of list) {
       const { w, h } = NOTE_SIZE[n.type];
       if (ax + w > x0 + span && ax > x0) {
         ax = x0;
@@ -449,8 +458,11 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
       rowH = Math.max(rowH, h);
     }
     bottom = rowTop + rowH;
-    aside = { x: left, y: sectionTop, w: Math.max(right - left, span + PAD * 2), h: bottom - sectionTop + PAD, count: undated.length };
-  }
+    nextTop = bottom + ROW_GAP + PAD;
+    return { x: left, y: sectionTop, w: Math.max(right - left, span + PAD * 2), h: bottom - sectionTop + PAD };
+  };
+  const suspects: TimelineLayout["suspects"] = files.length ? tray(files, plaqueRoom(ranked) + PAD) : null;
+  const aside: TimelineLayout["aside"] = undated.length ? { ...tray(undated, CHAPTER_HEAD), count: undated.length } : null;
 
   const moments: TimelineLayout["moments"] = [...dated, ...undatedAll]
     .filter((n) => n.beat && slots.has(n.id))
@@ -478,11 +490,12 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
     heading,
     threads,
     aside,
+    suspects,
     moments,
     bounds: {
       x0: left,
       y0: heading ? heading.y : 0,
-      x1: Math.max(right, aside ? aside.x + aside.w : right, heading ? left + Math.max(headingWidth(heading.title), storyN * heading.step + 130) : right),
+      x1: Math.max(right, aside ? aside.x + aside.w : right, suspects ? suspects.x + suspects.w : right, heading ? left + Math.max(headingWidth(heading.title), storyN * heading.step + 130) : right),
       y1: bottom,
     },
   };

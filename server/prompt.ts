@@ -51,6 +51,7 @@ Don't narrate the tidying; at most one short clause if it changes the story ("th
 Who did it: the point of the wall is to get as close to the truth as the evidence allows, so reason the way a careful cold-case review does. When the user asks who did it, or a case turns on who, build the file over one or more turns:
 - First the unknown offender's profile: a subject note with profile, three to six inferences, each tied to the evidence it rests on (what they had to know, have, reach or do; where and when they could act).
 - Then a subject note for each person of interest who matters, and only people publicly named in connection with the case by investigators, courts or credible mainstream reporting; describe anyone else by role. Give their status exactly as the record has it, the strongest points on each side from sources you read, and, always in subject.settle, the one test that would settle it (a DNA comparison, a handwriting match, an alibi record); if no such test exists any more, say what was lost. Hold each person against the profile. Never infer anything from appearance, ethnicity, nationality or a face, and never present speculation as fact.
+- Then rank them: the wall keeps a short list of the most likely suspects. Give the one to three who best fit the evidence a subject.rank (1 is the most likely) and a subject.verdict, one line on why they rank there (e.g. "Voiceprint judged a match, but his alibi held"). The unknown offender's profile takes a rank too, often first, when no named person fits better; cleared people and weak leads stay unranked. Rank on the public evidence and attribute any view to whoever holds it: a rank is not an accusation. When the evidence moves, re-rank what's on the wall with "ranks".
 - Then weigh it: the conclusion card states the most likely explanation, stamped LIKELY only when the evidence clearly leans that way and OPEN otherwise, with what cuts against it and the single new fact that would change it. Point toward a named person only by attributing the view to the investigators who hold it.
 - Where information could help, say where it can go (the agency's tip line), never that the user should accuse anyone publicly.
 
@@ -94,11 +95,12 @@ export function renderWallState(req: InvestigateRequest): string {
     const body = n.body.length > max ? n.body.slice(0, max - 1) + "…" : n.body;
     const beat = typeof n.beat === "string" && (BEATS as string[]).includes(n.beat) ? ` · moment: ${n.beat}` : "";
     const subject = n.type === "subject" && n.subjectStatus ? ` · status: ${n.subjectStatus}` : "";
+    const ranked = n.type === "subject" && typeof n.rank === "number" ? ` · most likely #${n.rank}${typeof n.verdict === "string" && n.verdict ? ` (${n.verdict.slice(0, 90)})` : ""}` : "";
     const retire = typeof n.retire === "string" && n.retire ? ` · you proposed taking it down: ${n.retire.slice(0, 80)}` : "";
     const stamp = n.type === "conclusion" && typeof n.stamp === "string" && n.stamp ? ` · stamp: ${n.stamp.slice(0, 12)}` : "";
     const sure = n.type !== "conclusion" && typeof n.confidence === "string" && n.confidence ? ` · confidence: ${n.confidence.slice(0, 8)}` : "";
     const by = n.by === "user" ? " · the user's" : "";
-    lines.push(`- ${n.id} · ${n.type} · ${n.status}${n.when ? ` · ${n.when}` : " · undated"}${beat}${subject}${stamp}${sure}${by}${retire} · ${n.title} — ${body}${n.url ? ` [${n.url}]` : ""}`);
+    lines.push(`- ${n.id} · ${n.type} · ${n.status}${n.when ? ` · ${n.when}` : " · undated"}${beat}${subject}${ranked}${stamp}${sure}${by}${retire} · ${n.title} — ${body}${n.url ? ` [${n.url}]` : ""}`);
   }
   const phases = sanitizePhases(req.phases);
   lines.push("", "Timeline chapters:", ...(phases.length ? phases.map((p, i) => `${i + 1}. ${p.title} (from ${p.from})`) : ["(none named)"]));
@@ -125,6 +127,13 @@ export function boardCheck(req: InvestigateRequest, hasPhases: boolean): string 
   const conclusions = live.filter((n) => n.type === "conclusion");
   if (!conclusions.length && live.length >= 6) found.push("no conclusion card: state the current best answer, stamped OPEN if nothing leans yet.");
   if (conclusions.length > 1) found.push(`${conclusions.length} conclusions (${ids(conclusions)}): the wall should give one current answer; retire the ones it has outgrown.`);
+
+  // Who: the wall should say who is most likely, in order.
+  const files = live.filter((n) => n.type === "subject");
+  const ranked = files.filter((n) => typeof n.rank === "number");
+  if (files.length >= 2 && !ranked.length) found.push(`${files.length} subject files and no ranking: give the one to three most likely suspects (the unknown offender's profile included) a rank and a one-line verdict.`);
+  const taken = ranked.map((n) => n.rank!);
+  if (new Set(taken).size < taken.length) found.push(`two subject files share a rank (${ranked.map((n) => `${n.id} #${n.rank}`).join(", ")}): re-rank them with "ranks".`);
 
   const strung = new Set(req.links.flatMap((l) => [l.from, l.to]));
   const lonely = live.filter((n) => n !== question && !strung.has(n.id));

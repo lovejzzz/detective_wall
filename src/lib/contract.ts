@@ -72,11 +72,15 @@ export interface WallUpdate {
   dates?: { note: string; when: string; approx?: boolean; fix?: string }[];
   /** Notes on the wall the partner proposes taking down (duplicated, superseded, disproven), each with why. */
   retire?: { note: string; reason: string }[];
+  /** Subject files on the wall re-ranked among the most likely suspects (rank null: out of the ranking). */
+  ranks?: { note: string; rank: number | null; verdict?: string }[];
   /** Tidy the wall into reading order once this turn's cards are up. */
   arrange?: boolean;
 }
 
 export const MAX_RETIRE = 6;
+/** The ranking of most likely suspects runs 1 to MAX_RANK. */
+export const MAX_RANK = 5;
 
 export interface InvestigateRequest {
   caseTitle: string;
@@ -100,6 +104,9 @@ export interface InvestigateRequest {
     confidence?: string;
     /** "user": the user wrote this card (the partner leaves it alone unless it is plainly wrong). */
     by?: "user";
+    /** A subject file's place among the most likely suspects, and why. */
+    rank?: number;
+    verdict?: string;
   }[];
   links: { from: string; to: string; relation: Relation; status: string; reason?: string }[];
   messages: { role: "user" | "assistant"; text: string }[];
@@ -173,6 +180,8 @@ export const UPDATE_WALL_SCHEMA = {
               against: { type: "array", items: { type: "string" }, description: "Up to 4 points, each at most 140 characters." },
               profile: { type: "array", items: { type: "string" }, description: "Unknown-offender profiles only: up to 6 inferences, each tied to the evidence it rests on." },
               settle: { type: "string", description: "The one test that would confirm or rule them out. At most 140 characters." },
+              rank: { type: "integer", minimum: 1, maximum: MAX_RANK, description: "Only for the case's most likely suspects (one to three, the unknown offender's profile included): 1 is the most likely. Leave it out for everyone else." },
+              verdict: { type: "string", description: "With rank: one line on why they rank there, from the evidence and attributed to whoever holds the view. At most 90 characters." },
             },
           },
           diagram: {
@@ -248,6 +257,21 @@ export const UPDATE_WALL_SCHEMA = {
         properties: {
           note: { type: "string", description: "The id of a note on the wall." },
           reason: { type: "string", description: "At most 80 characters, e.g. 'Superseded by the 2016 isotope result'." },
+        },
+      },
+    },
+    ranks: {
+      type: "array",
+      description:
+        "Optional: re-rank subject files already on the wall (by id) when the evidence moves, each with its new rank (1 is the most likely; 0 takes it out of the ranking) and a one-line verdict. The ranking lists the case's one to three most likely suspects.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["note", "rank"],
+        properties: {
+          note: { type: "string", description: "The id of a subject note on the wall." },
+          rank: { type: "integer", minimum: 0, maximum: MAX_RANK },
+          verdict: { type: "string", description: "At most 90 characters." },
         },
       },
     },
@@ -454,6 +478,18 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
     }
     if (retire.length) out.retire = retire;
   }
+  if (Array.isArray(raw.ranks)) {
+    const ranks: NonNullable<WallUpdate["ranks"]> = [];
+    for (const r of raw.ranks.slice(0, 12)) {
+      if (!r || typeof r !== "object") continue;
+      const { note, rank, verdict } = r as Record<string, unknown>;
+      if (typeof note !== "string" || !knownIds.has(note) || ranks.some((x) => x.note === note)) continue;
+      const n = rank === 0 || rank === null ? null : toRank(rank);
+      if (n === undefined) continue;
+      ranks.push({ note, rank: n, ...(isStr(verdict) && verdict.trim() ? { verdict: clip(verdict.trim(), 90) } : {}) });
+    }
+    if (ranks.length) out.ranks = ranks;
+  }
   if (raw.arrange === true) out.arrange = true;
   const phases = sanitizePhases(raw.phases);
   if (phases.length) out.phases = phases;
@@ -503,7 +539,18 @@ export function sanitizeSubject(raw: unknown): SubjectFile | null {
     if (con.length) out.against = con;
   }
   if (isStr(r.settle) && r.settle.trim()) out.settle = clip(r.settle.trim(), 140);
+  const rank = toRank(r.rank);
+  if (rank !== undefined) {
+    out.rank = rank;
+    if (isStr(r.verdict) && r.verdict.trim()) out.verdict = clip(r.verdict.trim(), 90);
+  }
   return out;
+}
+
+/** A place in the ranking of most likely suspects, 1 to MAX_RANK, or undefined. */
+function toRank(v: unknown): number | undefined {
+  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+  return Number.isInteger(n) && n >= 1 && n <= MAX_RANK ? n : undefined;
 }
 
 /** Named timeline chapters: short titles, each with a real start date, in order, one per start. */

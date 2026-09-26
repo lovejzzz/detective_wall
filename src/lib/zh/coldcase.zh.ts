@@ -19,6 +19,7 @@ export const COOPER_ZH: DemoTranslation = {
       title: "未知嫌疑人：“Dan Cooper”",
       body: "四十五岁上下，5英尺10英寸至6英尺，170–180磅，棕色眼睛；吸烟，点了波本威士忌。",
       subject: {
+        verdict: "点过名的人都没通过FBI的核查；一名四十多岁、未被点名的策划者最吻合。",
         profile: [
           "对727的舷梯、襟翼和速度足够熟悉，能策划跳机。",
           "熟悉普吉特湾：认出了塔科马，知道麦科德就在附近。",
@@ -32,6 +33,7 @@ export const COOPER_ZH: DemoTranslation = {
       title: "Richard McCoy（855航班劫机者）",
       body: "1972年4月劫持美联航855航班；FBI认为他与305航班无关，但到2004年仍未完全排除他。",
       subject: {
+        verdict: "作案手法最接近（1972年劫机），但年龄太小，FBI称他当天在拉斯维加斯。",
         for: ["他1972年的劫机几乎如出一辙。", "经验丰富的军事及运动跳伞者。", "他的子女在2024年称他就是Cooper。"],
         against: ["他当时28岁，而非四十五岁上下。", "看过他照片的机组人员说不是此人。", "FBI档案显示他当天在拉斯维加斯。"],
         settle: "由FBI用其子女的DNA与领带做亲缘比对。",
@@ -59,6 +61,7 @@ export const COOPER_ZH: DemoTranslation = {
       title: "Sheridan Peterson（前波音编辑）",
       body: "前波音技术编辑、前空降灭火员，1971年11月时45岁。",
       subject: {
+        verdict: "年龄吻合、会跳伞；尼泊尔的不在场说法和未公布的DNA结果让此线悬而未决。",
         for: ["年龄吻合、会跳伞，且曾在波音工作。", "曾写道FBI“有充分理由怀疑我”。"],
         against: ["称自己当时在尼泊尔。", "FBI采集了他的DNA，但从未公布结果。"],
         settle: "1971年11月的护照或尼泊尔记录。",

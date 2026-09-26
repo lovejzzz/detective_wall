@@ -98,6 +98,7 @@ function toRequest(c: Case): InvestigateRequest {
       ...(n.subject
         ? {
             subjectStatus: n.subject.status.join(", "),
+            ...(n.subject.rank ? { rank: n.subject.rank, ...(n.subject.verdict ? { verdict: n.subject.verdict } : {}) } : {}),
             body: [n.body, ...(n.subject.profile ?? []).map((p) => `profile: ${p}`), ...(n.subject.for ?? []).map((p) => `for: ${p}`), ...(n.subject.against ?? []).map((p) => `against: ${p}`), n.subject.settle ? `settle: ${n.subject.settle}` : ""]
               .filter(Boolean)
               .join(" | "),
