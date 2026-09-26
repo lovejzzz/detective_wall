@@ -3106,6 +3106,7 @@ kbd {
   animation: cab-fade 240ms ease-in reverse forwards;
 }
 .cabinet {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: min(840px, calc(100vw - 32px));
@@ -3452,6 +3453,54 @@ kbd {
 .file-shred.is-asking button:last-of-type {
   background: rgba(59, 44, 18, 0.12);
 }
+/* save one case as a file: beside the shred mark, shown the same way */
+.file-export {
+  position: absolute;
+  top: 34px;
+  right: 38px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6c5328;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 160ms,
+    translate 280ms cubic-bezier(0.25, 0.9, 0.3, 1.15);
+}
+.file-export svg {
+  width: 15px;
+  height: 15px;
+}
+.file:hover .file-export,
+.file:focus-within .file-export {
+  opacity: 1;
+}
+.file:hover .file-export {
+  translate: 0 -84px;
+}
+.file:last-child:hover .file-export {
+  translate: 0 -10px;
+}
+/* on the lifted file they sit over its snapshot: small paper chips, so they read as controls */
+.file:hover .file-export,
+.file:hover .file-shred:not(.is-asking) {
+  min-width: 24px;
+  background: #f4ecd8;
+  border-radius: 2px;
+  box-shadow: 0 2px 5px -1px rgba(0, 0, 0, 0.55);
+}
+.file-export:hover,
+.file-shred:not(.is-asking):hover {
+  color: #2b1d08;
+  background: #fffaf0;
+}
+
 /* no file matches: the message sits under the search, not at the bottom of the drawer */
 .files:empty {
   flex: none;
@@ -3481,6 +3530,82 @@ kbd {
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.2),
     inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+/* two plain stamped plates on the drawer front, either side of the label */
+.front-action {
+  position: absolute;
+  top: 27px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.16);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.12);
+  font: 11.5px/1 var(--typed);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #d9d3ba;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.front-action.is-left {
+  left: 26px;
+}
+.front-action.is-right {
+  right: 26px;
+}
+.front-action:hover {
+  color: #f6efd6;
+  background: rgba(0, 0, 0, 0.26);
+}
+.front-action:focus-visible {
+  outline: 2px solid #c9a24f;
+  outline-offset: 2px;
+}
+/* what just happened: a typed slip laid over the files, above the drawer front */
+.drawer-slip {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: 134px;
+  translate: -50% 0;
+  width: max-content;
+  max-width: min(560px, calc(100% - 40px));
+  margin: 0;
+  padding: 12px 18px;
+  font: 13px/1.45 var(--typed);
+  color: #2b261e;
+  background: #f4ecd8 var(--grain);
+  box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.8);
+  rotate: -0.4deg;
+  animation: settings-in 0.22s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.drawer-slip small {
+  display: block;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(155, 42, 28, 0.35);
+  font: 12px/1.45 var(--typed);
+  color: #7d2418;
+}
+.drawer-slip.is-error {
+  color: #7d2418;
+}
+.drawer-drop {
+  position: absolute;
+  z-index: 6;
+  inset: 10px 10px 128px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  border: 2px dashed rgba(233, 214, 160, 0.7);
+  border-radius: 4px;
+  background: rgba(20, 20, 15, 0.72);
+  font: 600 30px/1.2 var(--hand);
+  color: #efe0b5;
+  pointer-events: none;
 }
 .label-holder {
   display: grid;
@@ -3521,6 +3646,20 @@ kbd {
 @media (max-width: 640px) {
   .drawer {
     padding: 12px 10px 0;
+  }
+  /* the plates go down beside the pull, where there is room */
+  .front-action {
+    top: 70px;
+    height: 30px;
+    padding: 0 8px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+  .front-action.is-left {
+    left: 12px;
+  }
+  .front-action.is-right {
+    right: 12px;
   }
   .drawer-head {
     flex-wrap: wrap;

@@ -6,6 +6,8 @@ import { ensureCases, useStore } from "../store.ts";
 import type { Case, NoteType } from "../lib/types.ts";
 import { ago, caseNumbers, caseStats, caseTitle, fileNo } from "../lib/cases.ts";
 import { getLang, t } from "../lib/i18n.ts";
+import { caseFileName, hasInferences, packCases, planImport, readCaseFile, saveFile, unpackPhotos } from "../lib/casefile.ts";
+import { uid } from "../lib/geometry.ts";
 
 type Sort = "recent" | "number" | "title";
 const SORTS: [Sort, string][] = [
@@ -57,6 +59,40 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
   const [shredding, setShredding] = useState<string | null>(null);
   const search = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLOListElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
+  const [slip, setSlip] = useState<{ text: string; caution?: boolean; error?: boolean } | null>(null);
+  const [dropping, setDropping] = useState(false);
+  useEffect(() => {
+    if (!slip) return;
+    const id = setTimeout(() => setSlip(null), slip.caution ? 12000 : 6000);
+    return () => clearTimeout(id);
+  }, [slip]);
+
+  const exportCases = async (which: Case[], all: boolean) => {
+    const file = await packCases(which);
+    saveFile(caseFileName(all ? null : caseTitle(which[0].title)), file);
+    const photos = Object.keys(file.photos).length;
+    const text = all
+      ? t(photos ? "Saved all {n} cases, with {p} photos, to one file." : "Saved all {n} cases to one file.", { n: which.length, p: photos })
+      : t("Saved “{title}” as a case file.", { title: caseTitle(which[0].title) });
+    setSlip({ text, caution: hasInferences(which) });
+  };
+
+  const importFile = async (f: File | undefined) => {
+    if (!f) return;
+    const read = readCaseFile(await f.text());
+    if ("error" in read) return setSlip({ text: read.error, error: true });
+    const { add, skipped } = planImport(read.file, useStore.getState().cases, uid);
+    await unpackPhotos(read.file, add);
+    useStore.getState().importCases(add);
+    setQ("");
+    const text = !add.length
+      ? t(skipped === 1 ? "That case is already in the cabinet." : "Those cases are already in the cabinet.")
+      : skipped
+        ? t("Filed {n} of the cases; {m} were already here.", { n: add.length, m: skipped })
+        : t(add.length === 1 ? "Filed “{title}”." : "Filed {n} cases.", { n: add.length, title: caseTitle(add[0].title) });
+    setSlip({ text });
+  };
 
   const numbers = useMemo(() => caseNumbers(cases), [cases]);
   const files = useMemo(() => {
@@ -100,7 +136,23 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
 
   return (
     <div className={`cabinet-backdrop ${closing ? "is-closing" : ""}`} onPointerDown={(e) => e.target === e.currentTarget && close()}>
-      <section className="cabinet" role="dialog" aria-modal="true" aria-label={t("Case files")}>
+      <section
+        className={`cabinet ${dropping ? "is-dropping" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("Case files")}
+        onDragOver={(e) => {
+          if (![...e.dataTransfer.items].some((i) => i.kind === "file")) return;
+          e.preventDefault();
+          setDropping(true);
+        }}
+        onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setDropping(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDropping(false);
+          void importFile(e.dataTransfer.files[0]);
+        }}
+      >
         <div className="drawer">
           <div className="drawer-head">
             <input
@@ -168,6 +220,13 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
                       <WallThumb c={c} />
                     </span>
                   </button>
+                  {shredding !== c.id && (
+                    <button className="file-export" onClick={() => void exportCases([c], false)} aria-label={t("Save {title} as a file", { title: caseTitle(c.title) })} title={t("Save this case as a file")}>
+                      <svg viewBox="0 0 16 16" aria-hidden>
+                        <path d="M8 2.5v7M4.8 6.6 8 9.8l3.2-3.2M3 11.5v2h10v-2" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  )}
                   {shredding === c.id ? (
                     <span className="file-shred is-asking">
                       {t("Shred it?")}
@@ -194,7 +253,30 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
           {files.length === 0 && <p className="files-empty">{t("No file mentions “{q}”.", { q: q.trim() })}</p>}
         </div>
 
+        {slip && (
+          <p className={`drawer-slip ${slip.error ? "is-error" : ""}`} role="status">
+            {slip.text}
+            {slip.caution && <small>{t("The ranked suspects in it are the partner's inferences, not findings. Share it with that in mind.")}</small>}
+          </p>
+        )}
+        {dropping && <p className="drawer-drop">{t("Drop a case file to file it here")}</p>}
         <div className="drawer-front">
+          <button className="front-action is-left" onClick={() => picker.current?.click()} title={t("Open a case file saved from this wall")}>
+            {t("Open a file…")}
+          </button>
+          <button className="front-action is-right" onClick={() => void exportCases(order.map((id) => cases[id]).filter((c): c is Case => !!c), true)} title={t("Save every case and its photos to one file")}>
+            {t("Back up all")}
+          </button>
+          <input
+            ref={picker}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              void importFile(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
           <div className="label-holder">
             <span>{t("Case files")}</span>
             <small>

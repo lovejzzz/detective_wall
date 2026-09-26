@@ -64,6 +64,8 @@ interface Actions {
   newCase(question?: string): string;
   switchCase(id: string): void;
   deleteCase(id: string): void;
+  /** Files cases read from a case file in front of the others, and opens the first. */
+  importCases(add: Case[]): void;
   renameCase(id: string, title: string): void;
   addUserMessage(caseId: string, text: string, photoNoteIds?: string[]): Message;
   applyTurn(
@@ -356,6 +358,18 @@ export const useStore = create<Store>()(
               lastAction: { label: `Shredded “${gone.title}”`, at: Date.now(), destructive: true },
             };
           });
+        },
+        importCases(add) {
+          if (!add.length) return;
+          set((s) => {
+            // a fresh browser holds only an empty case: a restored backup replaces it
+            const empty = s.order.every((id) => !s.cases[id]?.notes.length && !s.cases[id]?.messages.length);
+            const keep = empty ? [] : s.order;
+            const cases = Object.fromEntries(keep.map((id) => [id, s.cases[id]]));
+            for (const c of add) cases[c.id] = c;
+            return { cases, order: [...add.map((c) => c.id), ...keep.filter((id) => !add.some((c) => c.id === id))], activeId: add[0].id, dossierId: null };
+          });
+          markOpened(add[0].id);
         },
         renameCase(id, title) {
           mutateCase(id, (c) => void (c.title = title.trim() || c.title));

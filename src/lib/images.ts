@@ -86,3 +86,15 @@ export async function photoBase64(id: string): Promise<{ media_type: ImageMediaT
 }
 
 export const photoIdOf = (imageUrl?: string) => (imageUrl?.startsWith("idb:") ? imageUrl.slice(4) : null);
+
+/** A stored photo as it is kept, for writing into an exported case file. */
+export async function photoRecord(id: string): Promise<{ blob: Blob; width: number; height: number; name: string } | null> {
+  const r = await tx<PhotoRecord | undefined>("readonly", (s) => s.get(id)).catch(() => undefined);
+  return r ? { blob: r.blob, width: r.width, height: r.height, name: r.name } : null;
+}
+
+/** Stores a photo read back from a case file, under the id its notes already use. */
+export async function restorePhoto(id: string, p: { blob: Blob; width: number; height: number; name: string }): Promise<void> {
+  urls.delete(id);
+  await tx("readwrite", (s) => s.put({ id, ...p, addedAt: Date.now() } satisfies PhotoRecord));
+}
