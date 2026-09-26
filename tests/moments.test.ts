@@ -93,6 +93,15 @@ describe("arranging the wall", async () => {
         if (a !== b) expect(Math.abs(a.x - b.x) < (a.w + b.w) / 2 && Math.abs(a.y - b.y) < (a.h + b.h) / 2).toBe(false);
     expect(new Set([...at.values()].map((p) => Math.round(p.x))).size).toBeLessThanOrEqual(ARRANGE_COLS);
   });
+
+  it("fills rows evenly, so no card is left alone on a row", () => {
+    const mk = (i: number): Note => ({ id: `h${i}`, type: "hypothesis", status: "pinned", title: `H${i}`, body: "", x: 0, y: 0, rotation: 0, origin: { kind: "user" }, createdAt: i });
+    const notes = Array.from({ length: 8 }, (_, i) => mk(i)); // the question, then seven hunches
+    const at = arrangeWall(notes, []);
+    const rows = new Map<number, number>();
+    for (const n of notes.slice(1)) rows.set(Math.round(at.get(n.id)!.y), (rows.get(Math.round(at.get(n.id)!.y)) ?? 0) + 1);
+    expect([...rows.values()]).toEqual([4, 3]);
+  });
 });
 
 describe("shredding a case", async () => {

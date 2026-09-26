@@ -49,6 +49,13 @@ describe("timeline layout", () => {
     ...(when ? { when } : {}),
   });
 
+  it("dates the chapters and the heading by pinned evidence, not a lead still waiting", () => {
+    const early = { ...note("p", "1978-08-17"), status: "proposed" as const };
+    const t = layoutTimeline([early, note("a", "1984-03-18"), note("b", "1985-08-12")], [], { title: "Case" });
+    expect(t.heading!.range).toBe("1984 – 1985");
+    expect(t.slots.has("p")).toBe(true);
+  });
+
   it("splits a day between chapters when a chapter starts at an hour", () => {
     const notes = [note("a", "2000-12-29"), note("b", "2000-12-30T17:00"), note("c", "2000-12-30T23:30"), note("d", "2000-12-31T01:18")];
     const t = layoutTimeline(notes, [], { phases: [{ title: "Before", from: "2000" }, { title: "The night", from: "2000-12-30T20:00" }] });

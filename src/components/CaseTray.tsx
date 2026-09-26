@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ensureCases, useStore } from "../store.ts";
 import { caseNumbers, fileNo } from "../lib/cases.ts";
 
@@ -36,7 +36,12 @@ export function CaseTray() {
 
   const newCase = () => useStore.getState().newCase();
   const numbers = useMemo(() => caseNumbers(cases), [cases]);
-  const atHand = order.slice(0, AT_HAND);
+  // Folders keep their places while you work: a case you write in doesn't jump to the top under
+  // the pointer. New cases go on top; the recency order takes over on the next visit.
+  const placed = useRef<string[]>([]);
+  const known = new Set(placed.current);
+  placed.current = [...order.filter((id) => !known.has(id)), ...placed.current.filter((id) => order.includes(id))];
+  const atHand = placed.current.slice(0, AT_HAND);
   if (activeId && !atHand.includes(activeId) && cases[activeId]) atHand.push(activeId);
   const filed = order.length - atHand.length;
 
@@ -53,7 +58,11 @@ export function CaseTray() {
             <li key={id} className={`folder ${active ? "is-active" : ""} ${shredding === id ? "is-shredding" : ""}`} style={{ ["--i" as string]: i }}>
               <button
                 className="folder-body"
-                onClick={() => useStore.getState().switchCase(id)}
+                onClick={(e) => {
+                  useStore.getState().switchCase(id);
+                  // let go of the folder, or the next key press would pull it out again (focus-visible)
+                  if (e.detail > 0) e.currentTarget.blur();
+                }}
                 aria-current={active ? "true" : undefined}
                 title={c.title}
               >

@@ -236,13 +236,16 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       // Read it like a page: the case's name at the top, every chapter's width in view, from the top down.
       if (timeline && (timeline.chapters.length || timeline.aside)) {
         const b = timeline.bounds;
-        // Clear of the case folders on the left and the chapter index on the right.
-        const room = stage.w - TRAY_W - 80 - RAIL_W;
+        // Clear of the case folders on the left and the chapter index on the right. (On a phone the
+        // folders tuck into the corner and the index sits above the page: use the whole width.)
+        const phone = stage.w < 760;
+        const trayW = phone ? 0 : TRAY_W;
+        const room = phone ? stage.w - 24 : stage.w - TRAY_W - 80 - RAIL_W;
         // The page's full width at a size you can read, from the top; the rest is a scroll away.
         // (Capped where the taped-on labels are fully up, never halfway through their fade.)
         const zoom = clampZ(Math.min(0.5, room / (b.x1 - b.x0)));
         const fitsW = (b.x1 - b.x0) * zoom <= room;
-        const x = fitsW ? (b.x0 + b.x1) / 2 - TRAY_W / 2 / zoom : b.x0 + (stage.w / 2 - TRAY_W - 40) / zoom;
+        const x = fitsW ? (b.x0 + b.x1) / 2 - trayW / 2 / zoom : b.x0 + (stage.w / 2 - trayW - 40) / zoom;
         const fitsH = (b.y1 - b.y0) * zoom <= stage.h - 150;
         const y = fitsH ? (b.y0 + b.y1) / 2 - 10 / zoom : b.y0 + (stage.h / 2 - 100) / zoom;
         flyTo({ zoom, x, y }, 900);
@@ -619,6 +622,18 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   });
   const draggingId = grab?.kind === "note" && grab.moved ? grab.id : null;
   const tagScale = Math.max(0.6, Math.min(1, cam.zoom * 1.25));
+  // Whether the wall is being walked by keyboard (Tab), so the focused note shows where you are.
+  const [kbFocus, setKbFocus] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Tab" && setKbFocus(true);
+    const onPointer = () => setKbFocus(false);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onPointer);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onPointer);
+    };
+  }, []);
   // Far out (a phone, an overview) the cord's tags would overlap: a date tag that would cover the
   // one before it stays off until you come closer, and a gap chip gives way to the dates.
   const cordVisible = useMemo(() => {
@@ -729,6 +744,18 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       {/* Paper controls over the scene. The camera looks straight at the wall, so world → screen is exact.
           They shrink with the wall so they never swamp the notes. */}
       <div className="wall-overlay">
+        {kbFocus && focusNote && (() => {
+          // Walking the wall by keyboard: the note in hand gets red-pencil corners.
+          const p = toScreen(focusNote);
+          const { w, h } = NOTE_SIZE[focusNote.type];
+          return (
+            <div
+              className="focus-ring"
+              aria-hidden
+              style={{ left: p.x, top: p.y, width: w * cam.zoom + 16, height: h * cam.zoom + 16, transform: `translate(-50%, -50%) rotate(${focusNote.rotation}deg)` }}
+            />
+          );
+        })()}
         {!settling &&
           placed
           .filter((n) => n.status === "proposed")
@@ -858,7 +885,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                 {story.length > 0 && (
                   <ol className="tl-story" aria-label="Key moments">
                     {story.map((m) => (
-                      <li key={m.id} className={`beat-${m.beat}`}>
+                      // the moments share the page's width, so the heading never runs past it
+                      <li key={m.id} className={`beat-${m.beat}`} style={{ width: timeline.heading?.step }}>
                         <button onClick={() => goToMoment(m.id)} title={`${BEAT_LABEL[m.beat]}: ${m.title}`}>
                           <b>{BEAT_LABEL[m.beat]}</b>
                           <i aria-hidden />
@@ -963,7 +991,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             <circle className="head" cx="30" cy="30" r="6" />
           </svg>
         )}
-        {!timeline && <Wastebasket ref={binRef} shown={!!draggingId || crumples.length > 0} hot={binHot} gulps={crumples} left={stage.cx} />}
+        {!timeline && <Wastebasket ref={binRef} shown={!!draggingId || crumples.length > 0} hot={binHot} gulps={crumples} left={stage.cx} carrying={draggingId ? placedById.get(draggingId)?.title : undefined} />}
         {dropping && (
           <div className="drop-hint" aria-hidden>
             <span>Drop to pin the photo here</span>

@@ -45,7 +45,8 @@ export interface TimelineLayout {
   gaps: { x: number; y: number; label: string }[];
   cords: { x0: number; x1: number; y: number }[];
   chapters: TimelineChapter[];
-  heading: { title: string; range: string; count: number; x: number; y: number } | null;
+  /** `step`: the width of each key moment on the story line, so the line fits the page. */
+  heading: { title: string; range: string; count: number; x: number; y: number; step: number } | null;
   /** Short threads from an event to the photos hanging with it. */
   threads: { from: { x: number; y: number }; to: { x: number; y: number } }[];
   /** The tray of undated evidence after the last chapter: its band's top-left corner and size. */
@@ -77,6 +78,12 @@ const GAP_YEARS = 0.4;
 const CHAPTER_YEARS = 1.5;
 const MAX_AUTO_CHAPTERS = 5;
 
+/** The pinned notes of a (time-sorted) list, or all of them if nothing is pinned yet. */
+function settledOf(notes: Note[]): Note[] {
+  const pinned = notes.filter((n) => n.status !== "proposed");
+  return pinned.length ? pinned : notes;
+}
+
 /**
  * About how much of the cord a paper tag covers, in wall units, at the farthest zoom it is read at
  * (the tags shrink more slowly than the wall, so far out they cover more of it).
@@ -94,6 +101,9 @@ function gapLabel(years: number): string {
 const headingWidth = (title: string) => title.length * 80 * 0.6 + 130;
 /** Each key moment's column in the heading's story line (see .tl-story). */
 const STORY_STEP = 310;
+const STORY_MIN = 200;
+/** The shortest a chapter's band runs: room for its card and a few events. */
+const BAND_MIN = 1400;
 
 function laterLabel(years: number): string | null {
   if (years < 0.25) return null;
@@ -239,7 +249,9 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
 
   chapters(groups, opts.phases).forEach((chapter, ci) => {
     const all = chapter.groups.flat();
-    const range = rangeLabel(all[0].when!, all[all.length - 1].when!);
+    // A lead still waiting to be pinned hangs on the cord but doesn't set the chapter's dates.
+    const settled = settledOf(all);
+    const range = rangeLabel(settled[0].when!, settled[settled.length - 1].when!);
     const after = prevYears === null ? null : laterLabel(whenYears(all[0].when!) - prevYears);
 
     // A row is laid out with its cord at y = 0 and then lowered into place once its height is known.
@@ -390,12 +402,14 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
     finish();
   });
 
-  // Every band runs the width of the widest, so the chapters read as one ruled page.
+  // The bands share a left margin, so the chapters read as one ruled page; each runs as far as its
+  // own events (ragged right, like a written chronology), never shorter than a chapter card's row.
   const left = rows.length ? Math.min(...rows.map((r) => r.x)) : -60 - PAD;
   const right = rows.length ? Math.max(...rows.map((r) => r.x + r.w)) : 900;
   for (const r of rows) {
+    const end = r.x + r.w;
     r.x = left;
-    r.w = right - left;
+    r.w = Math.min(right - left, Math.max(end - left, BAND_MIN));
   }
 
   // Undated evidence waits in a tray below the last chapter.
@@ -440,8 +454,12 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
     });
 
   const headingH = moments.some((m) => m.when) ? HEADING_STORY_H : HEADING_H;
+  const settledDated = settledOf(dated);
+  // The key moments share the page's width (down to a readable minimum) rather than widening it.
+  const storyN = moments.filter((m) => m.when).length;
+  const step = storyN ? Math.max(STORY_MIN, Math.min(STORY_STEP, (right - left - 140) / storyN)) : STORY_STEP;
   const heading = dated.length
-    ? { title: opts.title?.trim() || "Chronology", range: rangeLabel(dated[0].when!, dated[dated.length - 1].when!), count: dated.length, x: left, y: -headingH }
+    ? { title: opts.title?.trim() || "Chronology", range: rangeLabel(settledDated[0].when!, settledDated[settledDated.length - 1].when!), count: dated.length, x: left, y: -headingH, step }
     : null;
   return {
     slots,
@@ -457,7 +475,7 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
     bounds: {
       x0: left,
       y0: heading ? heading.y : 0,
-      x1: Math.max(right, aside ? aside.x + aside.w : right, heading ? left + Math.max(headingWidth(heading.title), moments.filter((m) => m.when).length * STORY_STEP + 130) : right),
+      x1: Math.max(right, aside ? aside.x + aside.w : right, heading ? left + Math.max(headingWidth(heading.title), storyN * heading.step + 130) : right),
       y1: bottom,
     },
   };

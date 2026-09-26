@@ -10,6 +10,7 @@ export const ARRANGE_COLS = 6;
 const CELL_W = 316; // the widest note (288) and a gap
 const ROW_GAP = 64;
 const SECTION_GAP = 110;
+const PROPOSAL_GAP = 46;
 
 export type Arrangement = Map<string, { x: number; y: number; rotation: number }>;
 
@@ -43,14 +44,17 @@ export function arrangeWall(notes: Note[], links: Link[], phases?: Phase[]): Arr
   let y = 0;
   sections.forEach((section, si) => {
     if (si) y += SECTION_GAP;
-    for (let i = 0; i < section.length; i += ARRANGE_COLS) {
-      const row = section.slice(i, i + ARRANGE_COLS);
+    // Rows are filled evenly (seven cards read as 4 + 3, not 6 + 1), so no card sits alone.
+    const perRow = Math.ceil(section.length / Math.ceil(section.length / ARRANGE_COLS));
+    for (let i = 0; i < section.length; i += perRow) {
+      const row = section.slice(i, i + perRow);
       const h = Math.max(...row.map((n) => NOTE_SIZE[n.type].h));
       row.forEach((n, col) => {
         // tops line up along the row, the way you'd pin a row of cards
         out.set(n.id, { x: x0 + col * CELL_W, y: y + NOTE_SIZE[n.type].h / 2, rotation: Math.max(-2.5, Math.min(2.5, n.rotation * 0.6)) });
       });
-      y += h + ROW_GAP;
+      // a lead still waiting has its "Pin it / Toss" tabs under it: leave them room
+      y += h + ROW_GAP + (row.some((n) => n.status === "proposed") ? PROPOSAL_GAP : 0);
     }
   });
   // centre the whole page on the origin

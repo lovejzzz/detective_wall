@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { COOPER_DEMO, coldCase } from "../src/lib/coldcase.ts";
 import { sanitizeWallUpdate } from "../src/lib/contract.ts";
-import { offlineTurn } from "../src/ai/offline.ts";
+import { namesIn, offlineTurn } from "../src/ai/offline.ts";
 import type { Case } from "../src/lib/types.ts";
 
 describe("Flight 305 demo case", () => {
@@ -61,5 +61,18 @@ describe("real case photos", () => {
     expect(isCommonsImageUrl("http://upload.wikimedia.org/x.jpg")).toBe(false);
     expect(isCommonsImageUrl("https://evil.example/upload.wikimedia.org/x.jpg")).toBe(false);
     expect(isCommonsImageUrl("https://upload.wikimedia.org.evil.example/x.jpg")).toBe(false);
+  });
+});
+
+describe("the offline partner on a new case", () => {
+  it("talks about the names in the question, not its verbs", () => {
+    expect(namesIn("Who stole the Gardner Museum paintings in 1990?")).toEqual(["Gardner Museum", "1990"]);
+    expect(namesIn("Is the Leica Q3 worth it over a Sony RX1R III?")).toEqual(["Leica Q3", "Sony RX1R III"]);
+    const c = { id: "x", title: "t", notes: [], links: [], messages: [] } as unknown as Parameters<typeof offlineTurn>[0];
+    const turn = offlineTurn(c, "Who stole the Gardner Museum paintings?");
+    const titles = turn.update.notes.map((n) => n.title);
+    expect(titles).toContain("Search: “Who stole the Gardner Museum paintings?”");
+    expect(titles.join(" ")).not.toMatch(/\bstole relates\b|around stole/);
+    expect(turn.reply).toContain("around Gardner Museum");
   });
 });

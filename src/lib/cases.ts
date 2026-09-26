@@ -23,7 +23,10 @@ export interface CaseStats {
 
 export function caseStats(c: Case): CaseStats {
   const pinned = c.notes.filter((n) => n.status === "pinned");
-  const years = c.notes.flatMap((n) => (n.when ? [Number(n.when.slice(0, 4))] : [])).filter((y) => y > 0);
+  // The case's years are those of its evidence, not of a lead still waiting to be pinned.
+  const yearsOf = (notes: typeof c.notes) => notes.flatMap((n) => (n.when ? [Number(n.when.slice(0, 4))] : [])).filter((y) => y > 0);
+  const settledYears = yearsOf(pinned);
+  const years = settledYears.length ? settledYears : yearsOf(c.notes);
   const lo = years.length ? Math.min(...years) : null;
   const hi = years.length ? Math.max(...years) : null;
   const conclusion = [...pinned].filter((n) => n.type === "conclusion").sort((a, b) => b.createdAt - a.createdAt)[0];

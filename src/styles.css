@@ -958,8 +958,11 @@ kbd {
   inset: 0;
   z-index: 50;
   display: grid;
-  place-items: center;
-  padding: 24px;
+  /* anchored at the top, so the file never jumps when a line is added or a type changes */
+  justify-items: center;
+  align-items: start;
+  padding: max(24px, 5vh) 24px 24px;
+  overflow-y: auto;
   /* Pull focus onto the file: the wall behind goes soft, dim and a little colder. */
   background: radial-gradient(ellipse at 50% 45%, rgba(8, 5, 2, 0.34), rgba(8, 5, 2, 0.74));
   backdrop-filter: blur(7px) saturate(0.8);
@@ -1480,13 +1483,20 @@ kbd {
   .d-title {
     font-size: 19px;
   }
+  .d-beats {
+    grid-template-columns: repeat(3, max-content);
+  }
+  .d-beats .d-label {
+    grid-row: auto;
+    grid-column: 1 / -1;
+  }
   .notepad {
     top: auto;
     height: 55vh;
     padding: 0 8px;
   }
   .notepad.is-folded {
-    translate: 0 calc(100% - 52px);
+    translate: 0 calc(100% - 30px);
   }
   .fold-tab {
     left: 50%;
@@ -1499,6 +1509,10 @@ kbd {
   }
   .fold-tab span {
     rotate: 0deg;
+  }
+  /* a bottom sheet folds down and opens up */
+  .fold-tab b {
+    rotate: 90deg;
   }
   .pad {
     rotate: 0deg;
@@ -1642,12 +1656,20 @@ kbd {
 
 .view-tabs {
   position: fixed;
-  top: 14px;
+  top: 10px;
   z-index: 25;
   display: flex;
   gap: 4px;
+  padding: 4px 6px 7px;
   translate: -50% 0;
   transition: left 0.45s cubic-bezier(0.3, 0.7, 0.2, 1);
+  /* a leather strip the tabs are stitched to, so cards passing under never show through them */
+  background: linear-gradient(180deg, rgba(38, 24, 13, 0.92), rgba(24, 15, 8, 0.92));
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(233, 214, 170, 0.08),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 10px 22px -10px rgba(0, 0, 0, 0.9);
 }
 .view-tabs button {
   padding: 7px 14px 6px;
@@ -1661,18 +1683,18 @@ kbd {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
     0 6px 12px -6px rgba(0, 0, 0, 0.8);
-  opacity: 0.8;
+  filter: brightness(0.82);
   transition:
     translate 0.15s ease,
     opacity 0.15s ease;
 }
 .view-tabs button:hover {
-  opacity: 1;
+  filter: none;
 }
 .view-tabs button.is-on {
   color: #2f2415;
   background-color: #e3c283;
-  opacity: 1;
+  filter: none;
   translate: 0 3px;
 }
 
@@ -2174,8 +2196,17 @@ kbd {
 }
 
 /* choosing one in a note's file */
+/* the seven moments in two even rows beside their label, not six and a straggler */
 .d-beats {
+  display: grid;
+  grid-template-columns: auto repeat(4, max-content);
+  justify-content: start;
   gap: 6px;
+}
+.d-beats .d-label {
+  grid-row: span 2;
+  align-self: start;
+  padding-top: 5px;
 }
 .mini-beat {
   padding: 5px 8px 4px;
@@ -3206,4 +3237,22 @@ kbd {
   to {
     width: 220px;
   }
+}
+
+/* The note you've tabbed to: four red-pencil corners, the way you'd mark a card on a board. */
+.focus-ring {
+  position: absolute;
+  pointer-events: none;
+  --c: rgba(160, 36, 24, 0.9);
+  background:
+    linear-gradient(var(--c), var(--c)) top left / 22px 2.5px,
+    linear-gradient(var(--c), var(--c)) top left / 2.5px 22px,
+    linear-gradient(var(--c), var(--c)) top right / 22px 2.5px,
+    linear-gradient(var(--c), var(--c)) top right / 2.5px 22px,
+    linear-gradient(var(--c), var(--c)) bottom left / 22px 2.5px,
+    linear-gradient(var(--c), var(--c)) bottom left / 2.5px 22px,
+    linear-gradient(var(--c), var(--c)) bottom right / 22px 2.5px,
+    linear-gradient(var(--c), var(--c)) bottom right / 2.5px 22px;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35));
 }

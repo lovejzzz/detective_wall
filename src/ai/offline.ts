@@ -24,8 +24,31 @@ function keyTerms(text: string): string[] {
   return [...new Set(words)].filter((w) => top.has(w));
 }
 
+/**
+ * The names in a question: runs of capitalised words and numbers ("Gardner Museum", "Leica Q3"),
+ * so the scripted partner talks about things, not verbs ("stole", "killed").
+ */
+export function namesIn(text: string): string[] {
+  const tokens = text.replace(/[“”"?!.,;:()[\]{}]/g, " ").split(/\s+/).filter(Boolean);
+  const out: string[] = [];
+  let run: string[] = [];
+  const flush = () => {
+    if (run.length) out.push(run.join(" "));
+    run = [];
+  };
+  tokens.forEach((w, i) => {
+    const named = (/^[A-Z0-9]/.test(w) || /\d/.test(w)) && !STOP.has(w.toLowerCase());
+    // a capital that only starts the sentence isn't a name, unless a name follows it
+    const sentenceStart = i === 0 && !/^[A-Z0-9]/.test(tokens[1] ?? "");
+    if (named && !sentenceStart) run.push(w);
+    else flush();
+  });
+  flush();
+  return [...new Set(out)];
+}
+
 const ANGLES = [
-  { title: "Define the terms", body: (t: string) => `Pin down exactly what "${t}" means here. Specs, versions and scope change the answer.` },
+  { title: "Define the terms", body: (t: string) => `Pin down exactly what the question about ${t} is asking. Names, dates and scope change the answer.` },
   { title: "What would prove it wrong?", body: (t: string) => `Name the single fact about ${t} that would sink the current idea, then go looking for it.` },
   { title: "Who has measured this?", body: (t: string) => `Look for first-hand tests, spec sheets or datasets on ${t}, not summaries of summaries.` },
   { title: "Compare with a known case", body: (t: string) => `Find something similar to ${t} whose answer is already settled and check what differs.` },
@@ -85,7 +108,9 @@ export function offlineTurn(c: Case, userText: string): { reply: string; update:
     if (scripted) return { reply: scripted.reply, update: scripted.update(c) };
   }
   const terms = keyTerms(userText);
-  const subject = terms.slice(0, 2).join(" ") || "this";
+  const names = namesIn(userText);
+  const subject = names[0] ?? "this case";
+  const question = userText.trim().replace(/\s+/g, " ");
   const turn = c.messages.filter((m) => m.role === "assistant").length;
   const anchor = c.notes.find((n) => n.id === c.focusNoteId) ?? c.notes[0];
   const notes: ProposedNote[] = [];
@@ -94,23 +119,23 @@ export function offlineTurn(c: Case, userText: string): { reply: string; update:
   const angle = ANGLES[turn % ANGLES.length];
   notes.push({ ref: "n1", type: "hypothesis", title: angle.title, body: angle.body(subject), ...(anchor ? { near: anchor.id } : {}) });
 
-  const query = encodeURIComponent(terms.join(" ") || userText.slice(0, 80));
+  const query = encodeURIComponent(question.slice(0, 120) || terms.join(" "));
   notes.push({
     ref: "n2",
     type: "web",
-    title: `Search: ${terms.join(" ") || "the question"}`.slice(0, 60),
+    title: (question.length <= 52 ? `Search: “${question}”` : `Search: ${names.join(", ") || "the question"}`).slice(0, 60),
     body: "A starting point for sources. Open it, find a primary source, and replace this clipping with what it actually says.",
     url: `https://duckduckgo.com/?q=${query}`,
     ...(anchor ? { near: anchor.id } : {}),
   });
 
-  if (terms.length >= 2) {
+  if (names.length >= 2) {
     notes.push({
       ref: "n3",
       type: "diagram",
-      title: `How ${terms[0]} relates to ${terms[1]}`.slice(0, 60),
+      title: `How ${names[0]} connects to ${names[1]}`.slice(0, 60),
       body: "A chain to fill in as the evidence arrives.",
-      diagram: { kind: "flow", items: [{ label: terms[0] }, { label: "?" }, { label: terms[1] }] },
+      diagram: { kind: "flow", items: [{ label: names[0] }, { label: "?" }, { label: names[1] }] },
     });
   }
 

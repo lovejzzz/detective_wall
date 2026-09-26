@@ -18,8 +18,16 @@ function matchOf(c: Case, q: string): { hit: boolean; clue?: string } {
   if (!q) return { hit: true };
   const needle = q.toLowerCase();
   if (c.title.toLowerCase().includes(needle)) return { hit: true };
-  const n = c.notes.find((x) => x.title.toLowerCase().includes(needle) || x.body.toLowerCase().includes(needle));
-  return n ? { hit: true, clue: n.title } : { hit: false };
+  const byTitle = c.notes.find((x) => x.title.toLowerCase().includes(needle));
+  if (byTitle) return { hit: true, clue: `“${byTitle.title}”` };
+  const inBody = c.notes.find((x) => x.body.toLowerCase().includes(needle));
+  if (!inBody) return { hit: false };
+  // Show the words around the match, so it's clear why this file came up.
+  const at = inBody.body.toLowerCase().indexOf(needle);
+  const from = Math.max(0, inBody.body.lastIndexOf(" ", Math.max(0, at - 24)) + 1);
+  const to = Math.min(inBody.body.length, at + needle.length + 28);
+  const snippet = `${from > 0 ? "…" : ""}${inBody.body.slice(from, to).trim()}${to < inBody.body.length ? "…" : ""}`;
+  return { hit: true, clue: `${snippet} (in “${inBody.title}”)` };
 }
 
 export function CaseCabinet() {
@@ -141,7 +149,7 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
                     <span className="file-face">
                       <span className="file-row">
                         {clue ? (
-                          <span className="file-clue">found in “{clue}”</span>
+                          <span className="file-clue">{clue}</span>
                         ) : (
                           <span className="file-meta">
                             {st.exhibits} {st.exhibits === 1 ? "exhibit" : "exhibits"} · {st.strings} {st.strings === 1 ? "string" : "strings"}

@@ -116,13 +116,15 @@ function Front() {
   );
 }
 
-export const Wastebasket = forwardRef<HTMLDivElement, { shown: boolean; hot: boolean; gulps: number[]; left: number }>(function Wastebasket(
-  { shown, hot, gulps, left },
+export const Wastebasket = forwardRef<HTMLDivElement, { shown: boolean; hot: boolean; gulps: number[]; left: number; carrying?: string }>(function Wastebasket(
+  { shown, hot, gulps, left, carrying },
   ref,
 ) {
+  // Over the rim the note itself is hidden by the basket, so the label names what's about to go.
+  const what = carrying && carrying.length > 30 ? `${carrying.slice(0, 29)}…` : carrying;
   return (
     <div ref={ref} className={`bin ${shown ? "is-shown" : ""} ${hot ? "is-hot" : ""} ${gulps.length ? "is-gulping" : ""}`} style={{ left }} aria-hidden>
-      <span className="bin-label">{hot ? "let go to toss" : "toss"}</span>
+      <span className="bin-label">{hot ? (what ? `let go to toss “${what}”` : "let go to toss") : "toss"}</span>
       <Back />
       {gulps.map((k) => (
         <span key={k} className="crumple" />
