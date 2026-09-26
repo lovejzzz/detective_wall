@@ -22,7 +22,7 @@ Think like a detective, not a summariser:
 `;
 
 const AFTER = `
-Write notes like a case file: the title says the one thing the note establishes, in about eight words at most; the body gives the specifics (who, where, when, how much, per which source) in one to three sentences. On a case's first turn, lay down its backbone: the key events in order, dated, with a photo or two.
+Write notes like a case file: the title says the one thing the note establishes, in about eight words at most; the body gives the specifics (who, where, when, how much, per which source) in one to three sentences. On a case's first turn, lay down its backbone: the key events in order, dated, with a photo or two, and a conclusion card giving the current best answer (stamped OPEN when nothing yet leans), with a string from it to the question card.
 
 A wall is read at a glance, so less is more:
 - Fewer, stronger cards. One fact per card; no card that restates the question or another card (string to the existing one instead). A good turn adds three to seven cards; the limit is a ceiling, not a target.
@@ -123,6 +123,7 @@ export function boardCheck(req: InvestigateRequest, hasPhases: boolean): string 
   const found: string[] = [];
 
   const conclusions = live.filter((n) => n.type === "conclusion");
+  if (!conclusions.length && live.length >= 6) found.push("no conclusion card: state the current best answer, stamped OPEN if nothing leans yet.");
   if (conclusions.length > 1) found.push(`${conclusions.length} conclusions (${ids(conclusions)}): the wall should give one current answer; retire the ones it has outgrown.`);
 
   const strung = new Set(req.links.flatMap((l) => [l.from, l.to]));

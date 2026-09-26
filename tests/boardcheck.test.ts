@@ -59,6 +59,16 @@ describe("the wall as the partner reads it", () => {
     expect(check).toContain("1 proposal still waiting on the user (p)");
   });
 
+  it("asks for an answer once the wall has grown without one", () => {
+    const text = renderWallState({
+      caseTitle: "X",
+      notes: [note("q", "hypothesis", { by: "user" }), ...["a", "b", "c", "d", "e"].map((id) => note(id, "fact"))],
+      links: ["a", "b", "c", "d"].map((id, i) => ({ from: id, to: ["b", "c", "d", "e"][i], relation: "causes" as const, status: "pinned" })),
+      messages: [],
+    });
+    expect(text).toContain("no conclusion card");
+  });
+
   it("stays quiet about a board in good order", () => {
     const text = renderWallState({
       caseTitle: "X",
