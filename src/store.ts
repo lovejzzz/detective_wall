@@ -642,6 +642,8 @@ export const useStore = create<Store>()(
           act("Tied a string", (c) => {
             const existing = c.links.find((x) => (x.from === from && x.to === to) || (x.from === to && x.to === from));
             if (existing) {
+              // a new kind of string: the old reason explained the old kind, so it goes
+              if (existing.relation !== relation) delete existing.reason;
               Object.assign(existing, { from, to, relation, status: "pinned", createdBy: "user" });
               return;
             }

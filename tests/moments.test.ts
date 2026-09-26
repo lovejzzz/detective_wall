@@ -83,6 +83,10 @@ describe("key moments in the store", async () => {
     expect(link().status).toBe("proposed");
     s().pinNote(byTitle("Second card").id);
     expect(link().status).toBe("pinned");
+    // retying it as another kind drops the reason that explained the old kind
+    s().addLink(link().from, link().to, "contradicts");
+    expect(link()).toMatchObject({ relation: "contradicts" });
+    expect(link().reason).toBeUndefined();
   });
 });
 
