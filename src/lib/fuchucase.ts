@@ -13,7 +13,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const FUCHU_DEMO = "fuchu-300m-1968";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const FUCHU_VERSION = 3;
+export const FUCHU_VERSION = 4;
 
 export const FUCHU_PHASES: Phase[] = [
   { title: "Threats in the Tama hills", from: "1968-04-25" },
@@ -85,6 +85,7 @@ const spec: DemoSpec = {
     { key: "montageDoubt", type: "fact", title: "Hiratsuka: the montage can't be trusted", when: "1969-09", approx: true, url: JA_WIKI, body: "He found the bank staff's accounts vague and one had never really seen the face. He reported the montage unreliable; it stayed in use." },
     { key: "wrongMan", type: "fact", title: "Named, arrested, cleared: the wrong man", when: "1969-12-12", beat: "dead_end", url: EN_WIKI, body: "After a newspaper scoop, police arrested a Fuchū driver in his twenties on an unrelated charge and the press printed his name and photo. An alibi cleared him within a day; the Japan Federation of Bar Associations called the arrest illegal in 1970." },
     { key: "drop", type: "fact", title: "Suspects no longer have to look like it", when: "1971", url: JA_WIKI, body: "The investigation formally dropped the rule that a suspect must resemble the montage." },
+    { key: "shrink", type: "fact", title: "The team shrinks to 20", when: "1972-07-01", url: SHINCHO, body: "The special investigation team, 197 strong at its 1969 peak, was cut to 20 under Hiratsuka." },
     { key: "withdrawn", type: "fact", title: "The montage is withdrawn", when: "1974-12", url: JIJI, body: "Doubts about its reliability led police to discard the photo formally. It kept appearing in books and on record sleeves anyway." },
 
     // ── The clock runs out ──
@@ -142,6 +143,7 @@ const spec: DemoSpec = {
     { from: "bike", to: "stop", relation: "references", reason: "Left at the scene" },
     { from: "scrap", to: "bike", relation: "references", reason: "Under the megaphone's paint" },
     { from: "soil", to: "corollaFound", relation: "references", reason: "Found in a case" },
+    { from: "shrink", to: "hiratsuka", relation: "references", reason: "His team, cut down" },
     { from: "thirdScene", to: "raincoat", relation: "references", reason: "Left there" },
     { from: "tin", to: "bike", relation: "references", reason: "Part of the disguise" },
     { from: "bikeMissed", to: "nhk", relation: "references", reason: "NHK's finding" },

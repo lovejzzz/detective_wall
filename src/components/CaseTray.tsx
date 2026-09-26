@@ -28,7 +28,7 @@ export function CaseTray() {
           const active = id === activeId;
           const pinned = c.notes.filter((n) => n.status === "pinned").length;
           return (
-            <li key={id} className={`folder ${active ? "is-active" : ""}`} style={{ ["--i" as string]: i }}>
+            <li key={id} className={`folder ${active ? "is-active" : ""} ${shredding === id ? "is-shredding" : ""}`} style={{ ["--i" as string]: i }}>
               <button
                 className="folder-body"
                 onClick={() => useStore.getState().switchCase(id)}

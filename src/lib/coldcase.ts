@@ -11,7 +11,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const COOPER_DEMO = "cooper-1971";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const COOPER_VERSION = 4;
+export const COOPER_VERSION = 5;
 
 /** Real photos of the case on Wikimedia Commons (credit is read from each file's metadata at runtime). */
 export const COMMONS = {
@@ -88,6 +88,7 @@ const spec: DemoSpec = {
     // ── The money surfaces ──
     { key: "tena", type: "fact", title: "Ransom cash on a river beach", when: "1980-02-10", beat: "breakthrough", url: HISTORYLINK, body: "Brian Ingram, 8, raking sand for a campfire at Tena Bar on the Columbia, about 9 miles downstream of Vancouver, Wash., uncovered three rotting packets of $20s still in rubber bands: $5,800, in the order they were handed over." },
     { key: "pBills", type: "photo", photo: C.bills, title: "The Tena Bar bills", body: "Some of the ransom twenties found in 1980 (FBI)." },
+    { key: "split", type: "fact", title: "The Tena Bar money is split", when: "1986-06", approx: true, url: HISTORYLINK, body: "A court divided the $5,800 between Brian Ingram and the insurer; the FBI kept 14 bills as evidence." },
     { key: "amboy", type: "fact", title: "A buried parachute, ruled out", when: "2008-04-01", url: "https://komonews.com/news/local/man-who-packed-chutes-discovery-not-db-coopers", body: "Children found a parachute buried near Amboy, Wash. The rigger who had packed Cooper's chutes identified it as 1940s silk, not nylon, and the FBI confirmed it wasn't his." },
 
     { key: "profile2007", type: "fact", title: "A partial DNA profile from the tie", when: "2007-12", approx: true, url: WIKI, body: "The FBI revealed it had built a partial DNA profile from the tie in 2001, released the ticket and the sketches, and asked for help. The profile has never been matched, and agents call the samples hard to interpret." },
@@ -126,6 +127,7 @@ const spec: DemoSpec = {
     { from: "pVane", to: "copycat", relation: "references", reason: "One of the fixes that ended it" },
     { from: "pSketchB", to: "sketchB", relation: "references", reason: "The final version" },
     { from: "pBills", to: "tena", relation: "references", reason: "The bills themselves" },
+    { from: "split", to: "tena", relation: "references", reason: "What became of the find" },
     { from: "tie", to: "tieFindings", relation: "references", reason: "The tie tested" },
     { from: "profile2007", to: "tieFindings", relation: "references", reason: "The same tie" },
     { from: "rig", to: "chutes", relation: "references", reason: "The missing main?" },

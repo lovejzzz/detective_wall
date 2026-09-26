@@ -12,7 +12,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const GLICO_DEMO = "glico-morinaga-1984";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const GLICO_VERSION = 3;
+export const GLICO_VERSION = 4;
 
 export const GLICO_PHASES: Phase[] = [
   { title: "Kidnap and the Glico siege", from: "1984-03-18" },
@@ -82,6 +82,7 @@ const spec: DemoSpec = {
     { key: "pOtsu", type: "photo", photo: "Otsu SA 002.jpg", title: "Otsu Service Area, Meishin Expressway", body: "Where the cash car was sent on 14 November 1984 (photographed 2009)." },
     { key: "pRadio", type: "photo", photo: "YAESU-FT208.JPG", title: "A handheld radio of the gang's type", body: "A Yaesu FT-208, the model police matched to a radio the gang left behind: easily modified to hear police radio." },
     { key: "fujiya", type: "fact", title: "Fujiya: throw the cash from a roof", when: "1984-12-07", url: JA_WIKI, body: "Letters with sodium cyanide reached a Fujiya manager; later ones demanded ¥20 million be scattered from a department-store roof in Umeda, Osaka, then Ikebukuro, Tokyo. Fujiya did not comply." },
+    { key: "hokkaido", type: "fact", title: "The \"Hokkaido tape\"", when: "1984-12-04", url: JA_WIKI, body: "A radio ham in Hokkaido recorded an off-band exchange between two men calling themselves \"21面相\" and \"玉三郎\" about Fujiya not paying. Police judged it likely to be the gang and released part of it." },
     { key: "vanSketch", type: "fact", title: "A likeness of the van driver", when: "1984-12-11", url: JA_WIKI, body: "Police released a drawing of the white-van driver made from the three Shiga patrol officers' accounts." },
     { key: "sketch", type: "fact", title: "The fox-eyed man's sketch published", when: "1985-01-10", url: SHINCHO, body: "Police released the composite of the man seen at the Marudai and House drops, drawn from detectives' sightings. It became Japan's best-known police sketch and has never been matched to anyone." },
     { key: "valentine", type: "fact", title: "Valentine's cyanide in Tokyo and Nagoya", when: "1985-02-12", approx: true, url: JAPAN_TIMES_2000, body: "Cyanide-laced chocolates labelled どくいり きけん were found in Tokyo and Aichi; some harmless boxes were labelled どくなし あんしん (\"no poison, don't worry\"). As attempted murders, they were the last counts in the case to expire." },
@@ -130,6 +131,7 @@ const spec: DemoSpec = {
     { from: "train", to: "sketch", relation: "supports", reason: "First sighting" },
     { from: "otsu", to: "sketch", relation: "supports", reason: "Second sighting" },
     { from: "otsu", to: "vanSketch", relation: "references", reason: "The patrol's account" },
+    { from: "hokkaido", to: "fujiya", relation: "references", reason: "Talking about Fujiya" },
     { from: "otsu", to: "yamamoto", relation: "causes", reason: "He took responsibility for the escape" },
     { from: "yamamoto", to: "last", relation: "references", reason: "The letter cites his death" },
     { from: "expiry", to: "verdict", relation: "supports", reason: "No one can be charged" },

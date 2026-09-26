@@ -792,7 +792,8 @@ kbd {
   z-index: calc(50 - var(--i));
 }
 .folder:hover,
-.folder:focus-within {
+.folder.is-shredding,
+.folder:has(:focus-visible) {
   translate: 0 0;
   z-index: 60;
 }
@@ -800,7 +801,8 @@ kbd {
   translate: -196px 0;
 }
 .folder.is-active:hover,
-.folder.is-active:focus-within {
+.folder.is-active.is-shredding,
+.folder.is-active:has(:focus-visible) {
   translate: 0 0;
 }
 .folder-body {
@@ -897,7 +899,7 @@ kbd {
   transition: opacity 0.2s ease;
 }
 .folder:hover .folder-x,
-.folder:focus-within .folder-x,
+.folder:has(:focus-visible) .folder-x,
 .shred-confirm {
   opacity: 1;
 }
@@ -1371,7 +1373,7 @@ kbd {
 }
 
 /* Tucked-away folders show only their spine label. */
-.folder:not(:hover):not(:focus-within) .folder-body > :not(.folder-spine) {
+.folder:not(:hover):not(.is-shredding):not(:has(:focus-visible)) .folder-body > :not(.folder-spine) {
   visibility: hidden;
 }
 
