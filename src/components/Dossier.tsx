@@ -67,7 +67,7 @@ function WhenField({ note }: { note: Note }) {
     const w = parseWhenInput(text);
     if (!w) return setBad(true);
     setBad(false);
-    if (w !== note.when) s.updateNote(note.id, { when: w, ...(/^c\.?\s/i.test(text.trim()) ? { approx: true } : {}) });
+    if (w !== note.when) s.updateNote(note.id, { when: w, ...(/^(c\.?\s|约)/i.test(text.trim()) ? { approx: true } : {}) });
   };
   return (
     <div className="d-row d-when">

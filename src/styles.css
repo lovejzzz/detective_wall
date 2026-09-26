@@ -3375,3 +3375,9 @@ kbd {
     opacity: 0;
   }
 }
+
+/* Chinese runs down a spine or a tab upright, the way it's written, rather than turned on its side. */
+:lang(zh-Hans) .folder-spine,
+:lang(zh-Hans) .fold-tab span {
+  rotate: 0deg;
+}

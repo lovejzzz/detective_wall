@@ -64,8 +64,18 @@ export function whenDay(when: string): string {
 
 /** Parses what a person might type in the dossier: "1971", "24 Nov 1971", "1971-11-24 20:13". */
 export function parseWhenInput(input: string): string | null {
-  const s = input.trim().replace(/^c\.?\s*/i, "");
+  const s = input.trim().replace(/^c\.?\s*/i, "").replace(/^约\s*/, "");
   if (!s) return null;
+  // As the Chinese page writes it: "1971年", "1971年11月", "1971年11月24日", "1971年11月24日 20:13".
+  const zh = s.match(/^(\d{4})\s*年(?:\s*(\d{1,2})\s*月(?:\s*(\d{1,2})\s*日)?)?(?:\s*(\d{1,2})[:：](\d{2}))?$/);
+  if (zh) {
+    const [, y, mo, d, hh, mm] = zh;
+    let out = y;
+    if (mo) out += `-${mo.padStart(2, "0")}`;
+    if (mo && d) out += `-${d.padStart(2, "0")}`;
+    if (mo && d && hh) out += `T${hh.padStart(2, "0")}:${mm}`;
+    return WHEN_PATTERN.test(out) ? out : null;
+  }
   const iso = s.replace(" ", "T").replace(/\s*·\s*/, "T");
   if (WHEN_PATTERN.test(iso)) return iso;
   const m = s.match(/^(\d{1,2})\s+([A-Za-z]{3})[a-z]*\.?\s+(\d{4})(?:\s*(?:·|,|at)?\s*(\d{1,2}):(\d{2}))?$/);
