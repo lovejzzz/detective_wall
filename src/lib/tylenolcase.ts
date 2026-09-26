@@ -13,7 +13,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const TYLENOL_DEMO = "tylenol-1982";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const TYLENOL_VERSION = 5;
+export const TYLENOL_VERSION = 6;
 
 export const TYLENOL_PHASES: Phase[] = [
   { title: "Seven deaths", from: "1982-09-29" },
@@ -43,6 +43,8 @@ export const TYLENOL_COMMONS = {
   shelf: "Extra Strength Tylenol and Tylenol PM.jpg",
   boise: "Boise Union Pacific Depot - Boise, Idaho (14377574168).jpg",
   pills: "Tylenol Pills (15213405761).jpg",
+  continental: "Continental Illinois National Bank and Trust, Chicago, Illinois (9179403887).jpg",
+  midManhattan: "Mid-Manhattan, Exterior, entrance (NYPL b11524053-1252850).tiff",
 };
 
 const CBS = "https://www.cbsnews.com/chicago/news/tylenol-murders-chicago-1982-40-years-later/";
@@ -112,6 +114,7 @@ const spec: DemoSpec = {
     { key: "pJnj", type: "photo", photo: C.jnj, title: "Johnson & Johnson, New Brunswick", body: "The company that recalled (its tower opened in 1983)." },
     { key: "pBurke", type: "photo", photo: C.burke, title: "James E. Burke with a Tylenol bottle, 1982", body: "J&J's chairman, who ordered the nationwide recall." },
     { key: "letter", type: "fact", title: "\"$1 million to stop the killing\"", when: "1982-10-06", url: "https://www.upi.com/Archives/1983/10/19/The-text-of-the-extortion-letter-James-Lewis-allegedly/6333435384000/", body: "A hand-printed letter postmarked 1 October reached Johnson & Johnson: \"If you want to stop the killing then wire $1,000,000 to bank account number 84-49-597 at Continental Illinois Bank Chicago.\" The account was that of a travel-agency owner who had bounced Lewis's wife's paycheck." },
+    { key: "pContinental", type: "photo", photo: C.continental, title: "Continental Illinois, Chicago", body: "The Continental Illinois National Bank and Trust building (2013). The letter wanted the $1 million wired to an account at this bank, which itself failed in 1984." },
     { key: "arnold", type: "fact", title: "Roger Arnold picked up", when: "1982-10-12", url: "https://www.upi.com/Archives/1982/10/13/Police-acting-on-a-tip-received-during-the-investigation/6229403329600/", body: "Acting on a bar owner's tip, Chicago police arrested Jewel dockworker Roger Arnold, 48, who had told people he had cyanide. They found guns but no cyanide; he was charged only with weapons violations, never with the poisonings." },
     { key: "pArnold", type: "photo", photo: C.arnold, title: "Roger Arnold leaves a Chicago court, 1982", body: "As the wire photo's own caption identifies him (26 October 1982)." },
     { key: "film", type: "web", title: "Police release the drugstore film", when: "1982-10-18", url: "https://www.upi.com/Archives/1982/10/18/Police-Monday-released-film-from-a-drugstore-security-camera/3756403761600/", body: "Police released the Walgreens security frame of Prince at the register. A bearded man stands behind her; police said he resembled the fugitive James W. Lewis. He was never identified." },
@@ -123,6 +126,7 @@ const spec: DemoSpec = {
     { key: "boise", type: "fact", title: "Boise, 4 December 1982", when: "1982-12-04", url: ACSO, body: "A well-dressed man died of cyanide in a pew at Sacred Heart Catholic Church, Boise, carrying $1,900 in $100 bills, nearly 30 keys and a typed note signed \"Wm. L. Toomey\". He was buried unnamed as the \"Unknown Wanderer\"." },
     { key: "pBoise", type: "photo", photo: C.boise, title: "Boise's Union Pacific depot", body: "The depot today. The sheriff thinks he arrived by rail and walked to the church." },
     { key: "lewis", type: "fact", title: "Extortion, not murder", when: "1982-12-13", url: "https://www.nytimes.com/1983/10/28/us/jurors-convict-suspect-in-1-million-tylenol-extortion-plot.html", body: "The FBI arrested James W. Lewis in a New York Public Library reading room. Convicted of attempted extortion on 27 October 1983, he got 10 years on top of a mail-fraud term and was released on 13 October 1995. He was never charged with the murders, which he denied." },
+    { key: "pLibrary", type: "photo", photo: C.midManhattan, title: "The Mid-Manhattan Library, 1972", body: "Its Fifth Avenue entrance ten years before (NYPL). TIME placed the arrest at this branch, in a fourth-floor reference room." },
 
     // ── Years without a charge ──
     { key: "stanisha", type: "fact", title: "Arnold kills a man outside a bar", when: "1983-06-18", url: TRIB_TIMELINE, body: "Roger Arnold shot and killed John Stanisha, 46, a passer-by he mistook for the bar owner who had named him to police. He served 15 years of a 30-year term." },
@@ -167,7 +171,9 @@ const spec: DemoSpec = {
     { from: "pOsco", to: "shelfBottle", relation: "references", reason: "The chain" },
     { from: "pJnj", to: "recall", relation: "references", reason: "The company that recalled" },
     { from: "pBurke", to: "recall", relation: "references", reason: "Who ordered it" },
+    { from: "pContinental", to: "letter", relation: "references", reason: "The bank the letter named" },
     { from: "pArnold", to: "arnold", relation: "references", reason: "Leaving court" },
+    { from: "pLibrary", to: "lewis", relation: "references", reason: "Where he was arrested" },
     { from: "pSealed", to: "sealed", relation: "references", reason: "What changed" },
     { from: "pShelf", to: "sealed", relation: "references", reason: "The legacy" },
     { from: "pBoise", to: "boise", relation: "references", reason: "How he may have arrived" },

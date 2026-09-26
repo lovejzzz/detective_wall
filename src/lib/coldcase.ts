@@ -11,7 +11,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const COOPER_DEMO = "cooper-1971";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const COOPER_VERSION = 6;
+export const COOPER_VERSION = 7;
 
 /** Real photos of the case on Wikimedia Commons (credit is read from each file's metadata at runtime). */
 export const COMMONS = {
@@ -26,6 +26,9 @@ export const COMMONS = {
   sketch: "CompositeB-FBI-1973.jpg",
   bills: "Money stolen by D. B. Cooper.jpg",
   laterLife: "Boeing 727-51 N838N Piedmont ORD 30.09.79 edited-2.jpg",
+  seafirst: "Seafirst Building, 1969.jpg",
+  f106: "318th Fighter-Interceptor Squadron Convair F-106 Delta Dart 59-0009.png",
+  sr71: "SR-71A taking off from Beale AFB 1981.JPEG",
 };
 
 export const COOPER_PHASES: Phase[] = [
@@ -64,9 +67,11 @@ const spec: DemoSpec = {
     { key: "pTicket", type: "photo", photo: C.ticket, title: "The ticket, bought as “Dan Cooper”", body: "Paid for in cash at the Portland counter (an FBI photograph)." },
     { key: "pPlane", type: "photo", photo: C.plane, fallback: "sketch:727", title: "N467US, the aircraft", body: "The Boeing 727-51 that flew as Flight 305, photographed at Miami in December 1972." },
     { key: "demands", type: "fact", title: "The demands", when: "1971-11-24T15:00", approx: true, beat: "escalation", url: WIKI, body: "$200,000 in $20 bills, two back and two front parachutes, and a fuel truck waiting at Seattle. The plane circled Puget Sound for about two hours while Seattle First National Bank assembled 10,000 twenties and police found the parachutes." },
+    { key: "pSeafirst", type: "photo", photo: C.seafirst, title: "Seattle First National Bank, 1969", body: "The bank's downtown headquarters tower, two years before (Seattle Municipal Archives). The bank put together the 10,000 twenties." },
     { key: "seatac", type: "fact", title: "Landing at Sea-Tac", when: "1971-11-24T17:46", url: WIKI, body: "The 727 parked on a partly lit runway away from the terminal. Tina Mucklow carried the 19-lb money bag aboard and the 35 other passengers were let off; once the parachutes were aboard, two flight attendants followed." },
     { key: "flown", type: "fact", title: "How he wanted it flown", when: "1971-11-24T19:40", approx: true, url: WIKI, body: "Toward Mexico City via Reno, at minimum speed below 10,000 ft, gear down, flaps at 15°, cabin unpressurised. He lowered the rear airstair himself; two F-106s and a T-33 trailed the plane." },
     { key: "pStair", type: "photo", photo: C.airstair, title: "A Northwest 727's airstair, 1975", body: "The rear stair of a sister aircraft: the way he left." },
+    { key: "pF106", type: "photo", photo: C.f106, title: "An F-106 from McChord", body: "An F-106A Delta Dart of the 318th Fighter-Interceptor Squadron, McChord AFB (USAF, 1960s): the type that trailed Flight 305." },
     { key: "jump", type: "fact", title: "The tail pitches up", when: "1971-11-24T20:13", approx: true, url: FBI, body: "The airstair light came on at about 8:00. At about 8:13 the crew felt the tail bump upward: the FBI's presumed exit, in rain, over southwest Washington; the first officer put it near Portland's northern suburbs." },
     { key: "pMerwin", type: "photo", photo: C.merwin, title: "Lake Merwin from the air", body: "The original drop-zone estimate lay near here, in the forest north of the Columbia (2017)." },
     { key: "pMap", type: "photo", photo: C.map, title: "Map of the flight", body: "The route and the drop-zone estimate (a 2013 map with German labels)." },
@@ -85,6 +90,7 @@ const spec: DemoSpec = {
     { key: "pSketchA", type: "photo", photo: C.sketchA, title: "FBI Composite A", body: "Released 28 November 1971 (FBI)." },
     { key: "pPoster", type: "photo", photo: C.poster, title: "The FBI wanted poster", body: "Circulated in the manhunt (FBI)." },
     { key: "sr71", type: "fact", title: "An SR-71 retraces the route", when: "1971-12-06", url: WIKI, body: "Director Hoover approved an Air Force SR-71 to photograph Flight 305's path. It flew five sorties; poor visibility defeated the photography." },
+    { key: "pSR71", type: "photo", photo: C.sr71, title: "An SR-71A Blackbird", body: "One of the 9th Strategic Reconnaissance Wing's SR-71As taking off from Beale AFB, California, in 1981 (USAF): the type sent to retrace the route." },
     { key: "search", type: "fact", title: "The spring ground search", when: "1972-03", url: WIKI, body: "After the thaw, FBI agents and about 200 Fort Lewis soldiers searched Clark and Cowlitz counties for 18 days in March and 18 more in April, and a submarine searched Lake Merwin. Nothing traceable to the hijacking turned up." },
     { key: "copycat", type: "fact", title: "A copycat: United Flight 855", when: "1972-04-07", url: "https://en.wikipedia.org/wiki/D._B._Cooper_copycat_hijackings", body: "A hijacker took a United 727 at its Denver stop, collected $500,000 in San Francisco and jumped over Utah; he was arrested two days later. More than a dozen Cooper-style hijackings followed in 1972, and every hijacker was caught." },
     { key: "pVane", type: "photo", photo: C.vane, title: "The “Cooper vane”", body: "The spring-loaded vane the FAA then required, so a 727's airstair can't be lowered in flight." },
@@ -127,10 +133,13 @@ const spec: DemoSpec = {
   links: [
     { from: "pTicket", to: "flight", relation: "references", reason: "His ticket" },
     { from: "pPlane", to: "flight", relation: "references", reason: "The aircraft" },
+    { from: "pSeafirst", to: "demands", relation: "references", reason: "The bank that raised the cash" },
     { from: "pStair", to: "flown", relation: "references", reason: "Where the stairs are" },
+    { from: "pF106", to: "flown", relation: "references", reason: "The chase planes' type" },
     { from: "pMerwin", to: "jump", relation: "references", reason: "The drop-zone estimate" },
     { from: "pMap", to: "jump", relation: "references", reason: "The route" },
     { from: "pSketchA", to: "sketchA", relation: "references", reason: "The sketch itself" },
+    { from: "pSR71", to: "sr71", relation: "references", reason: "The aircraft type" },
     { from: "pPoster", to: "sketchA", relation: "references", reason: "The manhunt" },
     { from: "pVane", to: "copycat", relation: "references", reason: "One of the fixes that ended it" },
     { from: "pSketchB", to: "sketchB", relation: "references", reason: "The final version" },

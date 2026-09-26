@@ -12,7 +12,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const GLICO_DEMO = "glico-morinaga-1984";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const GLICO_VERSION = 5;
+export const GLICO_VERSION = 6;
 
 export const GLICO_PHASES: Phase[] = [
   { title: "Kidnap and the Glico siege", from: "1984-03-18" },
@@ -56,6 +56,7 @@ const spec: DemoSpec = {
     { key: "arson", type: "fact", title: "Arson at Glico headquarters", when: "1984-04-10T20:50", url: JA_WIKI, body: "Fire gutted about 150 m² of the prototype room at Glico's head office in Nishiyodogawa, Osaka; half an hour later a van burned at a Glico affiliate 3 km away. On 12 April the National Police Agency designated the series Wide-Area Case 114." },
     { key: "pHq", type: "photo", photo: "Ezaki Glico.jpg", title: "Ezaki Glico head office", body: "Nishiyodogawa, Osaka, where the prototype room burned (photographed 2008)." },
     { key: "name", type: "fact", title: "The gang names itself", when: "1984-04-24", url: JA_WIKI, body: "After a ¥120 million demand, a tape-recorded woman's voice sent the courier to the Meishin Expressway's Suita service area; no one came. A letter to the press signed かい人21面相, a play on Edogawa Rampo's fictional master thief, gave the gang its name." },
+    { key: "pRampo", type: "photo", photo: "Rampo Edogawa 02.jpg", title: "Edogawa Rampo, 1954", body: "The mystery writer, in a 1954 Mainichi Graphic photograph. The gang's name played on his master thief, Kaijin Nijū Mensō." },
     { key: "grave", type: "fact", title: "\"Eat Glico and go to your grave\"", when: "1984-05-10", url: JA_WIKI, body: "Four national papers got a letter claiming sodium cyanide had been put in Glico products. Supermarkets pulled Glico lines; no poisoned Glico item was found at this stage." },
     { key: "neyagawa", type: "fact", title: "A couple ambushed, the courier seized", when: "1984-06-02T20:15", approx: true, url: JA_WIKI, body: "In Neyagawa three men beat a man, held his girlfriend hostage and forced him to drive a ¥300 million cash car. Police, who had rigged the car, grabbed him at about 20:45, found he was a coerced innocent, and lost the gang's car at a Route 1 junction." },
     { key: "forgiven", type: "fact", title: "\"Glico is forgiven\"", when: "1984-06-26", url: JA_WIKI, body: "The gang wrote to the press ending the Glico extortion (江崎グリコ ゆるしたる), two days after Glico ran newspaper ads carrying a schoolgirl's letter of support." },
@@ -81,7 +82,7 @@ const spec: DemoSpec = {
     { key: "otsu", type: "fact", title: "The Otsu miss: a white van escapes", when: "1984-11-14T20:20", approx: true, beat: "dead_end", url: JA_WIKI, body: "A taped child's voice sent the cash car to the Meishin's Otsu Service Area in Shiga. Detectives saw the fox-eyed man again but had no authority to stop him; a Shiga patrol that knew nothing of the operation approached an unlit white van, which sped off and was found abandoned with a police-band radio." },
     { key: "kansaiMap", type: "diagram", title: "Kansai, 1984", body: "Sketch, not to scale; north is up. The dashed line is the Takatsuki–Kyoto train of 28 June.", diagram: { kind: "map", items: [
       { label: "Ezaki home: kidnap", x: 12, y: 62, mark: "scene" },
-      { label: "Kōshienguchi: poisoned sweets", x: 15, y: 76, mark: "scene" },
+      { label: "Kōshienguchi: cyanide sweets", x: 15, y: 76, mark: "scene" },
       { label: "Glico HQ: arson", x: 29, y: 88, mark: "scene" },
       { label: "Ai River store: escape", x: 46, y: 50, mark: "place" },
       { label: "Takatsuki", x: 53, y: 42, mark: "start", value: 1 },
@@ -91,15 +92,18 @@ const spec: DemoSpec = {
     { key: "pOtsu", type: "photo", photo: "Otsu SA 002.jpg", title: "Otsu Service Area, Meishin Expressway", body: "Where the cash car was sent on 14 November 1984 (photographed 2009)." },
     { key: "pRadio", type: "photo", photo: "YAESU-FT208.JPG", title: "A handheld radio of the gang's type", body: "A Yaesu FT-208, the model police matched to a radio the gang left behind: easily modified to hear police radio." },
     { key: "fujiya", type: "fact", title: "Fujiya: throw the cash from a roof", when: "1984-12-07", url: JA_WIKI, body: "Letters with sodium cyanide reached a Fujiya manager; later ones demanded ¥20 million be scattered from a department-store roof in Umeda, Osaka, then Ikebukuro, Tokyo. Fujiya did not comply." },
+    { key: "pFujiya", type: "photo", photo: "FUJIYA Morinomiya shop.jpg", title: "A Fujiya shop in Osaka", body: "Fujiya's Morinomiya shop, Osaka (2021): the confectioner the gang turned to in December 1984." },
     { key: "hokkaido", type: "fact", title: "The \"Hokkaido tape\"", when: "1984-12-04", url: JA_WIKI, body: "A radio ham in Hokkaido recorded an off-band exchange between two men calling themselves \"21面相\" and \"玉三郎\" about Fujiya not paying. Police judged it likely to be the gang and released part of it." },
     { key: "vanSketch", type: "fact", title: "A likeness of the van driver", when: "1984-12-11", url: JA_WIKI, body: "Police released a drawing of the white-van driver made from the three Shiga patrol officers' accounts." },
     { key: "sketch", type: "fact", title: "The fox-eyed man's sketch published", when: "1985-01-10", url: SHINCHO, body: "Police released the composite of the man seen at the Marudai and House drops, drawn from detectives' sightings. It became Japan's best-known police sketch and has never been matched to anyone." },
     { key: "valentine", type: "fact", title: "Valentine's cyanide in Tokyo and Nagoya", when: "1985-02-12", approx: true, url: JAPAN_TIMES_2000, body: "Cyanide-laced chocolates labelled どくいり きけん were found in Tokyo and Aichi; some harmless boxes were labelled どくなし あんしん (\"no poison, don't worry\"). As attempted murders, they were the last counts in the case to expire." },
     { key: "truce", type: "fact", title: "A truce with Morinaga", when: "1985-02-24", url: JA_WIKI, body: "A letter to the press ended the campaign against Morinaga, days before the gang turned to Surugaya." },
     { key: "surugaya", type: "fact", title: "Surugaya, the last company", when: "1985-03-06", url: JA_WIKI, body: "The Wakayama confectioner got a ¥50 million demand. On 8 March the gang put off the handover and never contacted the company again." },
+    { key: "pSurugaya", type: "photo", photo: "Surugaya Co, Ltd.jpg", title: "Surugaya, Wakayama", body: "The confectioner Surugaya at Surugachō, Wakayama (2020): the last company the gang threatened." },
     { key: "yamamoto", type: "fact", title: "Shiga's police chief burns himself to death", when: "1985-08-07", url: UPI_1985, body: "Shōji Yamamoto, 59, who had publicly taken responsibility for the Otsu escape, set himself on fire in the garden of his official residence in Otsu on the day he left the post." },
     { key: "pShiga", type: "photo", photo: "Shiga Prefectural Police Headquarters01.jpg", title: "Shiga Prefectural Police, Otsu", body: "The force whose patrol lost the white van (photographed 2009)." },
     { key: "last", type: "fact", title: "\"We'll stop bullying food companies\"", when: "1985-08-12", beat: "twist", url: KOBE_2024, body: "The final letter jeered at the Shiga police, called the dead chief's end manly, offered the ceasefire as a condolence gift and ended くいもんの 会社 いびるの もお やめや. The gang was never heard from again. That day House Foods president Ikuo Uragami died in the JAL Flight 123 crash." },
+    { key: "pJal", type: "photo", photo: "Japan Airlines B747SR-46 (JA8119) at Itami Airport in 1984.jpg", title: "JA8119 at Itami, 1984", body: "The Boeing 747SR lost as JAL Flight 123, landing at Osaka's Itami airport in early spring 1984." },
 
     // ── The clock runs out ──
     { key: "kidnapExpires", type: "fact", title: "The kidnapping count expires", when: "1994-03", approx: true, url: "https://www.japantimes.co.jp/news/1999/02/24/national/clock-ticking-on-glico-morinaga-cases/", body: "The statute of limitations on Ezaki's abduction ran out and the task force was scaled back. A 1992 questioning of an ex-yakuza boss's circle had produced no confession and no evidence." },
@@ -129,10 +133,14 @@ const spec: DemoSpec = {
     { from: "pHichew", to: "shelves", relation: "references", reason: "A poisoned line" },
     { from: "pCaramel", to: "shelves", relation: "references", reason: "A poisoned line" },
     { from: "pKoshien", to: "video", relation: "references", reason: "Near the store" },
+    { from: "pRampo", to: "name", relation: "references", reason: "Whose villain they borrowed" },
     { from: "pHouse", to: "house", relation: "references", reason: "The company targeted" },
     { from: "pOtsu", to: "otsu", relation: "references", reason: "The drop site" },
     { from: "pRadio", to: "otsu", relation: "references", reason: "The gang's radio type" },
+    { from: "pFujiya", to: "fujiya", relation: "references", reason: "The company targeted" },
     { from: "pShiga", to: "yamamoto", relation: "references", reason: "His force" },
+    { from: "pSurugaya", to: "surugaya", relation: "references", reason: "The company targeted" },
+    { from: "pJal", to: "last", relation: "references", reason: "The flight House's president was on" },
     { from: "pNishinomiya", to: "expiry", relation: "references", reason: "Where the sign came down" },
     { from: "kidnap", to: "escape", relation: "causes", reason: "65 hours later" },
     { from: "morinaga", to: "shelves", relation: "causes", reason: "The threat carried out" },
@@ -150,6 +158,7 @@ const spec: DemoSpec = {
     { from: "sVideo", to: "unsub", relation: "references", reason: "Held against the profile" },
     { from: "sCircle", to: "unsub", relation: "references", reason: "Held against the profile" },
     { from: "suspectM", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "chain", to: "stock", relation: "supports", reason: "Six targets, not a yen collected" },
     { from: "stock", to: "q", relation: "references", reason: "An angle on motive" },
     { from: "insider", to: "q", relation: "references", reason: "An angle on who" },
     { from: "radio", to: "otsu", relation: "supports", reason: "The van had a police-band radio" },

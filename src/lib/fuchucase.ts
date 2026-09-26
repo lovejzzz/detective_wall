@@ -13,7 +13,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const FUCHU_DEMO = "fuchu-300m-1968";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const FUCHU_VERSION = 5;
+export const FUCHU_VERSION = 6;
 
 export const FUCHU_PHASES: Phase[] = [
   { title: "Threats in the Tama hills", from: "1968-04-25" },
@@ -51,6 +51,7 @@ const spec: DemoSpec = {
     { key: "coop", type: "fact", title: "Threats against the Tama farm co-op", when: "1968-04-25", url: JA_WIKI, body: "From 25 April to 22 August the Tama Agricultural Cooperative in Fuchū got nine threats of arson and bombing by letter, phone and poster, falling on Toshiba pay days. Handwriting later tied them to the December letter to the bank." },
     { key: "fleet", type: "fact", title: "The getaway fleet is stolen", when: "1968-11", approx: true, url: JA_WIKI, body: "A Yamaha Sport 350R1 motorcycle was stolen on 19–20 November, a dark-green Corolla (Tama 5 me 3863) on 30 Nov–1 Dec, and a navy Corolla (Tama 5 ro 3519) from a Hino housing estate on 5–6 December." },
     { key: "pCorolla2", type: "photo", photo: "Toyota KE10-D Corolla Deluxe (22022010251).jpg", title: "A first-generation Corolla", body: "The same generation as the green scouting car (a 1966 model in a museum)." },
+    { key: "pTamadaira", type: "photo", photo: "Tamadaira danchi photoimage.jpg", title: "The Tamadaira estate, Hino", body: "The housing estate the navy getaway Corolla was stolen from on 5–6 December 1968 (photographed 2008)." },
     { key: "bombThreat", type: "fact", title: "Bomb threat to the branch manager", when: "1968-12-06", url: YOMIURI, body: "The manager of Nihon Shintaku Bank's Kokubunji branch got a special-delivery letter: have a woman clerk bring ¥3 million to a named place by 5 p.m. next day, or his house would be blown up." },
     { key: "stakeout", type: "fact", title: "A stakeout, and nobody comes", when: "1968-12-07T17:00", approx: true, url: JA_WIKI, body: "A policewoman posing as a bank clerk made the drop with about 50 officers watching. The extortionist never appeared." },
 
@@ -63,6 +64,7 @@ const spec: DemoSpec = {
     { key: "pPrison", type: "photo", photo: "Fuchu Prison (Nov 3, 2025).jpg", title: "Fuchū Prison", body: "The wall the bank car was stopped beside (photographed 2025)." },
     { key: "pAerial", type: "photo", photo: "Fuchu prison 1989 air.jpg", title: "Fuchū Prison from the air, 1989", body: "The road along the north wall and the prison-corner junction the robber drove through." },
     { key: "flare", type: "fact", title: "\"It's dynamite, run!\"", when: "1968-12-10T09:23", approx: true, url: YOMIURI, body: "The staff got out, leaving the key in the ignition with the trunk and case keys on the same ring. The \"officer\" crawled under the car; red flame and white smoke burst out, and the staff ran about 100 m. It was a road flare." },
+    { key: "pFlares", type: "photo", photo: "Signal flares@highway.JPG", title: "Road flares burning", body: "Flares set out at an expressway accident in Japan (2016): the kind he lit under the bank car as a \"bomb\"." },
     { key: "drivesOff", type: "fact", title: "Gone with ¥294 million in three minutes", when: "1968-12-10T09:24", approx: true, url: SHINCHO, body: "He drove the Cedric through a red light onto Fuchū-kaidō and north toward Koigakubo. The staff at first thought a brave policeman was moving the bomb away." },
     { key: "threeMinutes", type: "diagram", title: "Three minutes, 9:21 to 9:24", diagram: { kind: "flow", items: [{ label: "Pulled over" }, { label: "\"Bomb!\"" }, { label: "Staff out" }, { label: "Flare lit" }, { label: "Staff run" }, { label: "Car gone" }] } },
     { key: "thirdScene", type: "fact", title: "The scouting car at the third scene", when: "1968-12-10", approx: true, url: JA_WIKI, body: "The dark-green Corolla (Tama 5 me 3863) was found in a vacant lot near Meisei High School, where the fake bike had waited under a cover: a door ajar, the wipers still running, a navy raincoat left inside-out." },
@@ -101,9 +103,11 @@ const spec: DemoSpec = {
     // ── The clock runs out ──
     { key: "boyZ", type: "fact", title: "A last suspect, weeks before the deadline", when: "1975-11-15", url: JA_WIKI, body: "A friend of Boy S who had spent lavishly since 1968 was arrested on an unrelated charge and released on 4 December; his blood type didn't match and police ruled him out." },
     { key: "statute", type: "fact", title: "The statute of limitations runs out", when: "1975-12-10T00:00", beat: "dead_end", url: TAMA, body: "The seven-year limit for theft expired at midnight after 171,346 officer-days and 117,950 people investigated, with no one charged. Superintendent-General Kuniyasu Tsuchida, who had directed the case, called it \"regrettable, that is all one can say.\"" },
+    { key: "pMpd", type: "photo", photo: "Tokyo-Metropolitan-Police-Board-Headquarters-1931.png", title: "Police headquarters, Sakuradamon", body: "The Metropolitan Police Department's head office on completion in 1931. It served until 1977, through the whole investigation." },
     { key: "exposed", type: "fact", title: "The montage's origin exposed", when: "1980-08", url: JA_WIKI, body: "A Bungei Shunjū article revealed the montage was an unaltered photo of a man who had died in an accident before the robbery. NHK reports his family was never told how it came to be used." },
     { key: "civil", type: "fact", title: "Civil liability expires", when: "1988-12-10", url: JA_WIKI, body: "The 20-year period to sue ran out. No credible culprit has come forward." },
     { key: "nhk", type: "web", title: "NHK: overlooked sightings of the bike", when: "2026-01-10T22:00", beat: "latest", url: NHK, body: "NHK's Unsolved Cases File.10 drew on investigation records and 170-plus interviews, including a first account from a woman who saw the robbery as a schoolgirl, and reported overlooked sightings of the fake bike about 20 km away." },
+    { key: "pNhk", type: "photo", photo: "NHK Broadcasting Center 20260322.jpg", title: "NHK Broadcasting Center", body: "The broadcaster's Tokyo headquarters, photographed in March 2026, two months after File.10 aired." },
 
     // ── Exhibits ──
     { key: "bike", type: "fact", title: "Exhibit: the fake police motorcycle", url: YOMIURI, body: "A blue Yamaha 350R1 hand-painted white, with a red lamp, a towel-rail bracket and a white-painted megaphone. Real Tokyo police bikes were Hondas. Left at the scene still dragging a green car cover." },
@@ -126,16 +130,20 @@ const spec: DemoSpec = {
   ],
   links: [
     { from: "pCorolla2", to: "fleet", relation: "references", reason: "The scouting car's type" },
+    { from: "pTamadaira", to: "fleet", relation: "references", reason: "Where the getaway car was stolen" },
     { from: "pCedric", to: "leaves", relation: "references", reason: "The bank car's type" },
     { from: "pKokubunji", to: "leaves", relation: "references", reason: "Where the branch was" },
     { from: "pPrison", to: "stop", relation: "references", reason: "The wall beside the stop" },
     { from: "pAerial", to: "stop", relation: "references", reason: "The road from above" },
+    { from: "pFlares", to: "flare", relation: "references", reason: "The fake bomb" },
     { from: "pRuins", to: "cedricFound", relation: "references", reason: "The second scene" },
     { from: "pToshiba", to: "insured", relation: "references", reason: "Whose bonuses they were" },
     { from: "pNote", to: "insured", relation: "references", reason: "The money of the day" },
     { from: "pFuchuPolice", to: "hiratsuka", relation: "references", reason: "The task force's base" },
     { from: "pCorolla", to: "corollaFound", relation: "references", reason: "The getaway car's model" },
     { from: "pYen", to: "serials", relation: "references", reason: "The notes with known serials" },
+    { from: "pMpd", to: "statute", relation: "references", reason: "The force that ran out of time" },
+    { from: "pNhk", to: "nhk", relation: "references", reason: "Who reopened the file" },
     { from: "coop", to: "bombThreat", relation: "supports", reason: "Same handwriting" },
     { from: "bombThreat", to: "stop", relation: "causes", reason: "The pretext: \"your house was bombed\"" },
     { from: "fleet", to: "corollaWaits", relation: "references", reason: "The stolen navy Corolla" },
