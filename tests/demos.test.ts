@@ -53,6 +53,8 @@ describe.each([
     expect(subjects.length).toBeGreaterThanOrEqual(4);
     for (const n of subjects) {
       expect(sanitizeSubject(n.subject), title(n)).toEqual(n.subject);
+      // every person of interest carries the test that would settle them
+      if (!n.subject?.profile?.length) expect(n.subject?.settle, title(n)).toBeTruthy();
       // every point short enough for two lines on the card, and the file has a source
       for (const p of [...(n.subject!.for ?? []), ...(n.subject!.against ?? []), ...(n.subject!.profile ?? [])]) expect(p.length, p).toBeLessThanOrEqual(72);
       expect(n.origin.url, title(n)).toMatch(/^https:\/\//);
