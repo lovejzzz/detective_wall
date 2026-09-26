@@ -21,7 +21,7 @@ function endpoints(a: Note, b: Note) {
   return [toThree(pa.x, pa.y, PIN_Z), toThree(pb.x, pb.y, PIN_Z)] as const;
 }
 
-function StringTube({ from, to, relation, proposed, lit }: { from: THREE.Vector3; to: THREE.Vector3; relation: Relation; proposed: boolean; lit: boolean | null }) {
+function StringTube({ from, to, relation, proposed, lit, faded }: { from: THREE.Vector3; to: THREE.Vector3; relation: Relation; proposed: boolean; lit: boolean | null; faded?: boolean }) {
   const { stringNormal, dash } = sharedTextures();
   const look = LOOK[relation];
   const key = `${from.x},${from.y},${to.x},${to.y}`;
@@ -53,6 +53,8 @@ function StringTube({ from, to, relation, proposed, lit }: { from: THREE.Vector3
   }, [proposed, length, look, stringNormal, dash]);
   // Hovering a note lights up its web a touch.
   material.emissiveIntensity = lit ? 0.35 : 0;
+  // A string between cards the user isn't looking at fades with them.
+  material.color.set(proposed ? "#2a2826" : look.color).multiplyScalar(faded ? 0.3 : 1);
   useEffect(() => () => geometry.dispose(), [geometry]);
   useEffect(() => () => material.dispose(), [material]);
   return <mesh geometry={geometry} material={material} castShadow />;
@@ -72,7 +74,7 @@ function tagTexture(relation: Relation, flipped: boolean) {
 }
 
 /** A manila tag hung from the middle of a tied string. Click it for details. */
-function Tag({ link, from, to, onOpen }: { link: Link; from: THREE.Vector3; to: THREE.Vector3; onOpen?: (id: string) => void }) {
+function Tag({ link, from, to, onOpen, faded }: { link: Link; from: THREE.Vector3; to: THREE.Vector3; onOpen?: (id: string) => void; faded?: boolean }) {
   const mid = stringCurve(from, to).getPoint(0.5);
   const angle = Math.atan2(to.y - from.y, to.x - from.x);
   const flipped = angle > Math.PI / 2 || angle < -Math.PI / 2;
@@ -92,7 +94,7 @@ function Tag({ link, from, to, onOpen }: { link: Link; from: THREE.Vector3; to: 
         }
       >
         <planeGeometry args={[46, 27]} />
-        <meshStandardMaterial map={tagTexture(link.relation, flipped)} roughness={0.85} side={THREE.DoubleSide} />
+        <meshStandardMaterial map={tagTexture(link.relation, flipped)} color={faded ? "#4a4a4a" : "#ffffff"} roughness={0.85} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );
@@ -118,11 +120,13 @@ interface Props {
   notes: Note[];
   links: Link[];
   lit: Set<string> | null;
+  /** Strings to fade: both ends are outside what the user is looking at. */
+  faded?: Set<string> | null;
   draft: { from: Note; to: { x: number; y: number } } | null;
   onOpenTag?: (id: string) => void;
 }
 
-export const Strings3D = memo(function Strings3D({ notes, links, lit, draft, onOpenTag }: Props) {
+export const Strings3D = memo(function Strings3D({ notes, links, lit, faded, draft, onOpenTag }: Props) {
   const byId = new Map(notes.map((n) => [n.id, n]));
   return (
     <group>
@@ -133,8 +137,8 @@ export const Strings3D = memo(function Strings3D({ notes, links, lit, draft, onO
         const [from, to] = endpoints(a, b);
         return (
           <group key={l.id}>
-            <StringTube from={from} to={to} relation={l.relation} proposed={l.status === "proposed"} lit={lit ? lit.has(l.id) : null} />
-            {l.status === "pinned" && <Tag link={l} from={from} to={to} onOpen={onOpenTag} />}
+            <StringTube from={from} to={to} relation={l.relation} proposed={l.status === "proposed"} lit={lit ? lit.has(l.id) : null} faded={faded?.has(l.id)} />
+            {l.status === "pinned" && <Tag link={l} from={from} to={to} onOpen={onOpenTag} faded={faded?.has(l.id)} />}
           </group>
         );
       })}

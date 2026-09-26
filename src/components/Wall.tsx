@@ -21,6 +21,8 @@ import { caseTitle } from "../lib/cases.ts";
 import { Timeline3D } from "../scene/Timeline3D.tsx";
 import { layoutTimeline, storyMoments } from "../lib/timeline.ts";
 import { importPhoto, isPhotoFile } from "../lib/images.ts";
+import { essentialsOf, litBy } from "../lib/lens.ts";
+import { arrangeWall } from "../lib/arrange.ts";
 
 export interface Stage {
   /** Center of the uncovered part of the wall, in screen px. */
@@ -115,8 +117,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   useEffect(() => {
     // The case keeps its wall camera; the timeline frames itself, so its camera is never saved (a
     // reload or a case switch on the timeline must not bring the wall back at the timeline's view).
-    if (useStore.getState().view !== "wall") return;
-    const t = setTimeout(() => useStore.getState().view === "wall" && store().setCamera(caseIdRef.current, cam), 250);
+    if (useStore.getState().view !== "wall" || essentialsRef.current) return;
+    const t = setTimeout(() => useStore.getState().view === "wall" && !essentialsRef.current && store().setCamera(caseIdRef.current, cam), 250);
     return () => clearTimeout(t);
   }, [cam, store]);
 
@@ -148,7 +150,24 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     });
     return () => cancelAnimationFrame(raf);
   }, []);
-  /** Notes with the position they occupy in the current view. */
+  // The essentials, on the wall: only the cards a reader needs first, gathered into a compact
+  // reading order of their own; the rest step off the wall until the view is closed.
+  const lens = useStore((s) => s.lens);
+  const lensOpen = !!lens;
+  const essentialIds = useMemo(() => (lens?.essentials ? essentialsOf(c.notes, c.links) : null), [lens?.essentials, c.notes, c.links]);
+  const essentials = useMemo(
+    () =>
+      essentialIds && mode === "wall"
+        ? arrangeWall(
+            c.notes.filter((n) => essentialIds.has(n.id)),
+            c.links.filter((l) => essentialIds.has(l.from) && essentialIds.has(l.to)),
+          )
+        : null,
+    [essentialIds, mode, c.notes, c.links],
+  );
+  const essentialsRef = useRef(essentials);
+  essentialsRef.current = essentials;
+  /** Notes with the position they occupy in the current view (in the essentials, only those). */
   const placed = useMemo(
     () =>
       timeline
@@ -156,10 +175,22 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             const sl = timeline.slots.get(n.id);
             return sl ? { ...n, x: sl.x, y: sl.y, rotation: sl.rotation } : n;
           })
-        : c.notes,
-    [timeline, c.notes],
+        : essentials
+          ? c.notes.flatMap((n) => {
+              const sl = essentials.get(n.id);
+              return sl ? [{ ...n, x: sl.x, y: sl.y, rotation: sl.rotation }] : [];
+            })
+          : c.notes,
+    [timeline, essentials, c.notes],
   );
+  const shownLinks = useMemo(() => (essentials ? c.links.filter((l) => essentials.has(l.from) && essentials.has(l.to)) : c.links), [essentials, c.links]);
   const placedById = useMemo(() => new Map(placed.map((n) => [n.id, n])), [placed]);
+
+  // ---- A find, or the essentials: what stays lit, and the strings that fade with the rest ----
+  const lit = useMemo(() => litBy(lens, placed, c.links), [lens, placed, c.links]);
+  const finding = !!lens?.query.trim();
+  const fadedLinks = useMemo(() => (lit ? new Set(c.links.filter((l) => !(lit.has(l.from) && lit.has(l.to))).map((l) => l.id)) : null), [lit, c.links]);
+  const dim = (id: string) => !!lit && !lit.has(id);
 
   // ---- Camera follows the investigation ----
   const focusNote = placedById.get(c.focusNoteId ?? "") ?? null;
@@ -183,12 +214,13 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const ys = pts.flatMap((n) => [n.y - NOTE_SIZE[n.type].h / 2, n.y + NOTE_SIZE[n.type].h / 2 + 44]);
       const bw = Math.max(...xs) - Math.min(...xs) + 120;
       const bh = Math.max(...ys) - Math.min(...ys) + 200;
-      // The case folders take the stage's left 70px and the view tabs its top 64px: frame what's left.
-      const TOP = 64;
+      // The case folders take the stage's left 70px and the view tabs its top 64px (with the find
+      // strip under them, 108px): frame what's left.
+      const TOP = lensOpen ? 108 : 64;
       const zoom = settleZ(clampZ(Math.min((stage.w - TRAY_W) / bw, (stage.h - TOP) / bh, maxZoom)));
       return { x: (Math.max(...xs) + Math.min(...xs)) / 2 - TRAY_W / 2 / zoom, y: (Math.max(...ys) + Math.min(...ys)) / 2 - 20 - TOP / 2 / zoom, zoom };
     },
-    [stage.w, stage.h],
+    [stage.w, stage.h, lensOpen],
   );
   const inView = useCallback(
     (n: Note, k: Camera) => {
@@ -211,10 +243,49 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const left = Math.min(...notes.map((n) => n.x - NOTE_SIZE[n.type].w / 2));
       const right = Math.max(...notes.map((n) => n.x + NOTE_SIZE[n.type].w / 2));
       const zoom = settleZ(clampZ(Math.min(0.9, (stage.w - TRAY_W - 80) / (right - left))));
-      return { zoom, x: (left + right) / 2 - TRAY_W / 2 / zoom, y: top + (stage.cy - 100) / zoom };
+      return { zoom, x: (left + right) / 2 - TRAY_W / 2 / zoom, y: top + (stage.cy - (lensOpen ? 140 : 100)) / zoom };
     },
-    [framing, stage.w, stage.h, stage.cy],
+    [framing, stage.w, stage.h, stage.cy, lensOpen],
   );
+  // What the lens keeps lit is brought into view together; stepping through a find goes card by card.
+  const litKey = lit ? [...lit].sort().join(",") : "";
+  useEffect(() => {
+    if (!lit?.size) return;
+    const t = setTimeout(() => {
+      const shown = placed.filter((n) => lit.has(n.id));
+      if (!shown.length) return;
+      const onlyEssentials = !!essentialsRef.current && !useStore.getState().lens?.query.trim();
+      if (onlyEssentials) return flyTo(pageFrame(placed), 900);
+      // finds close together are shown together; spread over the wall, the first one is brought up
+      const f = framing(shown, 0.9);
+      if (f.zoom >= FAR_NONE) return flyTo(f, 800);
+      const first = [...shown].sort((a, b) => Math.round(a.y / 240) - Math.round(b.y / 240) || a.x - b.x)[0];
+      const l = useStore.getState().lens;
+      if (l) store().setLens({ ...l, at: first.id });
+    }, 280);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [litKey, mode, !!essentials]);
+  // Leaving the essentials puts the camera back where the wall was being read.
+  const beforeEssentials = useRef<Camera | null>(null);
+  const essentialsOn = !!essentialIds;
+  useEffect(() => {
+    // (on the timeline, the wall's camera is the one kept for going back to it)
+    const onWall = useStore.getState().view === "wall";
+    if (essentialsOn) beforeEssentials.current ??= onWall ? { ...camRef.current } : (wallCam.current ?? { ...c.camera });
+    else if (beforeEssentials.current) {
+      if (onWall) flyTo(beforeEssentials.current, 800);
+      else wallCam.current = beforeEssentials.current;
+      beforeEssentials.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [essentialsOn]);
+  const lensAt = lens?.at ?? null;
+  useEffect(() => {
+    const n = lensAt ? placedById.get(lensAt) : null;
+    if (n) flyTo({ x: n.x, y: n.y + 20, zoom: Math.max(camRef.current.zoom, 0.9) }, 700);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lensAt]);
   // A case that asks to be framed (a new demo) opens on its whole wall, for whatever screen this is.
   // A layout effect, so the camera is set before the first paint and before the focus check below.
   const justFramed = useRef(false);
@@ -589,7 +660,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       if (grab.held) return;
       clearTimeout(holdTimer);
       setHold(null);
-      if (useStore.getState().view === "timeline") return; // the timeline decides where notes go
+      if (useStore.getState().view === "timeline" || essentialsRef.current) return; // the timeline (or the essentials) decides where notes go
       if (!grab.moved) {
         store().checkpoint("Moved a note");
         rustle(0.5); // lifted off the cork
@@ -697,15 +768,17 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   // its kind is chosen, so it doesn't vanish at the moment you decide what it means.
   const pendingLink = useStore((s) => s.pendingLink);
   const draft = useMemo(() => {
+    // where the card is in this view (the essentials gather cards away from their wall places)
+    const at = (id: string) => placedById.get(id) ?? c.notes.find((n) => n.id === id);
     if (pendingLink) {
-      const from = c.notes.find((n) => n.id === pendingLink.from);
-      const to = c.notes.find((n) => n.id === pendingLink.to);
+      const from = at(pendingLink.from);
+      const to = at(pendingLink.to);
       return from && to ? { from, to: pinPoint(to) } : null;
     }
     if (grab?.kind !== "pin" || !cursor) return null;
-    const from = c.notes.find((n) => n.id === grab.id);
+    const from = at(grab.id);
     return from ? { from, to: toWorld(cursor) } : null;
-  }, [grab, cursor, c.notes, toWorld, pendingLink]);
+  }, [grab, cursor, c.notes, placedById, toWorld, pendingLink]);
   /** While a string is dragged, the card it would tie to (rung in red pencil). */
   const aimId = grab?.kind === "pin" ? hoverRef.current : null;
   const aimAt = aimId && aimId !== grab?.id ? placedById.get(aimId) : pendingLink ? placedById.get(pendingLink.to) : undefined;
@@ -796,7 +869,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     const tw = 122 * Math.max(0.85, tagScale);
     const th = 32 * Math.max(0.85, tagScale);
     const byId = new Map(placed.map((n) => [n.id, live(n)]));
-    const proposed = c.links.filter(asksForTie);
+    const proposed = shownLinks.filter(asksForTie);
     const degree = new Map<string, number>();
     for (const l of proposed) for (const id of [l.from, l.to]) degree.set(id, (degree.get(id) ?? 0) + 1);
     const cards = [...byId.values()].map((n) => {
@@ -888,7 +961,10 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             dragging={draggingId === n.id}
             dragTilt={draggingId === n.id ? dragTilt : 0}
             hovered={hoverNoteId === n.id}
-            slot={timeline?.slots.get(n.id)}
+            slot={timeline?.slots.get(n.id) ?? essentials?.get(n.id)}
+            hidden={!!essentials && !essentials.has(n.id)}
+            dimmed={dim(n.id)}
+            found={finding && !dim(n.id)}
             onGrab={onGrab}
             onGrabPin={onGrabPin}
             onHover={onHover}
@@ -898,7 +974,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
           <Timeline3D layout={timelineLayout} />
         </group>
         <group visible={!timeline}>
-          <Strings3D notes={c.notes} links={c.links} lit={hoverNet?.links ?? null} draft={draft} onOpenTag={timeline ? undefined : onOpenTag} />
+          <Strings3D notes={essentials ? placed : c.notes} links={shownLinks} lit={hoverNet?.links ?? null} faded={fadedLinks} draft={draft} onOpenTag={timeline ? undefined : onOpenTag} />
         </group>
         <Dust view={view} rig={rig} />
         <Lens />
@@ -914,6 +990,19 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
           return (
             <div
               className="focus-ring is-aim"
+              aria-hidden
+              style={{ left: p.x, top: p.y, width: w * cam.zoom + 16, height: h * cam.zoom + 16, transform: `translate(-50%, -50%) rotate(${f.rotation}deg)` }}
+            />
+          );
+        })()}
+        {lensAt && placedById.get(lensAt) && (() => {
+          // The find's current card: red-pencil corners, like a card in hand.
+          const f = live(placedById.get(lensAt)!);
+          const p = toScreen(f);
+          const { w, h } = NOTE_SIZE[f.type];
+          return (
+            <div
+              className="focus-ring is-found"
               aria-hidden
               style={{ left: p.x, top: p.y, width: w * cam.zoom + 16, height: h * cam.zoom + 16, transform: `translate(-50%, -50%) rotate(${f.rotation}deg)` }}
             />
@@ -940,7 +1029,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             const above = timeline?.slots.get(n.id)?.row === "above";
             const p = toScreen({ x: n.x, y: n.y + (above ? -1 : 1) * (NOTE_SIZE[n.type].h / 2) });
             return (
-              <div key={n.id} className="proposal-anchor" style={{ left: p.x, top: above ? p.y - 40 * tabScale : p.y + 10 * cam.zoom }}>
+              <div key={n.id} className={`proposal-anchor ${dim(n.id) ? "is-dimmed" : ""}`} style={{ left: p.x, top: above ? p.y - 40 * tabScale : p.y + 10 * cam.zoom }}>
                 <div className="proposal-tabs" style={{ transform: `scale(${tabScale})`, transformOrigin: "50% 0" }}>
                   <button className="tab-pin" onClick={() => onPin(n.id)} title={t("Pin it (P), or press and hold the note")}>
                     <svg viewBox="0 0 16 16" aria-hidden>
@@ -958,7 +1047,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             );
           })}
         {wallSuspects && (
-          <SuspectsCard list={wallSuspects.list} at={toScreen(wallSuspects.at)} width={wallSuspects.width} zoom={cam.zoom} onPick={goToFile} />
+          <SuspectsCard list={wallSuspects.list} at={toScreen(wallSuspects.at)} width={wallSuspects.width} zoom={cam.zoom} onPick={goToFile} dimmed={wallSuspects.list.every((n) => dim(n.id))} />
         )}
         {placed
           .filter((n) => n.retire && n.status !== "proposed")
@@ -973,11 +1062,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             return (
               <Fragment key={`retire-${n.id}`}>
                 <div
-                  className="retire-strike"
+                  className={`retire-strike ${dim(n.id) ? "is-dimmed" : ""}`}
                   aria-hidden
                   style={{ left: mid.x, top: mid.y, width: w * cam.zoom, height: h * cam.zoom, transform: `translate(-50%, -50%) rotate(${n.rotation}deg)` }}
                 />
-                <div className="proposal-anchor" style={{ left: p.x, top: p.y }}>
+                <div className={`proposal-anchor ${dim(n.id) ? "is-dimmed" : ""}`} style={{ left: p.x, top: p.y }}>
                   <div className="retire-slip" style={{ transform: `scale(${tabScale})`, transformOrigin: "50% 0" }}>
                     <span className="retire-why">{n.retire === "No longer needed" ? t("No longer needed") : n.retire}</span>
                     <span className="retire-actions">
@@ -1003,7 +1092,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             return (
               <div
                 key={`far-${n.id}`}
-                className={`far-label far-${n.type} ${n.status === "proposed" ? "is-proposed" : ""} ${n.id === c.focusNoteId ? "is-focus" : ""}`}
+                className={`far-label far-${n.type} ${n.status === "proposed" ? "is-proposed" : ""} ${n.id === c.focusNoteId ? "is-focus" : ""} ${dim(n.id) ? "is-dimmed" : ""}`}
                 style={{ left: p.x, top: p.y, maxWidth: w, opacity: farOpacity, transform: `translate(-50%, -50%) rotate(${n.rotation}deg) scale(${shrink})` }}
                 aria-hidden
               >
@@ -1023,7 +1112,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               return (
                 <div
                   key={`beat-${n.id}`}
-                  className={`beat-tag beat-${n.beat} ${n.status === "proposed" ? "is-proposed" : ""}`}
+                  className={`beat-tag beat-${n.beat} ${n.status === "proposed" ? "is-proposed" : ""} ${dim(n.id) ? "is-dimmed" : ""}`}
                   style={{ left: p.x, top: p.y, transform: `rotate(${n.rotation - 4}deg) scale(${tagScale}) translate(-14px, ${low ? "-38%" : "-62%"})` }}
                   aria-hidden
                 >
@@ -1031,7 +1120,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                 </div>
               );
             })}
-        {!timeline && c.links.map((l) => {
+        {!timeline && shownLinks.map((l) => {
           const a0 = c.notes.find((n) => n.id === l.from);
           const b0 = c.notes.find((n) => n.id === l.to);
           if (!a0 || !b0) return null;
@@ -1208,6 +1297,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                 width={Math.min(1900, timeline.suspects.w - 140)}
                 zoom={cam.zoom}
                 onPick={goToFile}
+                dimmed={timelineSuspects.every((n) => dim(n.id))}
               />
             )}
             {timeline.aside && (
@@ -1272,9 +1362,9 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
  * timeline) where their files hang, one line each with the reason for the rank. Drawn in wall
  * units and scaled with the wall. A line takes you to the file.
  */
-function SuspectsCard({ list, at, width, zoom, onPick }: { list: Note[]; at: { x: number; y: number }; width: number; zoom: number; onPick: (id: string) => void }) {
+function SuspectsCard({ list, at, width, zoom, onPick, dimmed }: { list: Note[]; at: { x: number; y: number }; width: number; zoom: number; onPick: (id: string) => void; dimmed?: boolean }) {
   return (
-    <section className="suspects-card" style={{ left: at.x, top: at.y, width: Math.max(PLAQUE.width, width), transform: `scale(${zoom})` }} aria-label={t("Most likely suspects")}>
+    <section className={`suspects-card ${dimmed ? "is-dimmed" : ""}`} style={{ left: at.x, top: at.y, width: Math.max(PLAQUE.width, width), transform: `scale(${zoom})` }} aria-label={t("Most likely suspects")}>
       <header>
         <h3>{t("Most likely suspects")}</h3>
         <small>{t("The partner's reading of the evidence, ranked")}</small>

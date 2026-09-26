@@ -27,7 +27,15 @@ interface Props extends NoteHandlers {
   fontsVersion: number;
   /** Where the timeline puts this note; absent on the free wall. */
   slot?: { x: number; y: number; rotation: number };
+  /** Outside what the user is looking for (a find, or the essentials): the sheet sinks into shadow. */
+  dimmed?: boolean;
+  /** A card the find turned up: it catches a little light. */
+  found?: boolean;
+  /** Off the wall for now (the essentials view): not drawn and not touchable, but kept ready. */
+  hidden?: boolean;
 }
+
+const noRaycast = () => {};
 
 /**
  * Loads a photo note's picture: from this browser's IndexedDB, a real case photo from
@@ -249,7 +257,7 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
     // New evidence warms up as it arrives, and loose sheets stay faintly lit so none hide in the dark.
     const age = (Date.now() - note.createdAt) / 1000;
     const arrival = age < 6 ? 0.45 * (1 - age / 6) ** 2 : 0;
-    material.emissiveIntensity = Math.max(arrival, proposed ? 0.1 : 0);
+    material.emissiveIntensity = Math.max(arrival, proposed ? 0.1 : 0, p.found ? 0.14 : 0);
     // A print that came in late comes up out of the dark, like one in the developing tray.
     const dev = developing.get(note.id);
     if (dev !== undefined) {
@@ -258,7 +266,7 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
       if (t >= 1) developing.delete(note.id);
     } else {
       // a card proposed for taking down sits a shade darker until the user decides
-      const shade = note.retire ? 0.62 : 1;
+      const shade = p.dimmed ? 0.26 : note.retire ? 0.62 : 1;
       const r = material.color.r;
       if (r !== shade) material.color.setScalar(Math.abs(shade - r) < 0.005 ? shade : r + (shade - r) * Math.min(1, dt * 6));
     }
@@ -266,13 +274,14 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
 
   return (
     <>
-    <ContactShadow note={note} follow={group} lifted={p.dragging ? 34 : proposed ? 16 : 0} />
-    <group ref={group}>
+    {!p.hidden && <ContactShadow note={note} follow={group} lifted={p.dragging ? 34 : proposed ? 16 : 0} />}
+    <group ref={group} visible={!p.hidden}>
       <mesh
         geometry={geom}
         material={material}
         castShadow
         receiveShadow
+        raycast={p.hidden ? noRaycast : THREE.Mesh.prototype.raycast}
         userData={{ noteId: note.id }}
         onPointerDown={(e) => {
           if (e.button !== 0) return;
@@ -285,7 +294,7 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
         }}
         onPointerOut={() => p.onHover(null)}
       />
-      {!proposed && <Pin note={note} onGrabPin={p.onGrabPin} />}
+      {!proposed && !p.hidden && <Pin note={note} onGrabPin={p.onGrabPin} />}
       {!proposed && note.type === "web" && <Tape />}
     </group>
     </>

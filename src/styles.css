@@ -1980,6 +1980,171 @@ kbd {
   height: 13px;
   fill: currentColor;
 }
+.view-tabs button.find-switch {
+  margin-left: 0;
+}
+.view-tabs button.find-switch.is-on {
+  opacity: 1;
+  color: #f0d9a4;
+  background: #5b4c33;
+}
+.find-switch svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* The find strip: hangs under the tabs, the same leather, a paper field to type on. */
+.find-strip {
+  position: fixed;
+  top: 58px;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(480px, calc(100vw - 32px));
+  padding: 5px 6px;
+  translate: -50% 0;
+  transition: left 0.45s cubic-bezier(0.3, 0.7, 0.2, 1);
+  background: linear-gradient(180deg, rgba(38, 24, 13, 0.94), rgba(24, 15, 8, 0.94));
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(233, 214, 170, 0.08),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 12px 24px -10px rgba(0, 0, 0, 0.9);
+  animation: settings-in 0.2s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.find-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 6px 0 10px;
+  border-radius: 3px;
+  background: #efe5cb var(--grain);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+  color: #6f6040;
+}
+.find-field:focus-within {
+  outline: 2px solid #c9a24f;
+  outline-offset: 1px;
+}
+.find-field > svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+.find-field input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  font: 14px/1 var(--typed);
+  color: #2b261e;
+}
+.find-field input::placeholder {
+  color: #8a7a5a;
+}
+.find-count {
+  flex: none;
+  font: 11.5px/1 var(--typed);
+  letter-spacing: 0.04em;
+  color: #6f6040;
+  white-space: nowrap;
+}
+.find-count.is-none {
+  color: #9b2a1c;
+}
+.find-steps {
+  flex: none;
+  display: flex;
+}
+.find-steps button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  font: 18px/1 var(--typed);
+  color: #5a4424;
+  cursor: pointer;
+}
+.find-steps button:hover {
+  background: rgba(59, 45, 23, 0.1);
+}
+.find-essentials {
+  flex: none;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(233, 214, 170, 0.25);
+  border-radius: 3px;
+  background: none;
+  font: 12px/1 var(--typed);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #cdbd97;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.find-essentials:hover {
+  color: #f0d9a4;
+  border-color: rgba(233, 214, 170, 0.45);
+}
+.find-essentials.is-on {
+  color: #2f2415;
+  background: #e3c283 var(--grain);
+  border-color: #e3c283;
+}
+.find-close {
+  flex: none;
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: 18px/1 var(--typed);
+  color: #a8987a;
+  cursor: pointer;
+}
+.find-close:hover {
+  color: #f0d9a4;
+}
+.find-essentials:focus-visible,
+.find-close:focus-visible,
+.find-steps button:focus-visible {
+  outline: 2px solid #c9a24f;
+  outline-offset: 1px;
+}
+@media (max-width: 640px) {
+  .find-strip {
+    gap: 4px;
+  }
+  .find-essentials {
+    padding: 0 8px;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .find-count {
+    font-size: 10.5px;
+  }
+  .find-close {
+    width: 22px;
+  }
+}
+/* what the find or the essentials leave out: the page's own marks fade with the cards */
+.is-dimmed {
+  opacity: 0.22 !important;
+  transition: opacity 0.3s;
+}
+.suspects-card.is-dimmed {
+  opacity: 0.3 !important;
+}
+
 /* settings: a gear on the strip, and the index card it opens */
 .settings {
   position: relative;
@@ -3786,6 +3951,10 @@ kbd {
 /* the card a string being tied would reach: the same red-pencil corners, a little softer */
 .focus-ring.is-aim {
   --c: rgba(160, 36, 24, 0.7);
+}
+/* the find's current card: the same corners in a warm brass, so it reads as "here", not "in hand" */
+.focus-ring.is-found {
+  --c: rgba(233, 190, 90, 0.95);
 }
 .focus-ring {
   position: absolute;

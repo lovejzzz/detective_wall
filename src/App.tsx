@@ -10,6 +10,7 @@ import { Dossier, LinkPicker } from "./components/Dossier.tsx";
 import { UndoSlip } from "./components/UndoSlip.tsx";
 import { useBooted } from "./lib/boot.ts";
 import { ViewTabs } from "./components/ViewTabs.tsx";
+import { FindStrip } from "./components/FindStrip.tsx";
 import { t } from "./lib/i18n.ts";
 import { caseTitle } from "./lib/cases.ts";
 
@@ -115,6 +116,7 @@ export function App() {
         </Suspense>
       </div>
       <ViewTabs left={stage.cx} />
+      <FindStrip left={stage.cx} />
       <CaseTray />
       <CaseCabinet />
       <TitleCard />
@@ -148,6 +150,8 @@ function KeyPlaque() {
     ["T", view === "timeline" ? t("wall") : t("timeline")],
     ...(view === "timeline" ? ([["[ ]", t("chapters")]] as [string, string][]) : []),
     ["A", t("arrange")],
+    ["F", t("find")],
+    ["E", t("essentials")],
     ["C", t("cabinet")],
     ["P / X", t("pin / toss a lead")],
     [/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘Z" : "Ctrl Z", t("undo")],

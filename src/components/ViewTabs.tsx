@@ -29,8 +29,32 @@ export function ViewTabs({ left }: { left: number }) {
           <rect x="7" y="8" width="4" height="5" rx="0.6" />
         </svg>
       </button>
+      <FindSwitch />
       <SettingsSwitch />
     </div>
+  );
+}
+
+/** A magnifier on the strip: opens the find (F), or puts the wall back when it's open. */
+function FindSwitch() {
+  const on = useStore((s) => s.lens !== null);
+  return (
+    <button
+      className={`arrange-switch find-switch ${on ? "is-on" : ""}`}
+      onClick={() => {
+        const s = useStore.getState();
+        s.setLens(on ? null : { query: "", essentials: false });
+        if (!on) requestAnimationFrame(() => document.querySelector<HTMLInputElement>(".find-field input")?.focus());
+      }}
+      aria-pressed={on}
+      aria-label={t("Find on the wall")}
+      title={t("Find on the wall (F)")}
+    >
+      <svg viewBox="0 0 16 16" aria-hidden>
+        <circle cx="6.8" cy="6.8" r="4.6" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        <path d="M10.3 10.3 14 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    </button>
   );
 }
 

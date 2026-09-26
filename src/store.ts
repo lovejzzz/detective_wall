@@ -4,6 +4,7 @@ import { persist, createJSONStorage, type StateStorage } from "zustand/middlewar
 import { SINGLE_BEATS, type Beat, type Camera, type Case, type Link, type Message, type Note, type NoteType, type Relation, type StickyColor, type TrailStep } from "./lib/types.ts";
 import type { ProposedNote, WallUpdate } from "./lib/contract.ts";
 import { NOTE_SIZE, findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
+import type { Lens } from "./lib/lens.ts";
 import { ARRANGE_COLS, arrangeWall } from "./lib/arrange.ts";
 import { COOPER_DEMO, COOPER_VERSION, coldCase } from "./lib/coldcase.ts";
 import { TYLENOL_DEMO, TYLENOL_VERSION, tylenolCase } from "./lib/tylenolcase.ts";
@@ -39,6 +40,9 @@ interface State {
   /** The filing cabinet of every case, pulled open over the wall. */
   cabinetOpen: boolean;
   setCabinetOpen(open: boolean): void;
+  /** Finding on the wall, or keeping only its essentials: the rest dims. Null when neither. */
+  lens: Lens | null;
+  setLens(lens: Lens | null): void;
   partner: { mode: PartnerMode; model?: string; provider?: string };
   pendingLink: { from: string; to: string; x: number; y: number } | null;
   hoverNoteId: string | null;
@@ -310,6 +314,10 @@ export const useStore = create<Store>()(
         setCabinetOpen(open) {
           set({ cabinetOpen: open });
         },
+        lens: null,
+        setLens(lens) {
+          set({ lens });
+        },
         partner: { mode: "unknown" },
         pendingLink: null,
         hoverNoteId: null,
@@ -332,7 +340,7 @@ export const useStore = create<Store>()(
         },
         switchCase(id) {
           if (!get().cases[id]) return;
-          set({ activeId: id, dossierId: null, pendingLink: null, view: "wall" });
+          set({ activeId: id, dossierId: null, pendingLink: null, view: "wall", lens: null });
           markOpened(id);
         },
         deleteCase(id) {
