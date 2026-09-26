@@ -5,6 +5,7 @@ import type { Case, TrailStep } from "../lib/types.ts";
 import { offlineTurn, offlinePhotoTurn } from "./offline.ts";
 import { photoBase64, photoIdOf } from "../lib/images.ts";
 import { uid } from "../lib/geometry.ts";
+import { key as typeKey } from "../lib/sound.ts";
 import { commonsFileOf, resolveCommons } from "../lib/commons.ts";
 
 export async function checkPartner() {
@@ -170,7 +171,11 @@ export async function ask(caseId: string, text: string, opts: { photoNoteIds?: s
     const turn = newTurn(caseId);
     for await (const e of readEvents(res.body)) {
       const s = useStore.getState();
-      if (e.type === "text") s.setLive((p) => ({ ...p, text: (p?.text ?? "") + e.delta }));
+      if (e.type === "text") {
+        s.setLive((p) => ({ ...p, text: (p?.text ?? "") + e.delta }));
+        // The partner's words come in on a quieter machine across the room.
+        if (e.delta.trim() && Math.random() < 0.7) typeKey(0.3);
+      }
       else if (e.type === "status") s.setLive((p) => ({ text: p?.text ?? "", status: statusLine(e), trail: extendTrail(p?.trail ?? [], e) }));
       else if (e.type === "lead") putUp(turn, c, e.note);
       else if (e.type === "error") {

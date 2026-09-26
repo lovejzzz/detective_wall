@@ -9,6 +9,7 @@ import type { Camera } from "../lib/types.ts";
 import { reducedMotion } from "../lib/motion.ts";
 import { sharedTextures } from "./objects.ts";
 import { Grade } from "./grade.tsx";
+import { carPass } from "../lib/sound.ts";
 
 const debug = new URLSearchParams(location.search);
 
@@ -80,6 +81,10 @@ const TUNGSTEN = new THREE.Color("#ffcf9c"); // ≈ 2900 K
 const LAMP_DECAY = 1.3;
 const SPOT = new THREE.Color("#ffe0bd");
 const MOON = new THREE.Color("#8ea6d4"); // cold, from the window
+const HEADLIGHT = new THREE.Color("#ffe6c4");
+const MOON_I = Number(debug.get("moonI") ?? 4.2);
+/** A car passing in the street: its headlights sweep through the blinds and across the wall. */
+const SWEEP_S = 3.4;
 
 interface LightRig {
   lampPos: THREE.Vector3;
@@ -107,6 +112,9 @@ export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y
   const moon = useRef<THREE.SpotLight>(null);
   const moonTarget = useMemo(() => new THREE.Object3D(), []);
   const { blinds } = sharedTextures();
+  // The next car: the first one a little while after arriving, then every minute or two.
+  const sweep = useRef<{ next: number; start: number | null }>({ next: debug.get("sweep") ? Number(debug.get("sweep")) || 3 : 25 + Math.random() * 25, start: null });
+  const tint = useMemo(() => new THREE.Color(), []);
   const lampTarget = useMemo(() => new THREE.Object3D(), []);
   const spotTarget = useMemo(() => new THREE.Object3D(), []);
   const spotAim = useRef(new THREE.Vector3(focus?.x ?? view.cam.x, -(focus?.y ?? view.cam.y), 0));
@@ -144,6 +152,31 @@ export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y
       const cy = -view.cam.y;
       M.position.set(cx - W * 0.9, cy + H * 0.45, d * 0.55);
       moonTarget.position.set(cx - W * 0.18, cy - H * 0.02, 0);
+
+      // Now and then a car passes below: the light source slides from right to left under the
+      // window, warm and bright, so the stripes sweep across the wall; then the moon returns.
+      const now = state.clock.elapsedTime;
+      const sw = sweep.current;
+      if (sw.start === null && now >= sw.next && !reducedMotion()) {
+        sw.start = now;
+        carPass(SWEEP_S);
+      }
+      let e = 0;
+      const frozen = debug.get("sweepAt"); // inspect one moment of a sweep
+      if (sw.start !== null || frozen) {
+        const p = frozen ? Number(frozen) : (now - (sw.start ?? now)) / SWEEP_S;
+        if (p >= 1) {
+          sw.start = null;
+          sw.next = now + 50 + Math.random() * 70;
+        } else {
+          e = Math.pow(Math.sin(Math.PI * p), 2);
+          const carX = cx + W * (1.3 - 2.6 * p);
+          M.position.lerp(new THREE.Vector3(carX, cy - H * 0.55, d * 0.45), e);
+          moonTarget.position.lerp(new THREE.Vector3(cx - (carX - cx) * 0.35, cy + H * 0.08, 0), e);
+        }
+      }
+      M.intensity = MOON_I * (1 - e) + 6 * e;
+      M.color.copy(tint.copy(MOON).lerp(HEADLIGHT, e));
       moonTarget.updateMatrixWorld();
     }
     rig.current = { lampPos: L.position.clone(), lampTarget: lampTarget.position.clone(), spotPos: S.position.clone(), spotTarget: a.clone() };
@@ -190,7 +223,7 @@ export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y
         <spotLight
           ref={moon}
           color={MOON}
-          intensity={Number(debug.get("moonI") ?? 4.2)}
+          intensity={MOON_I}
           decay={0}
           angle={0.36}
           penumbra={0.3}

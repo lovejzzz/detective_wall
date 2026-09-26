@@ -138,6 +138,9 @@ Opening a note (click, or `Enter` on a focused note) slides in a manila folder w
 |---|---|
 | Overhead lamp | A warm tungsten wash (about 2700 K) from a lamp just out of shot, brightest at the top center, falling off softly toward the edges |
 | Moonlight through blinds | A faint, cold (≈ 7000 K) spotlight from high on the left, projected through a venetian-blind gobo: soft diagonal stripes across the lower-left of the wall. Warm against cool is the whole palette. |
+| Passing cars | Every minute or two, a car's headlights sweep through the blinds: the stripes warm, brighten and travel across the wall for about three seconds, then the moonlight returns. Off with reduced motion. |
+| Camera | Flights move like a crane, not a scroll: the longer the move, the more the camera rises mid-flight and the longer it takes to settle. Opening a note's file pulls focus: the wall behind blurs, dims and cools while the camera pushes in on the note, and eases back on close. |
+| Sound | Synthesised with Web Audio (no assets): typewriter keys (the partner's reply types on a quieter machine), the carriage bell on send, a pin pressed home, paper balled up, a sheet rustling onto the wall, string pulled taut, the steel drawer, a low thump when a case opens, a car passing with each headlight sweep, and a barely-there room tone. Starts on the first gesture; muted with the speaker switch or `M`, remembered per browser. |
 | Film grade | Neutral tone mapping, then a gentle split-tone (cool shadows, warm highlights), blacks lifted a touch like a print, slight desaturation, soft vignette and fine grain |
 | Spotlight | A radial pool (radius about 340 px on screen) that eases to the focused note in 600 ms. It stays at the last focus when idle. |
 | Darkness | A vignette at the viewport edges, plus a dim veil over wall regions with no pinned notes. Any note inside the veil stays at least 35% visible. |

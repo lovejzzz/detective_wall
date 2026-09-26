@@ -9,6 +9,7 @@ import { NoteMesh } from "../scene/NoteMesh.tsx";
 import { Strings3D, stringMid } from "../scene/Strings3D.tsx";
 import { RELATION_INFO } from "../lib/relations.ts";
 import { CameraRig, Cork, Dust, LITE, Lens, Lights, type LightRig, type View } from "../scene/Room.tsx";
+import { rustle } from "../lib/sound.ts";
 import { fontsReady } from "../scene/paint.ts";
 import { Timeline3D } from "../scene/Timeline3D.tsx";
 import { layoutTimeline } from "../lib/timeline.ts";
@@ -93,9 +94,15 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   const flyTo = useCallback((to: Camera, ms = 650) => {
     cancelFly.current();
     const from = { ...camRef.current };
-    cancelFly.current = tween(ms, (t) =>
-      setCam({ x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t, zoom: from.zoom + (to.zoom - from.zoom) * t }),
-    );
+    // Moves like a crane rather than a scroll: the longer the move, the more the camera rises
+    // mid-flight (zooms out a little) and the more time it takes to settle on the new spot.
+    const screenDist = Math.hypot(to.x - from.x, to.y - from.y) * Math.min(from.zoom, to.zoom);
+    const rise = Math.min(0.22, screenDist / 4200);
+    const dur = ms + Math.min(450, screenDist * 0.22);
+    cancelFly.current = tween(dur, (t) => {
+      const zoom = from.zoom + (to.zoom - from.zoom) * t;
+      setCam({ x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t, zoom: zoom * (1 - rise * Math.sin(Math.PI * t)) });
+    });
   }, []);
   const framing = useCallback(
     (pts: Note[], maxZoom: number, extraX: number[] = []): Camera => {
@@ -173,6 +180,22 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
+
+  // Opening a note's file: the camera pushes in on it behind the blur, and eases back on close.
+  const dossierId = useStore((st) => st.dossierId);
+  const beforeDossier = useRef<Camera | null>(null);
+  useEffect(() => {
+    const n = dossierId ? placedById.get(dossierId) : null;
+    if (n) {
+      beforeDossier.current ??= { ...camRef.current };
+      const k = camRef.current;
+      flyTo({ x: k.x + (n.x - k.x) * 0.6, y: k.y + (n.y - k.y) * 0.6, zoom: Math.min(k.zoom * 1.12, 2) }, 900);
+    } else if (!dossierId && beforeDossier.current) {
+      flyTo(beforeDossier.current, 700);
+      beforeDossier.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dossierId]);
 
   // ---- Photos: drop them on the wall, or paste one ----
   const [dropping, setDropping] = useState(false);
@@ -342,7 +365,10 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       clearTimeout(holdTimer);
       setHold(null);
       if (useStore.getState().view === "timeline") return; // the timeline decides where notes go
-      if (!grab.moved) store().checkpoint("Moved a note");
+      if (!grab.moved) {
+        store().checkpoint("Moved a note");
+        rustle(0.5); // lifted off the cork
+      }
       grab.moved = true;
       const bin = binRef.current?.getBoundingClientRect();
       const over = !!bin && e.clientX > bin.left - 24 && e.clientX < bin.right + 24 && e.clientY > bin.top - 40 && e.clientY < bin.bottom + 10;

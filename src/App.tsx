@@ -5,6 +5,7 @@ import { Notepad } from "./components/Notepad.tsx";
 import { CaseTray } from "./components/CaseTray.tsx";
 import { CaseCabinet } from "./components/CaseCabinet.tsx";
 import { TitleCard } from "./components/TitleCard.tsx";
+import { setSound, soundOn } from "./lib/sound.ts";
 import { Dossier, LinkPicker } from "./components/Dossier.tsx";
 import { UndoSlip } from "./components/UndoSlip.tsx";
 import { ViewTabs } from "./components/ViewTabs.tsx";
@@ -52,6 +53,10 @@ function useWallKeys() {
       if (t.closest("input, textarea, select, [role=dialog]") || e.metaKey || e.ctrlKey || e.altKey) return;
       const s = useStore.getState();
       if (s.cabinetOpen) return;
+      if (e.key === "m" || e.key === "M") {
+        setSound(!soundOn());
+        return;
+      }
       if (e.key === "c" || e.key === "C") {
         e.preventDefault();
         s.setCabinetOpen(true);

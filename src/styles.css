@@ -980,9 +980,17 @@ kbd {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(8, 5, 2, 0.58);
-  backdrop-filter: blur(2px);
-  animation: fade 0.2s ease-out;
+  /* Pull focus onto the file: the wall behind goes soft, dim and a little colder. */
+  background: radial-gradient(ellipse at 50% 45%, rgba(8, 5, 2, 0.34), rgba(8, 5, 2, 0.74));
+  backdrop-filter: blur(7px) saturate(0.8);
+  animation: rack-focus 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@keyframes rack-focus {
+  from {
+    backdrop-filter: blur(0) saturate(1);
+    background-color: transparent;
+    opacity: 0;
+  }
 }
 @keyframes fade {
   from {
@@ -1560,7 +1568,7 @@ kbd {
   z-index: 25;
   display: flex;
   gap: 4px;
-  translate: calc(-50% + 190px) 0; /* sits beside the lamp, not under it */
+  translate: -50% 0;
   transition: left 0.45s cubic-bezier(0.3, 0.7, 0.2, 1);
 }
 .view-tabs button {
@@ -1588,6 +1596,37 @@ kbd {
   background-color: #e3c283;
   opacity: 1;
   translate: 0 3px;
+}
+
+.view-tabs button.sound-switch {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  margin-left: 6px;
+  padding: 0;
+  border-radius: 50%;
+  height: 28px;
+  background: #3d372c;
+  color: #cdbd97;
+  opacity: 0.75;
+}
+.sound-switch svg {
+  width: 17px;
+  height: 14px;
+}
+.sound-switch path {
+  fill: currentColor;
+}
+.sound-switch .wave {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.view-tabs button.sound-switch.is-on {
+  color: #f0d9a4;
+  background-color: #4a4133;
+  translate: 0 0;
 }
 
 /* ───────────────────────── Timeline labels ───────────────────────── */

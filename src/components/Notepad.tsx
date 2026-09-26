@@ -3,6 +3,7 @@ import type { Case, Note, TrailStep } from "../lib/types.ts";
 import { useStore } from "../store.ts";
 import { ask } from "../ai/partner.ts";
 import { Typed } from "./Typed.tsx";
+import { carriage, key as typeKey } from "../lib/sound.ts";
 import { importPhoto, isPhotoFile, photoIdOf, photoURL } from "../lib/images.ts";
 import { findFreeSpot } from "../lib/geometry.ts";
 
@@ -206,8 +207,11 @@ export function Notepad({ c }: { c: Case }) {
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
+      if (draft.trim() || attachedRef.current.length) carriage();
       void send();
+      return;
     }
+    if ((e.key.length === 1 || e.key === "Backspace" || e.key === "Enter") && !e.metaKey && !e.ctrlKey) typeKey();
     if (e.key === "Escape") input.current?.blur();
   };
 
