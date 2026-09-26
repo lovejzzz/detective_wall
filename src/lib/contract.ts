@@ -110,6 +110,8 @@ export interface InvestigateRequest {
     /** A subject file's place among the most likely suspects, and why. */
     rank?: number;
     verdict?: string;
+    /** A diagram's kind ("matrix" for a comparison grid, whose rows and marks ride in the body). */
+    diagram?: string;
   }[];
   links: { from: string; to: string; relation: Relation; status: string; reason?: string }[];
   messages: { role: "user" | "assistant"; text: string }[];

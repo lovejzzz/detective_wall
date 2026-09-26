@@ -108,6 +108,15 @@ function toRequest(c: Case): InvestigateRequest {
       ...(n.stamp ? { stamp: n.stamp } : {}),
       ...(n.confidence ? { confidence: n.confidence } : {}),
       ...(n.origin.kind === "user" ? { by: "user" as const } : {}),
+      // a comparison grid travels as its rows and marks, so the partner can redraw it when the file moves
+      ...(n.diagram
+        ? {
+            diagram: n.diagram.kind,
+            ...(n.diagram.kind === "matrix" && n.diagram.columns
+              ? { body: [n.body, `grid: ${n.diagram.columns.join(" / ")}`, ...n.diagram.items.map((it) => `${it.label}: ${(it.marks ?? []).join(" / ")}`)].filter(Boolean).join(" | ") }
+              : {}),
+          }
+        : {}),
       // a subject's file travels as its status and its points, so the partner can keep it current
       ...(n.subject
         ? {

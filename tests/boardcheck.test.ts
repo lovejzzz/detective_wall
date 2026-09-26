@@ -132,6 +132,19 @@ describe("the wall as the partner reads it", () => {
     expect(renderWallState(req)).not.toContain("Quick mode");
   });
 
+  it("asks for a comparison grid once two suspects are ranked, and only one", () => {
+    const wall = (extra: ReturnType<typeof note>[]) =>
+      renderWallState({
+        caseTitle: "X",
+        notes: [note("q", "hypothesis", { by: "user" }), note("s1", "subject", { rank: 1 }), note("s2", "subject", { rank: 2 }), ...extra],
+        links: [{ from: "s1", to: "s2", relation: "contradicts", status: "pinned" }],
+        messages: [],
+      });
+    expect(wall([])).toContain("2 ranked suspects and no comparison grid");
+    expect(wall([note("g", "diagram", { diagram: "matrix" })])).not.toContain("no comparison grid");
+    expect(wall([note("g", "diagram", { diagram: "matrix" }), note("h", "diagram", { diagram: "matrix" })])).toContain("2 comparison grids (g, h)");
+  });
+
   it("stays quiet about a board in good order", () => {
     const text = renderWallState({
       caseTitle: "X",
