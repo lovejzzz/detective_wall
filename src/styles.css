@@ -1029,6 +1029,110 @@ kbd {
   font: 26px/1 var(--typed);
   color: #4b3918;
 }
+.dossier-count {
+  opacity: 0.55;
+}
+/* Paging through the exhibits without going back to the wall: a turn on each side of the folder
+   (and the arrow keys). The new sheet slides in from the side it came from. */
+.dossier-turn {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  translate: 0 -50%;
+  border: 0;
+  border-radius: 50%;
+  color: #efe2c4;
+  background: rgba(22, 14, 8, 0.62);
+  box-shadow:
+    inset 0 0 0 1px rgba(233, 214, 170, 0.16),
+    0 10px 24px -10px rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease,
+    translate 0.2s ease;
+}
+.dossier-turn.is-prev {
+  left: -68px;
+}
+.dossier-turn.is-next {
+  right: -68px;
+}
+.dossier-turn svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dossier-turn:hover:not(:disabled) {
+  color: #2b1d10;
+  background: #e3c994 var(--grain);
+}
+.dossier-turn.is-prev:hover:not(:disabled) {
+  translate: -3px -50%;
+}
+.dossier-turn.is-next:hover:not(:disabled) {
+  translate: 3px -50%;
+}
+.dossier-turn:focus-visible {
+  outline: 2px solid #e3c994;
+  outline-offset: 3px;
+}
+.dossier-turn:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+/* on a narrow screen there's no room beside the folder: the turns sit under it */
+@media (max-width: 760px) {
+  .dossier-turn {
+    top: auto;
+    bottom: -60px;
+    translate: none;
+  }
+  .dossier-turn.is-prev {
+    left: calc(50% - 60px);
+  }
+  .dossier-turn.is-next {
+    right: calc(50% - 60px);
+  }
+  .dossier-turn.is-prev:hover:not(:disabled),
+  .dossier-turn.is-next:hover:not(:disabled) {
+    translate: none;
+  }
+}
+.dossier-sheet.from-next {
+  animation: sheet-from-next 0.28s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.dossier-sheet.from-prev {
+  animation: sheet-from-prev 0.28s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+@keyframes sheet-from-next {
+  from {
+    translate: 22px 0;
+    opacity: 0;
+  }
+}
+@keyframes sheet-from-prev {
+  from {
+    translate: -22px 0;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dossier-sheet.from-next,
+  .dossier-sheet.from-prev {
+    animation: none;
+  }
+}
 .dossier-sheet {
   flex: 1;
   overflow-y: auto;

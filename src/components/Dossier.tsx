@@ -181,23 +181,47 @@ export function Dossier({ c }: { c: Case }) {
   const note = c.notes.find((n) => n.id === id);
   const close = () => useStore.getState().openDossier(null);
   const panel = useRef<HTMLDivElement>(null);
+  // The exhibits in their numbered order: the file pages through them without going back to the wall.
+  const order = [...c.notes].sort((a, b) => a.createdAt - b.createdAt);
+  const at = note ? order.findIndex((n) => n.id === note.id) : -1;
+  const prevId = at > 0 ? order[at - 1].id : null;
+  const nextId = at >= 0 && at < order.length - 1 ? order[at + 1].id : null;
+  /** Which way the last page turned, so the new sheet comes in from that side. */
+  const turned = useRef<"prev" | "next" | null>(null);
+  const go = (dir: "prev" | "next") => {
+    const to = dir === "prev" ? prevId : nextId;
+    if (!to) return;
+    turned.current = dir;
+    useStore.getState().openDossier(to);
+  };
 
+  // Opening takes the keyboard to the file; closing gives it back to whatever had it.
+  const open = !!note;
   useEffect(() => {
-    if (!note) return;
+    if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
     panel.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      prev?.focus?.();
+    return () => prev?.focus?.();
+  }, [open]);
+  useEffect(() => {
+    if (!note) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return close();
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      // arrows move the caret while typing in the file; elsewhere they turn the page
+      const el = e.target as HTMLElement | null;
+      if (el?.closest("input, textarea, select, [contenteditable='true']")) return;
+      e.preventDefault();
+      go(e.key === "ArrowLeft" ? "prev" : "next");
     };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [note?.id]);
+  }, [note?.id, prevId, nextId]);
 
   if (!note) return null;
   const s = useStore.getState();
-  const exhibitNo = c.notes.filter((n) => n.createdAt <= note.createdAt).length;
+  const exhibitNo = at + 1;
   // Evidence that came with a prepared case file has no moment of its own to report.
   const seeded = note.origin.kind === "seed" || (!!c.demo && !note.origin.messageId && note.origin.kind !== "user");
   const msg = c.messages.find((m) => m.id === note.origin.messageId);
@@ -213,13 +237,24 @@ export function Dossier({ c }: { c: Case }) {
     <div className="dossier-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
       <div className="dossier" role="dialog" aria-modal="true" aria-label={t("Exhibit {n}: {title}", { n: exhibitNo, title: note.title })} tabIndex={-1} ref={panel}>
         <div className="dossier-tab">
-          {t("Exhibit {n}", { n: String(exhibitNo).padStart(2, "0") })} · {typeLabel(note.type)}
+          {t("Exhibit {n}", { n: String(exhibitNo).padStart(2, "0") })}
+          <span className="dossier-count"> / {String(order.length).padStart(2, "0")}</span> · {typeLabel(note.type)}
         </div>
         <button className="dossier-close" onClick={close} aria-label={t("Close (Esc)")}>
           ×
         </button>
+        <button className="dossier-turn is-prev" onClick={() => go("prev")} disabled={!prevId} aria-label={t("Previous exhibit (←)")} title={t("Previous exhibit (←)")}>
+          <svg viewBox="0 0 24 24" aria-hidden>
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </button>
+        <button className="dossier-turn is-next" onClick={() => go("next")} disabled={!nextId} aria-label={t("Next exhibit (→)")} title={t("Next exhibit (→)")}>
+          <svg viewBox="0 0 24 24" aria-hidden>
+            <path d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
 
-        <div className="dossier-sheet">
+        <div className={`dossier-sheet ${turned.current ? `from-${turned.current}` : ""}`} key={note.id}>
           <div className="type-tabs" role="radiogroup" aria-label={t("Note type")}>
             {NOTE_TYPES.map((type: NoteType) => (
               <button
