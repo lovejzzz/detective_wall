@@ -22,7 +22,7 @@ Think like a detective, not a summariser:
 `;
 
 const AFTER = `
-Write notes like a case file: the title says the one thing the note establishes, in about eight words at most; the body gives the specifics (who, where, when, how much, per which source) in one to three sentences. On a case's first turn, lay down its backbone: the key events in order, dated, with a photo or two, and a conclusion card giving the current best answer (stamped OPEN when nothing yet leans), with a string from it to the question card.
+Write notes like a case file: the title says the one thing the note establishes, in about eight words at most, and never opens with its date (the card's when shows it); the body gives the specifics (who, where, when, how much, per which source) in one to three sentences. Write names so the reader can read them: a name in a script the page doesn't use (Cyrillic, Greek, Arabic and the like) goes in its usual romanised or translated form, with the original once in the body. On a case's first turn, lay down its backbone: the key events in order, dated, with a photo or two, and a conclusion card giving the current best answer (stamped OPEN when nothing yet leans), with a string from it to the question card.
 
 A wall is read at a glance, so less is more:
 - Fewer, stronger cards. One fact per card; no card that restates the question or another card (string to the existing one instead). A good turn adds three to seven cards; the limit is a ceiling, not a target.
@@ -84,7 +84,7 @@ ${JSON.stringify(UPDATE_WALL_SCHEMA)}`;
 
 /** The page is in Chinese: everything the partner writes goes on the wall in Chinese too. */
 const IN_CHINESE =
-  "Language: the user reads this wall in Simplified Chinese. Write your reply and everything you put on the wall (note titles and bodies, subject points and settle tests, diagram labels, chapter titles, link reasons) in Simplified Chinese, plain and precise, the voice of a case file. Keep names as the record writes them (Japanese and Korean names in their own script, Western names in Latin letters, e.g. Arthur Leigh Allen), keep quotes in their original language with a Chinese gloss, and search in whatever language finds the best sources. The length limits count characters, so Chinese titles are short. Your closing leads start 「下一条线索：」 instead of 「Next lead: 」. On a case's first turn, name it in Chinese in case_title, as a case file is labelled (伊斯达尔女子案, 加德纳博物馆盗窃案).";
+  "Language: the user reads this wall in Simplified Chinese. Write your reply and everything you put on the wall (note titles and bodies, subject points and settle tests, diagram labels, chapter titles, link reasons) in Simplified Chinese, plain and precise, the voice of a case file. Keep names as the record writes them (Japanese and Korean names in their own script, Western names in Latin letters, e.g. Arthur Leigh Allen); names in other scripts (Russian, Greek, Arabic…) take their usual Chinese form in titles (迪亚特洛夫, 伊万诺夫), with the Latin or original spelling once in the body, keep quotes in their original language with a Chinese gloss, and search in whatever language finds the best sources. The length limits count characters, so Chinese titles are short. Your closing leads start 「下一条线索：」 instead of 「Next lead: 」. On a case's first turn, name it in Chinese in case_title, as a case file is labelled (伊斯达尔女子案, 加德纳博物馆盗窃案).";
 
 export function renderWallState(req: InvestigateRequest): string {
   const lines = [...(req.lang === "zh" ? [IN_CHINESE, ""] : []), `Case: ${req.caseTitle}`, "", "Notes on the wall (id · type · status · title — body):"];
@@ -129,6 +129,12 @@ export function boardCheck(req: InvestigateRequest, hasPhases: boolean): string 
   const strung = new Set(req.links.flatMap((l) => [l.from, l.to]));
   const lonely = live.filter((n) => n !== question && !strung.has(n.id));
   if (lonely.length) found.push(`no strings: ${ids(lonely.slice(0, 8))}${lonely.length > 8 ? " …" : ""}. String each to what it bears on, or retire it if it bears on nothing.`);
+
+  // One explanation and no rival: a detective keeps the strongest alternative alive until the evidence kills it.
+  const answer = conclusions.at(-1);
+  const rivals = live.filter((n) => n.type === "hypothesis" && n !== question);
+  if (answer && answer.stamp !== "CONFIRMED" && answer.stamp !== "RULED OUT" && !rivals.length && live.length >= 6)
+    found.push(`one explanation (${answer.id}, ${answer.stamp ?? "unstamped"}) and no rival on the wall: put up the strongest alternative as a hunch, strung to the evidence that would tell them apart.`);
 
   const dated = live.filter((n) => n.when);
   if (dated.length >= 6 && !hasPhases) found.push(`${dated.length} dated events and no chapters: name them with phases.`);

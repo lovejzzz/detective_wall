@@ -69,6 +69,19 @@ describe("the wall as the partner reads it", () => {
     expect(text).toContain("no conclusion card");
   });
 
+  it("asks for a rival explanation until the case is settled", () => {
+    const wall = (stamp: string, extra: ReturnType<typeof note>[] = []) =>
+      renderWallState({
+        caseTitle: "X",
+        notes: [note("q", "hypothesis", { by: "user" }), note("c", "conclusion", { stamp }), ...["a", "b", "d", "e"].map((id) => note(id, "fact")), ...extra],
+        links: ["a", "b", "d", "e", ...extra.map((n) => n.id)].map((id) => ({ from: id, to: "c", relation: "supports" as const, status: "pinned" })),
+        messages: [],
+      });
+    expect(wall("LIKELY")).toContain("one explanation (c, LIKELY) and no rival");
+    expect(wall("CONFIRMED")).not.toContain("no rival");
+    expect(wall("LIKELY", [note("h", "hypothesis")])).not.toContain("no rival");
+  });
+
   it("stays quiet about a board in good order", () => {
     const text = renderWallState({
       caseTitle: "X",
