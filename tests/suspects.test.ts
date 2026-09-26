@@ -62,13 +62,13 @@ describe.each(CASES)("%s: its most likely suspects", (_name, spec, zh) => {
     }
   });
 
-  it("never ranks someone the record has cleared", () => {
-    for (const n of ranked) expect(n.subject!.status, n.key).not.toContain("cleared");
+  it("says each rank as the partner's own read, not the record's", () => {
+    for (const n of ranked) expect(n.subject!.verdict, n.key).toMatch(/^My (read|inference):/);
   });
 
   it("gives every verdict in Chinese too", () => {
     const local = localize(spec, zh);
-    for (const n of local.notes.filter((x) => x.subject?.rank)) expect(n.subject!.verdict, n.key).toMatch(/[一-鿿]/);
+    for (const n of local.notes.filter((x) => x.subject?.rank)) expect(n.subject!.verdict, n.key).toMatch(/^我的(判断|推断)：/);
   });
 });
 

@@ -1277,7 +1277,7 @@ function SuspectsCard({ list, at, width, zoom, onPick }: { list: Note[]; at: { x
     <section className="suspects-card" style={{ left: at.x, top: at.y, width: Math.max(PLAQUE.width, width), transform: `scale(${zoom})` }} aria-label={t("Most likely suspects")}>
       <header>
         <h3>{t("Most likely suspects")}</h3>
-        <small>{t("Ranked on the public evidence · not an accusation")}</small>
+        <small>{t("The partner's reading of the evidence, ranked")}</small>
       </header>
       <ol>
         {list.map((n) => (

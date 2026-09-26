@@ -328,7 +328,7 @@ export const ZH: Record<string, string> = {
   "Previous exhibit (←)": "上一件证物（←）",
   "Next exhibit (→)": "下一件证物（→）",
   "Most likely suspect no. {n}": "嫌疑排序第 {n} 位",
-  "Ranked on the public evidence · not an accusation": "按公开证据排序 · 不构成指控",
+  "The partner's reading of the evidence, ranked": "搭档依据证据的推断排序",
   "give one a “When” in its file to put it on the line": "在档案里填上“时间”，它就会挂上时间线",
   "Nothing on this wall has a date yet. Open a note's file and give it a “When”.": "这面墙上还没有带日期的证据。打开一张卡片的档案，给它填上“时间”。",
 

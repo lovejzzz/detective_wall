@@ -28,7 +28,7 @@ export interface SubjectFile {
   settle?: string;
   /** Where they stand among the case's most likely suspects: 1 is the most likely. Unranked files aren't among them. */
   rank?: number;
-  /** One line on why they rank there, from the evidence and attributed (not an accusation). */
+  /** One line on why they rank there: the partner's own read of the evidence, said as one. */
   verdict?: string;
 }
 
