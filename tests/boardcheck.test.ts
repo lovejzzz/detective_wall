@@ -126,6 +126,12 @@ describe("the wall as the partner reads it", () => {
     expect(text).toContain("c carries 5 strings");
   });
 
+  it("tells the partner to keep it short when the user asks for a quick answer", () => {
+    const req = { caseTitle: "X", notes: [], links: [], messages: [] };
+    expect(renderWallState({ ...req, depth: "quick" })).toContain("Quick mode");
+    expect(renderWallState(req)).not.toContain("Quick mode");
+  });
+
   it("stays quiet about a board in good order", () => {
     const text = renderWallState({
       caseTitle: "X",

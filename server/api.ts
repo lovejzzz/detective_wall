@@ -152,7 +152,7 @@ async function investigate(req: InvestigateRequest, emit: (e: PartnerEvent) => v
         betas: ["server-side-fallback-2026-07-01"],
         fallbacks: "default",
         thinking: { type: "adaptive" },
-        output_config: { effort: "medium" },
+        output_config: { effort: req.depth === "quick" ? "low" : "medium" },
         system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
         tools,
         tool_choice: { type: "auto" },

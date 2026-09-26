@@ -80,7 +80,8 @@ interface Actions {
       placed?: Map<string, string>;
     },
   ): void;
-  addAssistantNote(caseId: string, text: string): void;
+  /** A line from the partner outside a normal turn: offline by default, or a live turn cut short (with its trail). */
+  addAssistantNote(caseId: string, text: string, live?: { trail?: TrailStep[] }): void;
 
   setCamera(caseId: string, camera: Camera): void;
   /** The case has been framed on opening; don't do it again. */
@@ -528,8 +529,9 @@ export const useStore = create<Store>()(
           if (newCaseQuestion) get().newCase(newCaseQuestion);
         },
 
-        addAssistantNote(caseId, text) {
-          mutateCase(caseId, (c) => void c.messages.push({ id: uid(), role: "assistant", text, createdAt: Date.now(), offline: true }));
+        addAssistantNote(caseId, text, live) {
+          const from = live ? (live.trail?.length ? { trail: live.trail } : {}) : { offline: true };
+          mutateCase(caseId, (c) => void c.messages.push({ id: uid(), role: "assistant", text, createdAt: Date.now(), ...from }));
         },
 
         framed(caseId) {

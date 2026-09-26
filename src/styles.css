@@ -699,6 +699,49 @@ kbd {
   letter-spacing: 0.02em;
   font-size: 12px;
 }
+.is-live .entry-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.live-status {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* a small red-ink stop, set apart from the status it ends */
+.live-stop {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  font: 11px/28px var(--typed);
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9b2a1c;
+  cursor: pointer;
+  opacity: 0.8;
+}
+.live-stop svg {
+  width: 9px;
+  height: 9px;
+  fill: currentColor;
+}
+.live-stop:hover,
+.live-stop:focus-visible {
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.live-stop:focus-visible {
+  outline: 2px solid #b9892f;
+  outline-offset: 1px;
+}
 
 .typewriter {
   position: relative;
@@ -2040,9 +2083,12 @@ kbd {
   outline-offset: 2px;
 }
 .settings-hint {
-  margin: 12px 0 0;
+  margin: -2px 0 14px;
   font: 11px/1.4 var(--typed);
   color: #7a6a4c;
+}
+.settings-hint:last-child {
+  margin-bottom: 0;
 }
 @keyframes settings-in {
   from {

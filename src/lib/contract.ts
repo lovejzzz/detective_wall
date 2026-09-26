@@ -86,6 +86,8 @@ export interface InvestigateRequest {
   caseTitle: string;
   /** The page's language: the partner writes its notes and reply in it. */
   lang?: "en" | "zh";
+  /** "quick": a few searches and a short answer, rather than the full dig. */
+  depth?: "quick";
   /** The timeline's named chapters, if any. */
   phases?: { title: string; from: string }[];
   notes: {

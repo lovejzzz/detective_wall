@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { Case, Note, TrailStep } from "../lib/types.ts";
 import { useStore } from "../store.ts";
-import { ask } from "../ai/partner.ts";
+import { ask, stopAsking } from "../ai/partner.ts";
 import { Typed } from "./Typed.tsx";
 import { carriage, key as typeKey } from "../lib/sound.ts";
 import { Typewriter, pressKey } from "./Typewriter.tsx";
@@ -358,7 +358,17 @@ export function Notepad({ c }: { c: Case }) {
           )}
           {busy && (
             <div className="entry entry-assistant is-live" aria-live="polite">
-              <div className="entry-meta">{t("partner")} · {live?.status ?? t("thinking")}</div>
+              <div className="entry-meta">
+                <span className="live-status">
+                  {t("partner")} · {live?.status ?? t("thinking")}
+                </span>
+                <button className="live-stop" onClick={stopAsking} title={t("Stop the partner here (what it has pinned so far stays)")}>
+                  <svg viewBox="0 0 10 10" aria-hidden>
+                    <rect x="1.5" y="1.5" width="7" height="7" rx="0.8" />
+                  </svg>
+                  {t("Stop")}
+                </button>
+              </div>
               {live?.trail && live.trail.length > 0 && <Trail trail={live.trail} live />}
               <div className="entry-text">
                 {live?.text && <Typed text={live.text} />}

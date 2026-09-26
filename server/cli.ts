@@ -145,7 +145,7 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
     "--model",
     CLI_MODEL(),
     "--effort",
-    CLI_EFFORT(),
+    req.depth === "quick" ? "low" : CLI_EFFORT(),
     "--tools",
     "WebSearch,WebFetch",
     "--allowedTools",

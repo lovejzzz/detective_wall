@@ -1,4 +1,5 @@
 import { useStore } from "../store.ts";
+import { getDepth } from "../lib/depth.ts";
 import type { InvestigateRequest, PartnerEvent, ProposedNote, WallUpdate } from "../lib/contract.ts";
 import { sanitizeWallUpdate } from "../lib/contract.ts";
 import type { Case, TrailStep } from "../lib/types.ts";
@@ -38,6 +39,14 @@ function extendTrail(trail: TrailStep[], e: Extract<PartnerEvent, { type: "statu
   const step: TrailStep = { kind: e.kind === "searching" ? "search" : "read", detail: e.detail };
   if (trail.some((t) => t.kind === step.kind && t.detail === step.detail)) return trail;
   return [...trail, step].slice(-24);
+}
+
+/** A turn stopped by the user: what the partner had said and searched so far stays on the pad. The leads
+ *  it already put up stay too; the pad's header already asks the user to decide on them. */
+function stopped(caseId: string) {
+  const s = useStore.getState();
+  const said = s.live?.text?.trim();
+  s.addAssistantNote(caseId, said ? `${said}\n\n${t("(Stopped.)")}` : t("(Stopped.)"), { trail: s.live?.trail });
 }
 
 function knownIds(caseId: string, fallback: Case) {
@@ -161,9 +170,19 @@ async function attachments(c: Case, photoNoteIds: string[]): Promise<NonNullable
  * Sends the user's words (and any attached photos, already pinned to the wall) to Claude,
  * then applies the streamed reply and proposals to the wall.
  */
+/** The turn in progress, so it can be stopped. */
+let inFlight: AbortController | null = null;
+
+/** Stops the partner mid-turn: the leads already on the wall stay, to pin or toss. */
+export function stopAsking() {
+  inFlight?.abort();
+}
+
 export async function ask(caseId: string, text: string, opts: { photoNoteIds?: string[] } = {}) {
   const store = useStore.getState();
   if (store.busyCaseId) return;
+  const abort = new AbortController();
+  inFlight = abort;
   const photoNoteIds = opts.photoNoteIds ?? [];
   store.addUserMessage(caseId, text, photoNoteIds);
   store.setBusy(caseId);
@@ -177,7 +196,8 @@ export async function ask(caseId: string, text: string, opts: { photoNoteIds?: s
     const res = await fetch("/api/investigate", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...toRequest(c), ...(photoNoteIds.length ? { images: await attachments(c, photoNoteIds) } : {}) }),
+      body: JSON.stringify({ ...toRequest(c), ...(getDepth() === "quick" ? { depth: "quick" } : {}), ...(photoNoteIds.length ? { images: await attachments(c, photoNoteIds) } : {}) }),
+      signal: abort.signal,
     });
     if (res.status === 503) {
       // Key missing: fall back for this and future turns.
@@ -217,8 +237,10 @@ export async function ask(caseId: string, text: string, opts: { photoNoteIds?: s
     }
     if (!finished) useStore.getState().addAssistantNote(caseId, t("(The line dropped mid-sentence. Ask again?)"));
   } catch {
-    useStore.getState().addAssistantNote(caseId, t("(Couldn't reach the partner. Check the connection and try again.)"));
+    if (abort.signal.aborted) stopped(caseId);
+    else useStore.getState().addAssistantNote(caseId, t("(Couldn't reach the partner. Check the connection and try again.)"));
   } finally {
+    if (inFlight === abort) inFlight = null;
     useStore.getState().setLive(null);
     useStore.getState().setBusy(null);
   }

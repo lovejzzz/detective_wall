@@ -87,8 +87,12 @@ ${JSON.stringify(UPDATE_WALL_SCHEMA)}`;
 const IN_CHINESE =
   "Language: the user reads this wall in Simplified Chinese. Write your reply and everything you put on the wall (note titles and bodies, subject points and settle tests, diagram labels, chapter titles, link reasons) in Simplified Chinese, plain and precise, the voice of a case file. Keep names as the record writes them (Japanese names in their kanji; Korean names in their Chinese-character form when the record gives one, e.g. 李春宰, with the Hangul once in the body; Western names in Latin letters, e.g. Arthur Leigh Allen); names in other scripts (Russian, Greek, Arabic…) take their usual Chinese form in titles (迪亚特洛夫, 伊万诺夫), with the Latin or original spelling once in the body, keep quotes in their original language with a Chinese gloss, and search in whatever language finds the best sources. The length limits count characters, so Chinese titles are short. Your closing leads start 「下一条线索：」 instead of 「Next lead: 」. On a case's first turn, name it in Chinese in case_title, as a case file is labelled (伊斯达尔女子案, 加德纳博物馆盗窃案).";
 
+/** The user asked for a quick answer: a short dig, a short reply. */
+const QUICK =
+  "Quick mode: the user wants an answer in about a minute. Make at most three searches and open a page only if a search result can't settle the point; pin three to five cards; keep the reply to about 100 words, still with your best answer and one next lead. Skip photos and the tidying unless it's a case's first turn (then still name it and give it a conclusion card).";
+
 export function renderWallState(req: InvestigateRequest): string {
-  const lines = [...(req.lang === "zh" ? [IN_CHINESE, ""] : []), `Case: ${req.caseTitle}`, "", "Notes on the wall (id · type · status · title — body):"];
+  const lines = [...(req.lang === "zh" ? [IN_CHINESE, ""] : []), ...(req.depth === "quick" ? [QUICK, ""] : []), `Case: ${req.caseTitle}`, "", "Notes on the wall (id · type · status · title — body):"];
   if (req.notes.length === 0) lines.push("(none yet)");
   for (const n of req.notes) {
     const max = n.type === "subject" ? 700 : 220; // a subject's file is its points

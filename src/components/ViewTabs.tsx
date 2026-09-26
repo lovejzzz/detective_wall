@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { LANGS, setLang, t, useLang } from "../lib/i18n.ts";
 import { useStore } from "../store.ts";
 import { onSoundChange, setSound, soundOn } from "../lib/sound.ts";
+import { setDepth, useDepth } from "../lib/depth.ts";
 
 /** Two index-card tabs at the top of the wall: the free wall, or the evidence in time order. */
 export function ViewTabs({ left }: { left: number }) {
@@ -33,11 +34,12 @@ export function ViewTabs({ left }: { left: number }) {
   );
 }
 
-/** A gear on the strip that opens a small index card: the page's language, and its sound. */
+/** A gear on the strip that opens a small index card: the page's language, its sound, and how hard the partner digs. */
 function SettingsSwitch() {
   const [open, setOpen] = useState(false);
   const [sound, setSoundState] = useState(soundOn());
   const lang = useLang();
+  const depth = useDepth();
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => onSoundChange(setSoundState), []);
   useEffect(() => {
@@ -78,6 +80,17 @@ function SettingsSwitch() {
               ))}
             </div>
           </div>
+          <div className="settings-row">
+            <span className="settings-label">{t("Research")}</span>
+            <div className="settings-choice" role="radiogroup" aria-label={t("Research")}>
+              {(["thorough", "quick"] as const).map((v) => (
+                <button key={v} role="radio" aria-checked={depth === v} className={depth === v ? "is-on" : ""} onClick={() => setDepth(v)}>
+                  {v === "thorough" ? t("Thorough") : t("Quick")}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="settings-hint">{depth === "quick" ? t("Quick: a few searches, an answer in about a minute.") : t("Thorough: the partner reads widely, three or four minutes a turn.")}</p>
           <div className="settings-row">
             <span className="settings-label">{t("Sound")}</span>
             <div className="settings-choice" role="radiogroup" aria-label={t("Sound")}>
