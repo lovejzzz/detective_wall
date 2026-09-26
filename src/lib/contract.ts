@@ -81,8 +81,24 @@ export interface InvestigateRequest {
   lang?: "en" | "zh";
   /** The timeline's named chapters, if any. */
   phases?: { title: string; from: string }[];
-  notes: { id: string; type: NoteType; status: string; title: string; body: string; url?: string; when?: string; beat?: string; subjectStatus?: string; retire?: string }[];
-  links: { from: string; to: string; relation: Relation; status: string }[];
+  notes: {
+    id: string;
+    type: NoteType;
+    status: string;
+    title: string;
+    body: string;
+    url?: string;
+    when?: string;
+    beat?: string;
+    subjectStatus?: string;
+    retire?: string;
+    /** A conclusion's stamp, a fact's confidence. */
+    stamp?: string;
+    confidence?: string;
+    /** "user": the user wrote this card (the partner leaves it alone unless it is plainly wrong). */
+    by?: "user";
+  }[];
+  links: { from: string; to: string; relation: Relation; status: string; reason?: string }[];
   messages: { role: "user" | "assistant"; text: string }[];
   /** Photos attached to the latest user message (base64, already downscaled by the browser). */
   images?: ({ media_type: ImageMediaType; data: string; noteId?: string } | { url: string; noteId?: string })[];

@@ -243,7 +243,17 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       return;
     }
     // Follow the focus when it moves, not when a note comes or goes elsewhere on the wall.
-    if (focusChanged && focusNote && !inView(focusNote, k)) flyTo({ x: focusNote.x, y: focusNote.y, zoom: k.zoom });
+    // At the end of a turn the focus and that turn's proposals stay in view together, so a new card
+    // isn't left half off the screen while the camera looks at the one the partner points to.
+    if (focusChanged && focusNote) {
+      const reply = [...c.messages].reverse().find((m) => m.role === "assistant")?.id;
+      const waiting = placed.filter((n) => n.status === "proposed" && reply && n.origin.messageId === reply);
+      const group = [focusNote, ...waiting.filter((n) => n.id !== focusNote.id)];
+      if (group.every((n) => inView(n, k))) return;
+      const f = framing(group, k.zoom);
+      if (group.length > 1 && f.zoom >= Math.min(k.zoom, 0.45)) flyTo(f);
+      else if (!inView(focusNote, k)) flyTo({ x: focusNote.x, y: focusNote.y, zoom: k.zoom });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.focusNoteId, c.notes.length, c.id]);
 

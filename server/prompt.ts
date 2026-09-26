@@ -27,7 +27,7 @@ Write notes like a case file: the title says the one thing the note establishes,
 A wall is read at a glance, so less is more:
 - Fewer, stronger cards. One fact per card; no card that restates the question or another card (string to the existing one instead). A good turn adds three to seven cards; the limit is a ceiling, not a target.
 - Strings carry reasoning, not decoration: tie evidence to the claim or hunch it bears on, and an event to what it caused. Don't string cards to the question card; it needs at most one string, to the current conclusion. Never more new strings than new cards.
-- Keep the board clean as it grows. When a card is duplicated by a stronger one, superseded or disproved by a better source, or a hunch the evidence has answered, propose taking it down with "retire" (by id, with a short reason) rather than piling new cards on top of it. Leave the user's own cards alone unless they are plainly wrong.
+- Keep the board clean as it grows. When a card is duplicated by a stronger one, superseded or disproved by a better source, or a hunch the evidence has answered, propose taking it down with "retire" (by id, with a short reason) rather than piling new cards on top of it. Leave the user's own cards (marked "the user's") alone unless they are plainly wrong. When new evidence overturns your current conclusion, send a new conclusion card and retire the old one, so the wall gives one answer.
 - Tidy the layout: set "arrange" on a case's first turn, and whenever a turn adds four or more cards to a wall of a dozen or more, so the board reads in order (question and answer, subjects, events in time, the rest).
 
 Note types:
@@ -41,7 +41,7 @@ Note types:
 
 Dates: set "when" on any note about an event that happened at a known time, as precisely as the record allows (YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM), and "approx" when it is approximate. The user can lay the wall out as a timeline, so dates matter. Leave undated ideas and hunches undated.
 
-Keeping the file in order: make this a habit on every turn, the way a good detective tidies the board at the end of the day. Before your wall update, look over the whole wall as the state below lists it, and put in the update whatever needs tidying:
+Keeping the file in order: make this a habit on every turn, the way a good detective tidies the board at the end of the day. Before your wall update, look over the whole wall as the state below lists it (it ends with a board check of what needs tidying), and put in the update whatever needs it:
 - Dates: every note about an event should have a when. Give undated events already on the wall their dates with "dates" (by id). Never change a date that's already set.
 - Chapters: the timeline reads in chapters. Once the dated events fall into distinct stages (the crime, the investigation, an arrest, a trial, a reopening), name them with "phases": 2 to 6 short titles in the case's own terms, each with the date it starts from. Name them only once the wall has at least six dated events and every chapter would hold at least two; a stage with a single event belongs with its neighbour. Rename them only when a new stage opens or they no longer fit.
 - Key moments: mark the turning points with "moments" so the shape of the story reads at a glance: origin (where it all began), escalation (it grew or spread), breakthrough (what cracked it open), twist (what changed the picture), dead_end (a lead or suspect that went nowhere), resolved (the case was closed: a conviction, a verdict, a confession that held), latest (where a case that is still open stands now; move it when something newer arrives). A closed case gets resolved, not latest, unless it was later reopened. origin, resolved and latest mark one note each. Be sparing: three to seven in a whole case and never more than about one in three of its dated events, only real turning points, only on notes about events. New notes can be marked by ref in the same update; beat "none" takes a mark off. Leave the user's own marks alone unless they are plainly wrong.
@@ -95,13 +95,48 @@ export function renderWallState(req: InvestigateRequest): string {
     const beat = typeof n.beat === "string" && (BEATS as string[]).includes(n.beat) ? ` · moment: ${n.beat}` : "";
     const subject = n.type === "subject" && n.subjectStatus ? ` · status: ${n.subjectStatus}` : "";
     const retire = typeof n.retire === "string" && n.retire ? ` · you proposed taking it down: ${n.retire.slice(0, 80)}` : "";
-    lines.push(`- ${n.id} · ${n.type} · ${n.status}${n.when ? ` · ${n.when}` : " · undated"}${beat}${subject}${retire} · ${n.title} — ${body}${n.url ? ` [${n.url}]` : ""}`);
+    const stamp = n.type === "conclusion" && typeof n.stamp === "string" && n.stamp ? ` · stamp: ${n.stamp.slice(0, 12)}` : "";
+    const sure = n.type !== "conclusion" && typeof n.confidence === "string" && n.confidence ? ` · confidence: ${n.confidence.slice(0, 8)}` : "";
+    const by = n.by === "user" ? " · the user's" : "";
+    lines.push(`- ${n.id} · ${n.type} · ${n.status}${n.when ? ` · ${n.when}` : " · undated"}${beat}${subject}${stamp}${sure}${by}${retire} · ${n.title} — ${body}${n.url ? ` [${n.url}]` : ""}`);
   }
   const phases = sanitizePhases(req.phases);
   lines.push("", "Timeline chapters:", ...(phases.length ? phases.map((p, i) => `${i + 1}. ${p.title} (from ${p.from})`) : ["(none named)"]));
   lines.push("", "Strings:");
   if (req.links.length === 0) lines.push("(none yet)");
-  for (const l of req.links) lines.push(`- ${l.from} ${l.relation} ${l.to} (${l.status})`);
+  for (const l of req.links) lines.push(`- ${l.from} ${l.relation} ${l.to} (${l.status})${typeof l.reason === "string" && l.reason ? `: ${l.reason.slice(0, 100)}` : ""}`);
+  lines.push("", boardCheck(req, phases.length > 0));
   return lines.join("\n");
+}
+
+/**
+ * What a detective sees when stepping back from the board at the end of the day: what needs
+ * tidying, worked out here so the partner doesn't have to count strings in its head. Only the
+ * things its wall update can fix (retire, dates, phases, moments, photos) or should know before
+ * proposing more.
+ */
+export function boardCheck(req: InvestigateRequest, hasPhases: boolean): string {
+  const live = req.notes.filter((n) => !(typeof n.retire === "string" && n.retire));
+  if (live.length < 2) return "Board check: in order.";
+  const question = live.find((n) => n.by === "user" && n.type === "hypothesis");
+  const ids = (ns: { id: string }[]) => ns.map((n) => n.id).join(", ");
+  const found: string[] = [];
+
+  const conclusions = live.filter((n) => n.type === "conclusion");
+  if (conclusions.length > 1) found.push(`${conclusions.length} conclusions (${ids(conclusions)}): the wall should give one current answer; retire the ones it has outgrown.`);
+
+  const strung = new Set(req.links.flatMap((l) => [l.from, l.to]));
+  const lonely = live.filter((n) => n !== question && !strung.has(n.id));
+  if (lonely.length) found.push(`no strings: ${ids(lonely.slice(0, 8))}${lonely.length > 8 ? " …" : ""}. String each to what it bears on, or retire it if it bears on nothing.`);
+
+  const dated = live.filter((n) => n.when);
+  if (dated.length >= 6 && !hasPhases) found.push(`${dated.length} dated events and no chapters: name them with phases.`);
+  if (dated.length >= 4 && !live.some((n) => n.beat)) found.push("no key moments: mark the turning points.");
+  if (dated.length >= 4 && !live.some((n) => n.type === "photo")) found.push("no photos: find the central place, object or document and pin one.");
+
+  const waiting = live.filter((n) => n.status === "proposed");
+  if (waiting.length) found.push(`${waiting.length} proposal${waiting.length > 1 ? "s" : ""} still waiting on the user (${ids(waiting.slice(0, 8))}): don't propose them again.`);
+
+  return found.length ? ["Board check:", ...found.map((f) => `- ${f}`)].join("\n") : "Board check: in order.";
 }
 

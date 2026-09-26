@@ -91,6 +91,9 @@ function toRequest(c: Case): InvestigateRequest {
       ...(n.when ? { when: n.when } : {}),
       ...(n.beat ? { beat: n.beat } : {}),
       ...(n.retire ? { retire: n.retire } : {}),
+      ...(n.stamp ? { stamp: n.stamp } : {}),
+      ...(n.confidence ? { confidence: n.confidence } : {}),
+      ...(n.origin.kind === "user" ? { by: "user" as const } : {}),
       // a subject's file travels as its status and its points, so the partner can keep it current
       ...(n.subject
         ? {
@@ -101,7 +104,7 @@ function toRequest(c: Case): InvestigateRequest {
           }
         : {}),
     })),
-    links: c.links.map((l) => ({ from: l.from, to: l.to, relation: l.relation, status: l.status })),
+    links: c.links.map((l) => ({ from: l.from, to: l.to, relation: l.relation, status: l.status, ...(l.reason ? { reason: l.reason } : {}) })),
     messages: c.messages.map((m) => ({ role: m.role, text: m.text })),
   };
 }
