@@ -50,6 +50,10 @@ export const BEAT_LABEL: Record<Beat, string> = {
 /** How a point on a sketch map is marked. */
 export type MapMark = "scene" | "start" | "end" | "place";
 
+/** A box in a comparison grid: the row fits that test, doesn't, partly, or nobody knows. */
+export type GridMark = "yes" | "no" | "partly" | "unknown";
+export const GRID_MARKS: GridMark[] = ["yes", "no", "partly", "unknown"];
+
 export interface DiagramItem {
   label: string;
   /** bars/circles: the quantity. map: the item's place in the route (1, 2, 3…), if it is on it. */
@@ -61,12 +65,17 @@ export interface DiagramItem {
   w?: number;
   h?: number;
   mark?: MapMark;
+  /** matrix only: one mark per column, in order. */
+  marks?: GridMark[];
 }
 
 export interface DiagramSpec {
-  /** "map" is a sketch map or floor plan: places and areas, with a route through the numbered ones. */
-  kind: "bars" | "circles" | "flow" | "map";
+  /** "map" is a sketch map or floor plan: places and areas, with a route through the numbered ones.
+   *  "matrix" is a comparison grid: the items are rows (suspects, explanations), held against the columns. */
+  kind: "bars" | "circles" | "flow" | "map" | "matrix";
   items: DiagramItem[];
+  /** matrix only: the tests across the top, phrased so a tick points toward the row ("No alibi"). */
+  columns?: string[];
   /** map only: false for a floor plan or a cross-section, which has no compass. */
   north?: boolean;
 }

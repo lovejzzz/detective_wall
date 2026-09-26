@@ -666,6 +666,8 @@ function paintDiagram(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
     });
   } else if (d.kind === "map") {
     paintMap(g, d, area, u, rand);
+  } else if (d.kind === "matrix") {
+    paintMatrix(g, d, area, u, rand);
   } else {
     const per = Math.min(3, d.items.length);
     const bw = 66 * u;
@@ -719,6 +721,78 @@ function paintDiagram(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
  * A sketch map or floor plan in pen and pencil: areas lightly hatched, the route a dashed line with
  * arrowheads through its numbered stops, scenes a red X, and a north arrow in the corner.
  */
+/**
+ * A comparison grid, the way a detective rules one up on a pad: the suspects (or explanations) down
+ * the side, the same tests across the top, and in each box a tick where they fit, a cross where they
+ * don't, a wavy line for partly, a pencilled "?" where nobody knows. The row that fits best is
+ * ringed in red.
+ */
+function paintMatrix(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: number; h: number }, u: number, rand: Rand) {
+  const ink = "#243552";
+  const red = "#8a2a1f";
+  const pencil = "rgba(60,58,54,0.6)";
+  const cols = d.columns ?? [];
+  const rows = d.items;
+  if (!cols.length || !rows.length) return;
+  // the name column is as wide as the longest name needs, within reason
+  g.font = `600 ${15 * u}px ${HAND}`;
+  const nameW = Math.min(area.w * 0.4, Math.max(56 * u, ...rows.map((r) => g.measureText(r.label).width + 10 * u)));
+  const cellW = (area.w - nameW) / cols.length;
+  const headH = 30 * u;
+  const rowH = Math.min(38 * u, (area.h - headH) / rows.length);
+  const x0 = area.x + nameW;
+  const y0 = area.y + headH;
+  // headings, fitted to their column; two lines when a word runs long
+  cols.forEach((c, i) => {
+    const inner = cellW - 4 * u;
+    const one = fitHand(g, c, inner, 13 * u, 10 * u);
+    const fits = ((g.font = `600 ${one}px ${HAND}`), g.measureText(c).width <= inner);
+    const size = fits ? one : fitHand(g, c, inner, 11.5 * u, 8.5 * u, 2);
+    handwrite(g, c, x0 + i * cellW + 2 * u, fits ? y0 - 9 * u : y0 - 17 * u, { size, weight: 600, lineH: size * 0.98, maxW: inner, maxLines: 2, color: ink, rand, align: "center" });
+  });
+  // the ruling: under the headings, after the names, and faintly between rows and columns
+  penLine(g, [[area.x, y0 - 2 * u], [area.x + area.w, y0 - 3 * u]], { color: ink, width: 1.3 * u, rand, wobble: 0.5 });
+  penLine(g, [[x0 - 3 * u, area.y + 4 * u], [x0 - 2 * u, y0 + rowH * rows.length]], { color: ink, width: 1.2 * u, rand, wobble: 0.5 });
+  for (let r = 1; r < rows.length; r++) penLine(g, [[area.x, y0 + r * rowH], [area.x + area.w, y0 + r * rowH]], { color: "rgba(36,53,82,0.25)", width: 0.8 * u, rand, wobble: 0.4 });
+  for (let c = 1; c < cols.length; c++) penLine(g, [[x0 + c * cellW, area.y + 8 * u], [x0 + c * cellW, y0 + rowH * rows.length]], { color: "rgba(36,53,82,0.2)", width: 0.8 * u, rand, wobble: 0.4 });
+  // the best fit: most ticks (a partly counts half), ringed if it stands out
+  const score = (it: DiagramItem) => (it.marks ?? []).reduce((a, m) => a + (m === "yes" ? 1 : m === "partly" ? 0.5 : 0), 0);
+  const scores = rows.map(score);
+  const top = Math.max(...scores);
+  const best = scores.filter((x) => x === top).length === 1 && top > 0 ? scores.indexOf(top) : -1;
+  rows.forEach((it, r) => {
+    const cy = y0 + r * rowH + rowH / 2;
+    const ls = fitHand(g, it.label, nameW - 10 * u, 15 * u, 10.5 * u, 2);
+    g.font = `600 ${ls}px ${HAND}`;
+    const two = wrapLines(g, it.label, nameW - 10 * u).length > 1;
+    handwrite(g, it.label, area.x, cy + ls * 0.34 - (two ? ls * 0.5 : 0), { size: ls, weight: 600, lineH: ls, maxW: nameW - 10 * u, maxLines: 2, color: r === best ? red : ink, rand });
+    if (r === best) {
+      // a loose red ring round the name
+      g.save();
+      g.translate(area.x + nameW / 2 - 4 * u, cy);
+      g.scale(1, Math.min(0.55, rowH / nameW));
+      handCircle(g, 0, 0, nameW / 2, red, 1.3 * u / 0.55, rand);
+      g.restore();
+    }
+    (it.marks ?? []).slice(0, cols.length).forEach((m, c) => {
+      const cx = x0 + c * cellW + cellW / 2;
+      const k = Math.min(cellW, rowH) * 0.26;
+      if (m === "yes") penLine(g, [[cx - k, cy], [cx - k * 0.25, cy + k * 0.75], [cx + k, cy - k * 0.9]], { color: ink, width: 1.8 * u, rand, wobble: 0.4 });
+      else if (m === "no") {
+        penLine(g, [[cx - k * 0.8, cy - k * 0.8], [cx + k * 0.8, cy + k * 0.8]], { color: red, width: 1.7 * u, rand, wobble: 0.4 });
+        penLine(g, [[cx + k * 0.8, cy - k * 0.8], [cx - k * 0.8, cy + k * 0.8]], { color: red, width: 1.7 * u, rand, wobble: 0.4 });
+      } else if (m === "partly") {
+        const pts: [number, number][] = [];
+        for (let i = 0; i <= 8; i++) pts.push([cx - k + (i / 8) * 2 * k, cy + Math.sin((i / 8) * Math.PI * 2) * k * 0.35]);
+        penLine(g, pts, { color: ink, width: 1.6 * u, rand, wobble: 0.3 });
+      } else {
+        const qs = Math.min(18 * u, rowH * 0.6);
+        handwrite(g, "?", cx - qs * 0.25, cy + qs * 0.35, { size: qs, weight: 600, lineH: qs, maxW: qs, maxLines: 1, color: pencil, rand });
+      }
+    });
+  });
+}
+
 function paintMap(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: number; h: number }, u: number, rand: Rand) {
   const ink = "#243552";
   const red = "#8a2a1f";

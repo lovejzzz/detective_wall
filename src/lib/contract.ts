@@ -3,6 +3,7 @@
 import { isWhen } from "./when.ts";
 import {
   BEATS,
+  GRID_MARKS,
   NOTE_TYPES,
   SUBJECT_STATUSES,
   type SubjectFile,
@@ -183,7 +184,7 @@ export const UPDATE_WALL_SCHEMA = {
               profile: { type: "array", items: { type: "string" }, description: "Unknown-offender profiles only: up to 6 inferences, each tied to the evidence it rests on." },
               settle: { type: "string", description: "The one test that would confirm or rule them out. At most 140 characters." },
               rank: { type: "integer", minimum: 1, maximum: MAX_RANK, description: "Only for the case's most likely suspects (one to three, the unknown offender's profile included): 1 is the most likely. Leave it out for everyone else." },
-              verdict: { type: "string", description: "With rank: one line on why they rank there, from the evidence and attributed to whoever holds the view. At most 90 characters." },
+              verdict: { type: "string", description: "With rank: one line on why they rank there, your own read of the evidence said as one (My read: …). At most 90 characters." },
             },
           },
           diagram: {
@@ -191,10 +192,11 @@ export const UPDATE_WALL_SCHEMA = {
             additionalProperties: false,
             required: ["kind", "items"],
             description:
-              "Diagram notes only. circles/bars need numeric values; flow is an ordered chain of labels; map is a sketch map or floor plan: each item placed at x, y (0-100 across and down), an area if it has w and h (a building, room, park, road block), a point otherwise, marked scene (an X), start, end or place, and value = its step on the route (1, 2, 3...) if the route passes it. Up to 6 items, 10 for a map.",
+              "Diagram notes only. circles/bars need numeric values; flow is an ordered chain of labels; map is a sketch map or floor plan: each item placed at x, y (0-100 across and down), an area if it has w and h (a building, room, park, road block), a point otherwise, marked scene (an X), start, end or place, and value = its step on the route (1, 2, 3...) if the route passes it; matrix is a comparison grid: columns are 2 to 4 short tests, items are 2 to 4 rows (people or explanations), each with marks, one per column: yes, no, partly or unknown. Up to 6 items, 10 for a map, 4 for a matrix.",
             properties: {
-              kind: { type: "string", enum: ["bars", "circles", "flow", "map"] },
+              kind: { type: "string", enum: ["bars", "circles", "flow", "map", "matrix"] },
               north: { type: "boolean", description: "Maps only: false for a floor plan or cross-section (no north arrow)." },
+              columns: { type: "array", items: { type: "string" }, description: "Matrix only: 2 to 4 tests, at most 14 characters each, phrased so yes points toward the row (Motive, No alibi, Had a key)." },
               items: {
                 type: "array",
                 items: {
@@ -209,6 +211,7 @@ export const UPDATE_WALL_SCHEMA = {
                     w: { type: "number" },
                     h: { type: "number" },
                     mark: { type: "string", enum: ["scene", "start", "end", "place"] },
+                    marks: { type: "array", items: { type: "string", enum: ["yes", "no", "partly", "unknown"] }, description: "Matrix only: one per column, in order." },
                   },
                 },
               },
@@ -366,11 +369,22 @@ function isHttpUrl(v: unknown): v is string {
 export function sanitizeDiagram(v: unknown): DiagramSpec | undefined {
   if (!v || typeof v !== "object") return undefined;
   const d = v as Record<string, unknown>;
-  const kind = oneOf(d.kind, ["bars", "circles", "flow", "map"] as const);
+  const kind = oneOf(d.kind, ["bars", "circles", "flow", "map", "matrix"] as const);
   if (!kind || !Array.isArray(d.items)) return undefined;
   const num = (v: unknown) => typeof v === "number" && Number.isFinite(v);
   const pct = (v: unknown) => Math.round(Math.min(100, Math.max(0, v as number)) * 10) / 10;
   const raw = d.items.filter((i): i is Record<string, unknown> => !!i && typeof i === "object" && isStr((i as Record<string, unknown>).label));
+  if (kind === "matrix") {
+    // a grid needs at least two tests and two rows to compare; a missing mark is "unknown"
+    const columns = (Array.isArray(d.columns) ? d.columns : []).filter(isStr).map((c) => clip(String(c), 14)).slice(0, 4);
+    if (columns.length < 2) return undefined;
+    const items = raw.slice(0, 4).map((i) => ({
+      label: clip(String(i.label), 24),
+      marks: columns.map((_, k) => oneOf(Array.isArray(i.marks) ? i.marks[k] : undefined, GRID_MARKS) ?? "unknown"),
+    }));
+    if (items.length < 2) return undefined;
+    return { kind, items, columns };
+  }
   if (kind === "map") {
     // every place needs a position; an area needs a size that stays on the sheet
     const items: DiagramItem[] = [];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeWallUpdate, MAX_NOTES_PER_TURN, UPDATE_WALL_SCHEMA } from "../src/lib/contract.ts";
+import { sanitizeDiagram, sanitizeWallUpdate, MAX_NOTES_PER_TURN, UPDATE_WALL_SCHEMA } from "../src/lib/contract.ts";
 import { findFreeSpot, NOTE_SIZE, pinInset, pinPoint, stringPath } from "../src/lib/geometry.ts";
 import type { Note } from "../src/lib/types.ts";
 
@@ -216,5 +216,27 @@ describe("keeping the board clean", () => {
     expect(u.retire![1].reason.length).toBeLessThanOrEqual(80);
     expect(u.arrange).toBe(true);
     expect(sanitizeWallUpdate({ notes: [], links: [], arrange: "yes" }, known).arrange).toBeUndefined();
+  });
+});
+
+describe("comparison grids", () => {
+  it("keeps a grid of two to four tests and rows, marking what's missing unknown", () => {
+    const d = sanitizeDiagram({
+      kind: "matrix",
+      columns: ["Motive", "Means", "No alibi", "Tied to the scene", "Fifth"],
+      items: [
+        { label: "Suspect A", marks: ["yes", "no", "partly"] },
+        { label: "Suspect B", marks: ["unknown", "yes", "maybe", "no"] },
+      ],
+    });
+    expect(d?.columns).toEqual(["Motive", "Means", "No alibi", "Tied to the s…"]);
+    expect(d?.items.map((i) => i.marks)).toEqual([
+      ["yes", "no", "partly", "unknown"],
+      ["unknown", "yes", "unknown", "no"],
+    ]);
+  });
+  it("drops a grid with nothing to compare", () => {
+    expect(sanitizeDiagram({ kind: "matrix", columns: ["Motive"], items: [{ label: "A" }, { label: "B" }] })).toBeUndefined();
+    expect(sanitizeDiagram({ kind: "matrix", columns: ["Motive", "Means"], items: [{ label: "A" }] })).toBeUndefined();
   });
 });

@@ -15,7 +15,8 @@
 
 ## Working here
 - `npx tsc -p .` and `npx vitest run` must pass before every commit.
-- Don't edit `server/*` or files the server imports (e.g. `src/lib/contract.ts`) while a live
-  partner run is in progress: the dev server restarts and the run dies.
+- Don't edit any source file while a live partner run is in progress: `server/*` and files the
+  server imports (e.g. `src/lib/contract.ts`) restart the dev server, and client files make Vite
+  reload the page; either way the run dies.
 - The partner's instructions live in `server/prompt.ts`; the per-turn wall state and the
   board check (what needs tidying) are built there too.
