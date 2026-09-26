@@ -676,7 +676,7 @@ function paintMap(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: numbe
   };
 
   // the north arrow's corner stays clear
-  taken.push({ x0: area.x + area.w - 16 * u, x1: area.x + area.w + 8 * u, y0: area.y - 4 * u, y1: area.y + 40 * u });
+  if (d.north !== false) taken.push({ x0: area.x + area.w - 16 * u, x1: area.x + area.w + 8 * u, y0: area.y - 4 * u, y1: area.y + 40 * u });
 
   // areas first, underneath: buildings, rooms, parks
   const areas = d.items.filter((it) => it.w && it.h);
@@ -777,6 +777,7 @@ function paintMap(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: numbe
   }
 
   // north arrow, top right
+  if (d.north === false) return;
   const nx = area.x + area.w - 6 * u;
   const ny = area.y + 4 * u;
   penLine(g, [[nx, ny + 20 * u], [nx, ny + 2 * u]], { color: pencil, width: 1.1 * u, rand, wobble: 0.2 });

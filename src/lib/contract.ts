@@ -154,6 +154,7 @@ export const UPDATE_WALL_SCHEMA = {
               "Diagram notes only. circles/bars need numeric values; flow is an ordered chain of labels; map is a sketch map or floor plan: each item placed at x, y (0-100 across and down), an area if it has w and h (a building, room, park, road block), a point otherwise, marked scene (an X), start, end or place, and value = its step on the route (1, 2, 3...) if the route passes it. Up to 6 items, 10 for a map.",
             properties: {
               kind: { type: "string", enum: ["bars", "circles", "flow", "map"] },
+              north: { type: "boolean", description: "Maps only: false for a floor plan or cross-section (no north arrow)." },
               items: {
                 type: "array",
                 items: {
@@ -307,7 +308,8 @@ export function sanitizeDiagram(v: unknown): DiagramSpec | undefined {
       if (num(i.value) && (i.value as number) > 0) it.value = Math.round(i.value as number);
       items.push(it);
     }
-    return items.length >= 2 ? { kind, items } : undefined;
+    if (items.length < 2) return undefined;
+    return d.north === false ? { kind, items, north: false } : { kind, items };
   }
   const items = raw.slice(0, 6).map((i) => ({
     label: clip(String(i.label), 28),

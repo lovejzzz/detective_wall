@@ -63,6 +63,8 @@ export interface DiagramSpec {
   /** "map" is a sketch map or floor plan: places and areas, with a route through the numbered ones. */
   kind: "bars" | "circles" | "flow" | "map";
   items: DiagramItem[];
+  /** map only: false for a floor plan or a cross-section, which has no compass. */
+  north?: boolean;
 }
 
 export interface NoteOrigin {

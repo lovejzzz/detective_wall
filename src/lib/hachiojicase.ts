@@ -81,13 +81,13 @@ const spec: DemoSpec = {
       { label: "JR Hachiōji Stn", x: 30, y: 86, mark: "place" },
     ] } },
     { key: "found", type: "fact", title: "Found at ten o'clock", when: "1995-07-30T22:00", approx: true, url: JA_WIKI, body: "After checking a restaurant where they had planned to meet, the acquaintance returned with its owner. The door was unlocked; they found the three on the floor and at 22:08 ran to the Kita-Hachiōji police box." },
-    { key: "officeMap", type: "diagram", title: "The office, as found", body: "Sketch from press accounts, not to scale. The safe had its key in and a bullet mark; Inagaki lay beside it. Footprints ran only from the door to the safe and the victims.", diagram: { kind: "map", items: [
+    { key: "officeMap", type: "diagram", title: "The office, as found", body: "Sketch from press accounts, not to scale. The safe had its key in and a bullet mark; Inagaki lay beside it. Footprints ran only from the door to the safe and the victims.", diagram: { kind: "map", north: false, items: [
       { label: "Office, upstairs", x: 10, y: 10, w: 80, h: 66 },
       { label: "Outside stairs", x: 22, y: 88, mark: "start", value: 1 },
       { label: "Door", x: 26, y: 66, mark: "place", value: 2 },
-      { label: "Two girls", x: 48, y: 50, mark: "scene", value: 3 },
+      { label: "Two girls", x: 42, y: 50, mark: "scene", value: 3 },
       { label: "Safe", x: 74, y: 24, mark: "scene", value: 4 },
-      { label: "Inagaki", x: 76, y: 56, mark: "scene" },
+      { label: "Inagaki", x: 76, y: 50, mark: "scene" },
       { label: "Desk: 5th bullet", x: 14, y: 22, w: 14, h: 7 },
     ] } },
     { key: "pKitaStn", type: "photo", photo: "Kita-hachioji sta west.jpg", title: "Kita-Hachiōji Station, west entrance", body: "The nearest station, about 750 m from the store (2006)." },

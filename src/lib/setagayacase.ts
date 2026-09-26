@@ -76,7 +76,7 @@ const spec: DemoSpec = {
     // ── The night of 30 December ──
     { key: "email", type: "fact", title: "22:38: the family's computer, still in use", when: "2000-12-30T22:38", approx: true, url: JA_WIKI, body: "The PC in the ground-floor study sent and received password-protected e-mail from about 22:38 to 22:45 and was shut down about 22:50: the family, still alive." },
     { key: "attack", type: "fact", title: "About 23:30: the killings", when: "2000-12-30T23:30", approx: true, beat: "origin", url: JA_WIKI, body: "Relatives next door heard a thud at about 23:30; stomach contents put the killings about then. Police think he strangled Rei, 6, in his bunk, stabbed Mikio, 44, at the foot of the stairs, then attacked Yasuko, 41, and Niina, 8, in the loft. His own knife broke and he went on with one of the family's." },
-    { key: "plan", type: "diagram", title: "Inside the house", body: "Cross-section of the split-level house, not a plan: up is upstairs, not north. Steps follow the police reconstruction; afterwards he went up to the kitchen, then left by the bath window.", diagram: { kind: "map", items: [
+    { key: "plan", type: "diagram", title: "Inside the house", body: "Cross-section of the split-level house: up is upstairs. Steps follow the police reconstruction; afterwards he went up to the kitchen, then left by the bath window.", diagram: { kind: "map", north: false, items: [
       { label: "Loft", x: 50, y: 18, w: 32, h: 12 },
       { label: "Mid-floor", x: 6, y: 46, w: 34, h: 12 },
       { label: "Ground floor", x: 44, y: 68, w: 46, h: 14 },
