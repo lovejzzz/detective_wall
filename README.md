@@ -23,6 +23,8 @@ cp .env.example .env      # add your ANTHROPIC_API_KEY
 npm run dev               # http://localhost:5173
 ```
 
+`npm run dev` keeps itself up to date: every 20 seconds it checks the branch on GitHub and, if there are new commits and you have no uncommitted changes, fast-forwards to them. The open page updates by itself (server changes restart the dev server, new dependencies are installed first). `DW_AUTO_PULL=0 npm run dev` turns that off; `npm run dev:plain` is plain Vite.
+
 Without a key the app still runs, using a clearly labelled **offline partner** that structures the case but can't check facts.
 
 **On your Claude subscription instead of an API key:** if Claude Code is installed and logged in on your machine (`claude` then `/login`), leave `ANTHROPIC_API_KEY` empty and the partner runs each turn through `claude -p` with web search and fetch, billed to your subscription. The notepad reads "Claude · your subscription". This uses whoever is logged in to Claude Code on the machine running the server, so it's for your own local use, not for a deployed site.

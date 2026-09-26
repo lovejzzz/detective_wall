@@ -5,11 +5,12 @@
   "type": "module",
   "description": "Turn every question into a case: an AI research partner on a lamp-lit evidence wall.",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/live.mjs",
     "build": "tsc -p . && vite build",
     "start": "tsx server/index.ts",
     "typecheck": "tsc -p .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "dev:plain": "vite"
   },
   "engines": {
     "node": ">=20"
