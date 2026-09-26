@@ -437,7 +437,12 @@ export const useStore = create<Store>()(
             }
             for (const d of update.dates ?? []) {
               const n = c.notes.find((x) => x.id === resolve(d.note));
-              if (n && !n.when) Object.assign(n, { when: d.when }, d.approx ? { approx: true } : {});
+              // A date already set changes only as a correction, with its reason.
+              if (n && (!n.when || d.fix)) {
+                Object.assign(n, { when: d.when });
+                if (d.approx) n.approx = true;
+                else if (d.fix) delete n.approx;
+              }
             }
 
             for (const l of update.links) {

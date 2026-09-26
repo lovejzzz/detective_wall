@@ -42,7 +42,7 @@ Note types:
 Dates: set "when" on any note about an event that happened at a known time, as precisely as the record allows (YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM), and "approx" when it is approximate. The user can lay the wall out as a timeline, so dates matter. Leave undated ideas and hunches undated.
 
 Keeping the file in order: make this a habit on every turn, the way a good detective tidies the board at the end of the day. Before your wall update, look over the whole wall as the state below lists it (it ends with a board check of what needs tidying), and put in the update whatever needs it:
-- Dates: every note about an event should have a when. Give undated events already on the wall their dates with "dates" (by id). Never change a date that's already set.
+- Dates: every note about an event should have a when. Give undated events already on the wall their dates with "dates" (by id). Change a date that's already set only to correct a mistake (the board check flags a date its own card contradicts), with "fix" saying why, and mention the correction in one clause.
 - Chapters: the timeline reads in chapters. Once the dated events fall into distinct stages (the crime, the investigation, an arrest, a trial, a reopening), name them with "phases": 2 to 6 short titles in the case's own terms, each with the date it starts from. Name them only once the wall has at least six dated events and every chapter would hold at least two; a stage with a single event belongs with its neighbour. Rename them only when a new stage opens or they no longer fit.
 - Key moments: mark the turning points with "moments" so the shape of the story reads at a glance: origin (where it all began), escalation (it grew or spread), breakthrough (what cracked it open), twist (what changed the picture), dead_end (a lead or suspect that went nowhere), resolved (the case was closed: a conviction, a verdict, a confession that held), latest (where a case that is still open stands now; move it when something newer arrives). A closed case gets resolved, not latest, unless it was later reopened. origin, resolved and latest mark one note each. Be sparing: three to seven in a whole case and never more than about one in three of its dated events, only real turning points, only on notes about events. New notes can be marked by ref in the same update; beat "none" takes a mark off. Leave the user's own marks alone unless they are plainly wrong.
 - Pictures: a good wall is illustrated. On a case's first turn, and whenever a person, place, object or document becomes central, call find_photos for it and pin the best real photo, with a string to the event or fact it illustrates (a photo strung to a dated event hangs beside it on the timeline). Aim for roughly one photo for every two or three events, never two of the same thing. When where things happened matters (a route, a scene, finds spread over a region), draw it: one map diagram strung to the event it explains, placed from what your sources say about where things are.
@@ -132,11 +132,22 @@ export function boardCheck(req: InvestigateRequest, hasPhases: boolean): string 
 
   // One explanation and no rival: a detective keeps the strongest alternative alive until the evidence kills it.
   const answer = conclusions.at(-1);
-  const rivals = live.filter((n) => n.type === "hypothesis" && n !== question);
+  // A person of interest's file is a rival explanation too; the unknown offender's profile isn't.
+  const rivals = live.filter((n) => (n.type === "hypothesis" && n !== question) || (n.type === "subject" && !/unidentified/.test(n.subjectStatus ?? "")));
   if (answer && answer.stamp !== "CONFIRMED" && answer.stamp !== "RULED OUT" && !rivals.length && live.length >= 6)
     found.push(`one explanation (${answer.id}, ${answer.stamp ?? "unstamped"}) and no rival on the wall: put up the strongest alternative as a hunch, strung to the evidence that would tell them apart.`);
 
   const dated = live.filter((n) => n.when);
+  // A date its own card contradicts: the text names years and none is the date's year.
+  for (const n of dated) {
+    const year = n.when!.slice(0, 4);
+    const said = [...new Set(`${n.title} ${n.body}`.match(/(?<!\d)(1[0-9]\d\d|20\d\d)(?!\d)/g) ?? [])];
+    if (said.length && !said.includes(year)) found.push(`${n.id} is dated ${n.when} but its text says ${said.slice(0, 3).join(", ")}: correct the date with "fix" if it's wrong.`);
+  }
+  const beatAt = (b: string) => live.find((n) => n.beat === b && n.when);
+  const origin = beatAt("origin");
+  const latest = beatAt("latest");
+  if (origin && latest && origin.when! > latest.when!) found.push(`the origin (${origin.id}, ${origin.when}) is dated after the latest (${latest.id}, ${latest.when}): one of the dates or marks is wrong.`);
   if (dated.length >= 6 && !hasPhases) found.push(`${dated.length} dated events and no chapters: name them with phases.`);
   if (dated.length >= 4 && !live.some((n) => n.beat)) found.push("no key moments: mark the turning points.");
   if (dated.length >= 4 && !live.some((n) => n.type === "photo")) found.push("no photos: find the central place, object or document and pin one.");

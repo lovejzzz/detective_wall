@@ -52,6 +52,15 @@ describe("key moments in the store", async () => {
     expect(byTitle("Newer turn").beat).toBeUndefined();
   });
 
+  it("corrects a date only when the partner says why", () => {
+    const dated = byTitle("Old news");
+    turn({ notes: [], links: [], dates: [{ note: dated.id, when: "1922-03-31", fix: "The card's own text says 1922" }] });
+    expect(byTitle("Old news").when).toBe("1922-03-31");
+    turn({ notes: [], links: [], dates: [{ note: dated.id, when: "1990" }] });
+    expect(byTitle("Old news").when).toBe("1922-03-31");
+    turn({ notes: [], links: [], dates: [{ note: dated.id, when: "1990", fix: "Back" }] });
+  });
+
   it("dates undated notes but never overwrites a date", () => {
     turn({ notes: [fact("u", "Undated event")], links: [], moments: [] });
     const u = byTitle("Undated event");

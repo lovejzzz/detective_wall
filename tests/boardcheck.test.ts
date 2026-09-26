@@ -80,6 +80,24 @@ describe("the wall as the partner reads it", () => {
     expect(wall("LIKELY")).toContain("one explanation (c, LIKELY) and no rival");
     expect(wall("CONFIRMED")).not.toContain("no rival");
     expect(wall("LIKELY", [note("h", "hypothesis")])).not.toContain("no rival");
+    expect(wall("OPEN", [note("s", "subject", { subjectStatus: "person of interest, never charged" })])).not.toContain("no rival");
+    expect(wall("OPEN", [note("u", "subject", { subjectStatus: "unidentified" })])).toContain("no rival");
+  });
+
+  it("catches a date its own card contradicts, and an origin after the latest", () => {
+    const text = renderWallState({
+      caseTitle: "X",
+      notes: [
+        note("q", "hypothesis", { by: "user" }),
+        note("m", "fact", { when: "2022-03-31T19:00", beat: "origin", title: "六人夜间遇害", body: "1922年3月31日夜，农场六人遇害。" }),
+        note("r", "fact", { when: "2007", beat: "latest", body: "In 2007 police students reviewed the case." }),
+      ],
+      links: [{ from: "m", to: "r", relation: "causes", status: "pinned" }],
+      messages: [],
+    });
+    expect(text).toContain("m is dated 2022-03-31T19:00 but its text says 1922");
+    expect(text).not.toContain("r is dated");
+    expect(text).toContain("the origin (m, 2022-03-31T19:00) is dated after the latest (r, 2007)");
   });
 
   it("stays quiet about a board in good order", () => {

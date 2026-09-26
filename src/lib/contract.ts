@@ -69,7 +69,7 @@ export interface WallUpdate {
   /** Key moments to mark (or, with beat null, unmark) on new notes (by ref) or ones on the wall (by id). */
   moments?: { note: string; beat: Beat | null }[];
   /** Dates for undated notes already on the wall. */
-  dates?: { note: string; when: string; approx?: boolean }[];
+  dates?: { note: string; when: string; approx?: boolean; fix?: string }[];
   /** Notes on the wall the partner proposes taking down (duplicated, superseded, disproven), each with why. */
   retire?: { note: string; reason: string }[];
   /** Tidy the wall into reading order once this turn's cards are up. */
@@ -289,7 +289,7 @@ export const UPDATE_WALL_SCHEMA = {
     },
     dates: {
       type: "array",
-      description: "At most 20. Dates for notes already on the wall that have none, by id, so they take their place on the timeline.",
+      description: "At most 20. Dates for notes already on the wall that have none, by id, so they take their place on the timeline; or, with fix, a correction to a date that is wrong.",
       items: {
         type: "object",
         additionalProperties: false,
@@ -298,6 +298,7 @@ export const UPDATE_WALL_SCHEMA = {
           note: { type: "string" },
           when: { type: "string", description: "YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM." },
           approx: { type: "boolean" },
+          fix: { type: "string", description: "Only to correct a date already set that is wrong: why, briefly (e.g. the card's own text says 1922)." },
         },
       },
     },
@@ -471,10 +472,11 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
     const dates: NonNullable<WallUpdate["dates"]> = [];
     for (const d of raw.dates.slice(0, MAX_DATES * 2)) {
       if (!d || typeof d !== "object") continue;
-      const { note, when, approx } = d as Record<string, unknown>;
+      const { note, when, approx, fix } = d as Record<string, unknown>;
       // only notes already on the wall: a new note carries its own date
       if (typeof note !== "string" || !knownIds.has(note) || !isWhen(when) || dates.some((x) => x.note === note)) continue;
-      dates.push({ note, when, ...(approx === true ? { approx: true } : {}) });
+      const why = typeof fix === "string" ? fix.trim().slice(0, 80) : "";
+      dates.push({ note, when, ...(approx === true ? { approx: true } : {}), ...(why ? { fix: why } : {}) });
     }
     if (dates.length) out.dates = dates.slice(0, MAX_DATES);
   }
