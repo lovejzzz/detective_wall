@@ -14,6 +14,7 @@ import {
   type Confidence,
   type DiagramItem,
   type DiagramSpec,
+  type GridMark,
   type NoteType,
   type Relation,
   type Stamp,
@@ -368,6 +369,19 @@ function isHttpUrl(v: unknown): v is string {
   }
 }
 
+/** A grid box as the partner wrote it, read generously: "Yes", "✓", true, "partial", "?"… */
+function gridMark(v: unknown): GridMark {
+  if (v === true) return "yes";
+  if (v === false) return "no";
+  const k = typeof v === "string" ? v.trim().toLowerCase() : "";
+  const exact = oneOf(k, GRID_MARKS);
+  if (exact) return exact;
+  if (["y", "✓", "✔", "true", "fits", "是"].includes(k)) return "yes";
+  if (["n", "✗", "✘", "x", "false", "否"].includes(k)) return "no";
+  if (["partial", "part", "some", "~", "mixed", "部分"].includes(k)) return "partly";
+  return "unknown";
+}
+
 export function sanitizeDiagram(v: unknown): DiagramSpec | undefined {
   if (!v || typeof v !== "object") return undefined;
   const d = v as Record<string, unknown>;
@@ -382,7 +396,7 @@ export function sanitizeDiagram(v: unknown): DiagramSpec | undefined {
     if (columns.length < 2) return undefined;
     const items = raw.slice(0, 4).map((i) => ({
       label: clip(String(i.label), 24),
-      marks: columns.map((_, k) => oneOf(Array.isArray(i.marks) ? i.marks[k] : undefined, GRID_MARKS) ?? "unknown"),
+      marks: columns.map((_, k) => gridMark(Array.isArray(i.marks) ? i.marks[k] : undefined)),
     }));
     if (items.length < 2) return undefined;
     return { kind, items, columns };

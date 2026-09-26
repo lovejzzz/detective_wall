@@ -235,6 +235,13 @@ describe("comparison grids", () => {
       ["unknown", "yes", "unknown", "no"],
     ]);
   });
+  it("reads the marks as the partner may write them", () => {
+    const d = sanitizeDiagram({ kind: "matrix", columns: ["A", "B", "C", "D"], items: [{ label: "X", marks: ["Yes", "✗", "partial", "?"] }, { label: "Y", marks: [true, false, "N", "Unknown"] }] });
+    expect(d?.items.map((i) => i.marks)).toEqual([
+      ["yes", "no", "partly", "unknown"],
+      ["yes", "no", "no", "unknown"],
+    ]);
+  });
   it("drops a grid with nothing to compare", () => {
     expect(sanitizeDiagram({ kind: "matrix", columns: ["Motive"], items: [{ label: "A" }, { label: "B" }] })).toBeUndefined();
     expect(sanitizeDiagram({ kind: "matrix", columns: ["Motive", "Means"], items: [{ label: "A" }] })).toBeUndefined();

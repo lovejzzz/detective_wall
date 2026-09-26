@@ -188,6 +188,7 @@ export function mergeTurn(leads: ProposedNote[], final: unknown, knownIds: Set<s
 /** A note already on the wall, as the request describes it. */
 export interface WallNote {
   id: string;
+  type?: string;
   title: string;
   body: string;
   url?: string;
@@ -196,12 +197,19 @@ export interface WallNote {
 
 const words = (s: string) => new Set(s.toLowerCase().match(/[a-z0-9]{4,}/g) ?? []);
 
+/** Cards that are meant to share words with what's on the wall: a picture (told apart by its file),
+ *  a drawing (a comparison grid names the suspects and the tests), and an answer (a new conclusion
+ *  replaces the old one in much the same words, and the old one is retired). */
+const NEVER_A_REPEAT = new Set(["photo", "diagram", "conclusion"]);
+
 /**
  * The wall note this proposal repeats, if any: the same source URL, or much the same words
- * (a lower bar when both are about the same day). Photos are told apart by their files, not words.
+ * (a lower bar when both are about the same day), between cards of the same kind.
  */
 export function duplicateOf(n: Pick<ProposedNote, "type" | "title" | "body" | "url" | "when">, wall: WallNote[]): string | null {
-  if (n.type === "photo") return null;
+  if (NEVER_A_REPEAT.has(n.type)) return null;
+  // only a card of the same kind can be repeated: a fact about a man is not his subject file
+  wall = wall.filter((w) => !w.type || w.type === n.type);
   if (n.url) {
     const same = wall.find((w) => w.url === n.url);
     if (same) return same.id;

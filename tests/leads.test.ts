@@ -205,6 +205,19 @@ describe("repeats of the wall", () => {
     expect(duplicateOf(fresh, wall)).toBeNull();
   });
 
+  it("never takes a new answer, a grid or a picture for a repeat, nor a card of another kind", () => {
+    const zodiac = [
+      { id: "c-old", type: "conclusion", title: "Zodiac unidentified; Allen best named fit, but doubtful", body: "Best answer now: an unidentified Bay Area man. Arthur Leigh Allen is the strongest named candidate, but handwriting, prints and partial DNA all failed." },
+      { id: "s-allen", type: "subject", title: "Arthur Leigh Allen, Vallejo's prime suspect", body: "Vallejo man, never charged. for: lived near the scenes | against: handwriting, fingerprints and partial DNA failed to match | settle: full DNA from a verified envelope" },
+    ];
+    // the replacement conclusion says much the same, on purpose: the old one is retired
+    expect(duplicateOf({ type: "conclusion", title: "Still unidentified; Allen's lead over Poste grows", body: "An unidentified Bay Area man; Allen the strongest named candidate, but handwriting, prints and partial DNA failed." }, zodiac)).toBeNull();
+    // a comparison grid names the suspects and the tests
+    expect(duplicateOf({ type: "diagram", title: "Allen, Poste and the unknown man", body: "Compared on handwriting, fingerprints, partial DNA and whether they lived near the Vallejo scenes." }, zodiac)).toBeNull();
+    // a fact about Allen is not his subject file
+    expect(duplicateOf({ type: "fact", title: "Allen's handwriting failed to match", body: "Arthur Leigh Allen: handwriting, fingerprints and partial DNA failed to match; lived near the Vallejo scenes." }, zodiac)).toBeNull();
+  });
+
   it("turns a repeat into the note on the wall, strings and all", () => {
     const aliases = new Map<string, string>();
     const out = mergeTurn(

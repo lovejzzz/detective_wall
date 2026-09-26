@@ -53,6 +53,22 @@ function workdir(): string {
   return dir;
 }
 
+/**
+ * The last turn as the partner sent it and as the wall got it, kept beside the partner's working
+ * directory (last-turn.json). When a card the reply talks about never reaches the wall, this says
+ * whether the partner didn't send it or the checks turned it away.
+ */
+function recordTurn(raw: unknown, leads: ProposedNote[], update: { notes: ProposedNote[] }) {
+  try {
+    const kept = new Set(update.notes.map((n) => n.ref));
+    const sent = [...leads, ...(raw && typeof raw === "object" && Array.isArray((raw as { notes?: unknown }).notes) ? ((raw as { notes: ProposedNote[] }).notes) : [])];
+    const dropped = sent.filter((n) => n && typeof n === "object" && !kept.has(n.ref));
+    writeFileSync(join(workdir(), "last-turn.json"), JSON.stringify({ at: new Date().toISOString(), raw, leads: leads.map((n) => n.ref), kept: [...kept], dropped }, null, 1));
+  } catch {
+    /* a record is a convenience, never a reason to fail the turn */
+  }
+}
+
 /** The pin_lead tool, served to the CLI by a one-tool MCP server (see wall-mcp.mjs). */
 const PIN_LEAD = "mcp__wall__pin_lead";
 const FIND_PHOTOS = "mcp__wall__find_photos";
@@ -276,6 +292,7 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
   const update = mergeTurn(leads, reply.wall, knownIds, req.notes, aliases);
   // Web notes must cite a page the CLI actually searched or fetched this turn.
   update.notes = update.notes.filter((n) => verified(n, seen));
+  recordTurn(reply.wall, leads, update);
   emit({
     type: "done",
     result: {
