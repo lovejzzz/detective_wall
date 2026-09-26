@@ -195,6 +195,16 @@ function handwrite(
   return lines.length;
 }
 
+/** The largest handwriting size, from `size` down to `min`, at which `text` fits `maxW` in `lines` lines. */
+function fitHand(g: Ctx, text: string, maxW: number, size: number, min: number, lines = 1, weight = 600): number {
+  for (let s = size; s > min; s -= 0.5) {
+    g.font = `${weight} ${s}px ${HAND}`;
+    const wrapped = wrapLines(g, text, maxW);
+    if (wrapped.length <= lines && wrapped.every((l) => g.measureText(l).width <= maxW)) return s;
+  }
+  return min;
+}
+
 /** Justified serif column with a drop cap, like a newspaper. */
 function newsColumn(g: Ctx, text: string, x: number, y: number, o: { size: number; lineH: number; maxW: number; maxLines: number; rand: Rand }) {
   const cap = text.trim().charAt(0);
@@ -497,7 +507,9 @@ function paintDiagram(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
     g.fillRect(0, y, w, major ? 1.2 * u : 0.8 * u);
   }
   const m = 16 * u;
-  handwrite(g, n.title, m, 36 * u, { size: 22 * u, weight: 700, lineH: 22 * u, maxW: w - m * 2, maxLines: 1, color: BALLPOINT, rand });
+  // a long title writes smaller rather than losing its end
+  const ts = fitHand(g, n.title, w - m * 2 - 4 * u, 22 * u, 15 * u, 1, 700);
+  handwrite(g, n.title, m, 36 * u, { size: ts, weight: 700, lineH: ts, maxW: w - m * 2, maxLines: 1, color: BALLPOINT, rand });
   const d = n.diagram;
   const ink = "#243552";
   const red = "#8a2a1f";
@@ -538,13 +550,19 @@ function paintDiagram(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
     const max = Math.max(...d.items.map((i) => i.value ?? 0));
     const rowH = Math.min(40 * u, area.h / d.items.length);
     const lx = area.x;
-    const bx = area.x + 78 * u;
-    const bw = area.w - 82 * u;
+    // the label column is as wide as the longest label needs, up to 45% of the sheet
+    g.font = `600 ${16 * u}px ${HAND}`;
+    const col = Math.min(area.w * 0.45, Math.max(40 * u, ...d.items.map((it) => g.measureText(it.label).width)) + 8 * u);
+    g.font = `600 ${14 * u}px ${HAND}`;
+    const valueW = Math.max(...d.items.map((it) => (it.value !== undefined ? g.measureText(String(it.value)).width : 0))) + 8 * u;
+    const bx = area.x + col;
+    const bw = area.w - col - valueW;
     d.items.forEach((it, i) => {
       const y = area.y + 8 * u + i * rowH;
       const len = ((it.value ?? 0) / max) * bw;
       const bh = rowH * 0.56;
-      label(it.label, lx, y + bh * 0.8);
+      const ls = fitHand(g, it.label, col - 8 * u, 16 * u, 11 * u);
+      handwrite(g, it.label, lx, y + bh * 0.8, { size: ls, weight: 600, lineH: ls, maxW: col, maxLines: 1, color: ink, rand });
       penLine(g, [[bx, y], [bx + len, y], [bx + len, y + bh], [bx, y + bh], [bx, y]], { color: ink, width: 1.4 * u, rand, wobble: 0.5 });
       g.save();
       g.beginPath();
@@ -567,10 +585,18 @@ function paintDiagram(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
       const y = area.y + 12 * u + row * 70 * u;
       const bh = 36 * u;
       penLine(g, [[x, y], [x + bw, y], [x + bw, y + bh], [x, y + bh], [x, y + 2]], { color: it.label === "?" ? red : ink, width: 1.4 * u, rand, wobble: 0.6, passes: 2 });
-      g.font = `600 ${15 * u}px ${HAND}`;
-      const text = it.label.length > 11 ? it.label.slice(0, 10) + "…" : it.label;
-      const tw = g.measureText(text).width;
-      label(text, x + (bw - tw) / 2, y + bh * 0.68, it.label === "?" ? red : ink, 15);
+      // one line if it fits, else two smaller ones, centred in the box
+      const inner = bw - 8 * u;
+      const one = fitHand(g, it.label, inner, 15 * u, 12 * u);
+      const fits = (g.font = `600 ${one}px ${HAND}`, g.measureText(it.label).width <= inner);
+      const fs = fits ? one : fitHand(g, it.label, inner, 13 * u, 9.5 * u, 2);
+      g.font = `600 ${fs}px ${HAND}`;
+      const lines = clampLines(g, wrapLines(g, it.label, inner), 2, inner);
+      const lh = fs * 1.02;
+      const y0 = y + bh / 2 + fs * 0.34 - ((lines.length - 1) * lh) / 2;
+      lines.forEach((ln, li) =>
+        handwrite(g, ln, x + 4 * u, y0 + li * lh, { size: fs, weight: 600, lineH: lh, maxW: inner, maxLines: 1, color: it.label === "?" ? red : ink, rand, align: "center" }),
+      );
       const next = d.items[i + 1];
       if (!next) return;
       const nrow = Math.floor((i + 1) / per);
@@ -649,6 +675,9 @@ function paintMap(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: numbe
     write(text, spot[0], spot[1], color, size);
   };
 
+  // the north arrow's corner stays clear
+  taken.push({ x0: area.x + area.w - 16 * u, x1: area.x + area.w + 8 * u, y0: area.y - 4 * u, y1: area.y + 40 * u });
+
   // areas first, underneath: buildings, rooms, parks
   const areas = d.items.filter((it) => it.w && it.h);
   for (const it of areas) {
@@ -699,11 +728,12 @@ function paintMap(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: numbe
     const [x, y] = at(it);
     const aw = (it.w! / 100) * area.w;
     const ah = (it.h! / 100) * area.h;
-    const tw = width(it.label, 12);
+    const as = d.items.length > 7 ? 10.5 : 11.5;
+    const tw = width(it.label, as);
     const spots: [number, number][] = [];
     if (tw < aw - 10 * u && ah > 20 * u) spots.push([x + 5 * u, y + 16 * u], [x + 5 * u, y + ah - 5 * u], [x + aw - tw - 5 * u, y + ah - 5 * u]);
     spots.push([x, y + ah + 13 * u], [x, y - 5 * u], [x + aw - tw, y + ah + 13 * u], [x + aw - tw, y - 5 * u]);
-    place(it.label, 12, it.mark === "scene" ? red : "#4a4640", spots);
+    place(it.label, as, it.mark === "scene" ? red : "#4a4640", spots);
   }
 
   // points and their labels: right of the point, else left, below or above, wherever is clear
@@ -727,7 +757,7 @@ function paintMap(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: numbe
       g.arc(x, y, 2.8 * u, 0, Math.PI * 2);
       g.fill();
     }
-    const size = 13;
+    const size = points.length > 7 ? 11 : points.length > 5 ? 12 : 13;
     const text = it.value !== undefined ? `${it.value}. ${it.label}` : it.label;
     const tw = width(text, size);
     place(text, size, color, [

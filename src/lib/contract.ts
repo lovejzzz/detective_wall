@@ -283,7 +283,7 @@ function isHttpUrl(v: unknown): v is string {
   }
 }
 
-function sanitizeDiagram(v: unknown): DiagramSpec | undefined {
+export function sanitizeDiagram(v: unknown): DiagramSpec | undefined {
   if (!v || typeof v !== "object") return undefined;
   const d = v as Record<string, unknown>;
   const kind = oneOf(d.kind, ["bars", "circles", "flow", "map"] as const);
