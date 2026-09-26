@@ -145,7 +145,7 @@ function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
         )}
         {credit && (
           <span className="d-credit">
-            {t("Photo: {author}", { author: credit.author })} · {credit.license} ·{" "}
+            {t("Photo: {author}", { author: t(credit.author) })} · {t(credit.license)} ·{" "}
             <a href={credit.page} target="_blank" rel="noreferrer">
               Wikimedia Commons
             </a>

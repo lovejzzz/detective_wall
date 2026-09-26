@@ -149,7 +149,7 @@ export const ZH: Record<string, string> = {
   "No file mentions “{q}”.": "没有案卷提到“{q}”。",
   "{snippet} (in “{title}”)": "{snippet}（见“{title}”）",
   "Push the drawer shut": "推上抽屉",
-  "D.B. Cooper": "D.B.库珀",
+  "D.B. Cooper": "库珀",
   Tylenol: "泰诺",
   "Glico-Morinaga": "固力果·森永",
   "¥300 million": "三亿日元",
@@ -271,6 +271,8 @@ export const ZH: Record<string, string> = {
   "Photo as published by": "图片来源：",
   "· shown for research; rights stay with the publisher": "· 仅供研究展示，版权归发布方所有",
   "Photo: {author}": "摄影：{author}",
+  "Unknown author": "作者不详",
+  "see file page": "见文件页面",
   "Ask the partner about this photo": "问问搭档这张照片",
   "What can you tell from the photo “{title}”?": "你能从照片“{title}”里看出什么？",
 
