@@ -1691,6 +1691,8 @@ kbd {
   font-weight: 700;
 }
 .plaque-label {
+  flex: none;
+  white-space: nowrap;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1933,6 +1935,7 @@ kbd {
     0 10px 22px -10px rgba(0, 0, 0, 0.9);
 }
 .view-tabs button {
+  white-space: nowrap;
   padding: 7px 14px 6px;
   border: 0;
   border-radius: 6px 6px 2px 2px;
@@ -2179,7 +2182,7 @@ kbd {
   top: calc(100% + 14px);
   right: -8px;
   z-index: 40;
-  width: 268px;
+  width: 288px;
   padding: 16px 18px 14px;
   color: #2f2415;
   background: #efe3c3 var(--grain);
@@ -2211,14 +2214,16 @@ kbd {
   font: 600 21px/1 var(--hand);
   color: #3b2d17;
 }
+/* every choice is the same two boxes wide, so the controls line up down the card */
 .settings-choice {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 76px);
   gap: 4px;
 }
 .settings-choice button {
-  min-width: 58px;
+  min-width: 0;
   min-height: 30px;
-  padding: 0 10px;
+  padding: 0 4px;
   border: 1.5px solid rgba(59, 45, 23, 0.5);
   border-radius: 2px;
   background: transparent;
@@ -3460,7 +3465,7 @@ kbd {
   /* wide enough for most titles; a long one still ends in an ellipsis rather than overflowing */
   width: max-content;
   min-width: 31%;
-  max-width: 52%;
+  max-width: min(52%, calc(100% - var(--tab) - 6px));
   height: 28px;
   padding: 6px 12px 0;
   overflow: hidden;
@@ -3710,6 +3715,18 @@ kbd {
   background: #fffaf0;
 }
 
+/* On a touch screen there is no hover: the save and shred marks stay out, quietly, at the end of
+   each file's first line, and the line makes room for them. */
+@media (hover: none) {
+  .file-export,
+  .file-shred:not(.is-asking) {
+    opacity: 0.75;
+  }
+  .file-row {
+    padding-right: 62px;
+  }
+}
+
 /* no file matches: the message sits under the search, not at the bottom of the drawer */
 .files:empty {
   flex: none;
@@ -3855,6 +3872,9 @@ kbd {
 @media (max-width: 640px) {
   .drawer {
     padding: 12px 10px 0;
+  }
+  .drawer-handle {
+    width: 104px;
   }
   /* the plates go down beside the pull, where there is room */
   .front-action {

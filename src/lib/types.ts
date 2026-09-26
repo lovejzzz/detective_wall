@@ -182,6 +182,8 @@ export interface Case {
   demoVersion?: number;
   /** When the case was last opened, for the "picking this back up" line. */
   lastOpenedAt?: number;
+  /** A copy filed from a case file because the case had changed elsewhere: which case, as of when. */
+  copiedFrom?: { id: string; updatedAt: number };
   /** Open on the whole wall, framed for whatever screen it's on (then cleared). New demo cases set it. */
   frameOnOpen?: boolean;
   /** The chapters its timeline reads in, when the case (or the partner) has named them. */

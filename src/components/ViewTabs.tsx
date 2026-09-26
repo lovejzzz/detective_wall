@@ -104,11 +104,17 @@ function SettingsSwitch() {
   const lang = useLang();
   const depth = useDepth();
   const box = useRef<HTMLDivElement>(null);
+  const gear = useRef<HTMLButtonElement>(null);
   useEffect(() => onSoundChange(setSoundState), []);
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    // Esc puts the card away and hands the keys back to the gear
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      gear.current?.focus();
+    };
     window.addEventListener("pointerdown", away);
     window.addEventListener("keydown", esc);
     return () => {
@@ -117,8 +123,29 @@ function SettingsSwitch() {
     };
   }, [open]);
   return (
-    <div className="settings" ref={box}>
+    <div
+      className="settings"
+      ref={box}
+      // Tabbing out of the card closes it, like clicking away
+      onBlur={(e) => open && e.relatedTarget && !box.current?.contains(e.relatedTarget as Node) && setOpen(false)}
+      // ←/→ move between the choices of a row, as in any radio group
+      onKeyDown={(e) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        const el = e.target as HTMLElement;
+        const group = el.closest<HTMLElement>("[role=radiogroup]");
+        if (!group) return;
+        const radios = [...group.querySelectorAll<HTMLButtonElement>("[role=radio]")];
+        const next = radios[(radios.indexOf(el as HTMLButtonElement) + (e.key === "ArrowRight" ? 1 : radios.length - 1)) % radios.length];
+        e.preventDefault();
+        const which = group.dataset.group;
+        next.click();
+        next.focus();
+        // a new language redraws the card: find the chosen box again
+        requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-group="${which}"] [aria-checked="true"]`)?.focus());
+      }}
+    >
       <button
+        ref={gear}
         className={`settings-switch ${open ? "is-on" : ""}`}
         onClick={() => setOpen(!open)}
         aria-expanded={open}
@@ -135,7 +162,7 @@ function SettingsSwitch() {
           <h3>{t("Settings")}</h3>
           <div className="settings-row">
             <span className="settings-label">{t("Language")}</span>
-            <div className="settings-choice" role="radiogroup" aria-label={t("Language")}>
+            <div className="settings-choice" role="radiogroup" data-group="lang" aria-label={t("Language")}>
               {LANGS.map((l) => (
                 <button key={l.id} role="radio" aria-checked={lang === l.id} className={lang === l.id ? "is-on" : ""} onClick={() => setLang(l.id)} lang={l.id === "zh" ? "zh-Hans" : "en"}>
                   {l.name}
@@ -145,7 +172,7 @@ function SettingsSwitch() {
           </div>
           <div className="settings-row">
             <span className="settings-label">{t("Research")}</span>
-            <div className="settings-choice" role="radiogroup" aria-label={t("Research")}>
+            <div className="settings-choice" role="radiogroup" data-group="depth" aria-label={t("Research")}>
               {(["thorough", "quick"] as const).map((v) => (
                 <button key={v} role="radio" aria-checked={depth === v} className={depth === v ? "is-on" : ""} onClick={() => setDepth(v)}>
                   {v === "thorough" ? t("Thorough") : t("Quick")}
@@ -156,7 +183,7 @@ function SettingsSwitch() {
           <p className="settings-hint">{depth === "quick" ? t("Quick: a few searches, an answer in about a minute.") : t("Thorough: the partner reads widely, three or four minutes a turn.")}</p>
           <div className="settings-row">
             <span className="settings-label">{t("Sound")}</span>
-            <div className="settings-choice" role="radiogroup" aria-label={t("Sound")}>
+            <div className="settings-choice" role="radiogroup" data-group="sound" aria-label={t("Sound")}>
               {([true, false] as const).map((v) => (
                 <button key={String(v)} role="radio" aria-checked={sound === v} className={sound === v ? "is-on" : ""} onClick={() => setSound(v)}>
                   {v ? t("On") : t("Off")}

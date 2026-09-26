@@ -52,8 +52,10 @@ async function probePages(): Promise<boolean> {
 export function checkPhotoSources(again = false) {
   if (state && !again) return;
   set({ commons: "checking", pages: "checking" });
-  void probeCommons().then((ok) => set({ commons: ok ? "ok" : "blocked" }));
-  void probePages().then((ok) => set({ pages: ok ? "ok" : "blocked" }));
+  // "Checking…" stays up a moment even when the answer is instant, so a retry is seen to happen
+  const shown = new Promise((r) => setTimeout(r, 700));
+  void Promise.all([probeCommons(), shown]).then(([ok]) => set({ commons: ok ? "ok" : "blocked" }));
+  void Promise.all([probePages(), shown]).then(([ok]) => set({ pages: ok ? "ok" : "blocked" }));
 }
 
 export function usePhotoReach(): PhotoReach | null {

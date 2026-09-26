@@ -6,7 +6,7 @@ import { ensureCases, useStore } from "../store.ts";
 import type { Case, NoteType } from "../lib/types.ts";
 import { ago, caseNumbers, caseStats, caseTitle, fileNo } from "../lib/cases.ts";
 import { getLang, t } from "../lib/i18n.ts";
-import { caseFileName, hasInferences, packCases, planImport, readCaseFile, saveFile, unpackPhotos } from "../lib/casefile.ts";
+import { caseFileName, hasInferences, importReport, packCases, planImport, readCaseFile, saveFile, takePendingImport, unpackPhotos } from "../lib/casefile.ts";
 import { uid } from "../lib/geometry.ts";
 
 type Sort = "recent" | "number" | "title";
@@ -82,15 +82,11 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
     if (!f) return;
     const read = readCaseFile(await f.text());
     if ("error" in read) return setSlip({ text: read.error, error: true });
-    const { add, skipped } = planImport(read.file, useStore.getState().cases, uid);
+    const { add, copies, skipped, from } = planImport(read.file, useStore.getState().cases, uid);
     await unpackPhotos(read.file, add);
     useStore.getState().importCases(add);
     setQ("");
-    const text = !add.length
-      ? t(skipped === 1 ? "That case is already in the cabinet." : "Those cases are already in the cabinet.")
-      : skipped
-        ? t("Filed {n} of the cases; {m} were already here.", { n: add.length, m: skipped })
-        : t(add.length === 1 ? "Filed “{title}”." : "Filed {n} cases.", { n: add.length, title: caseTitle(add[0].title) });
+    const text = importReport(add, copies, skipped, from);
     setSlip({ text });
   };
 
@@ -104,6 +100,12 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
     return all.map((c) => ({ c, ...matchOf(c, q.trim()) })).filter((f) => f.hit);
   }, [order, cases, sort, q, numbers]);
 
+  // a case file dropped on the wall opened the drawer: file it now
+  useEffect(() => {
+    const f = takePendingImport();
+    if (f) void importFile(f);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     search.current?.focus();
     const onKey = (e: globalThis.KeyboardEvent) => {
@@ -135,24 +137,23 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
   const total = Object.keys(cases).length;
 
   return (
-    <div className={`cabinet-backdrop ${closing ? "is-closing" : ""}`} onPointerDown={(e) => e.target === e.currentTarget && close()}>
-      <section
-        className={`cabinet ${dropping ? "is-dropping" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("Case files")}
-        onDragOver={(e) => {
-          if (![...e.dataTransfer.items].some((i) => i.kind === "file")) return;
-          e.preventDefault();
-          setDropping(true);
-        }}
-        onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setDropping(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDropping(false);
-          void importFile(e.dataTransfer.files[0]);
-        }}
-      >
+    <div
+      className={`cabinet-backdrop ${closing ? "is-closing" : ""}`}
+      onPointerDown={(e) => e.target === e.currentTarget && close()}
+      // a file dropped anywhere while the drawer is out is filed, never opened by the browser instead
+      onDragOver={(e) => {
+        if (![...e.dataTransfer.items].some((i) => i.kind === "file")) return;
+        e.preventDefault();
+        setDropping(true);
+      }}
+      onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setDropping(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDropping(false);
+        void importFile(e.dataTransfer.files[0]);
+      }}
+    >
+      <section className={`cabinet ${dropping ? "is-dropping" : ""}`} role="dialog" aria-modal="true" aria-label={t("Case files")}>
         <div className="drawer">
           <div className="drawer-head">
             <input

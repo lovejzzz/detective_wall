@@ -2,7 +2,8 @@
 // file with the photos stored in this browser packed inside it, and read back in the same shape.
 import type { Case } from "./types.ts";
 import { photoIdOf, photoRecord, restorePhoto } from "./images.ts";
-import { t } from "./i18n.ts";
+import { getLang, t } from "./i18n.ts";
+import { caseTitle } from "./cases.ts";
 
 export const FORMAT = "detective-wall/cases";
 
@@ -71,7 +72,7 @@ export function readCaseFile(text: string): { file: CaseFile } | { error: string
     return { error: t("That file isn't a case file.") };
   }
   if (!isObj(raw) || raw.format !== FORMAT || !Array.isArray(raw.cases)) return { error: t("That file isn't a case file.") };
-  if (typeof raw.version === "number" && raw.version > 1) return { error: t("That file was made by a newer version of the wall.") };
+  if (typeof raw.version === "number" && raw.version > 1) return { error: t("That file was made by a newer version of the wall. Reload the page to update it, then open the file again.") };
   const cases = raw.cases.filter(
     (c): c is Case => isObj(c) && typeof c.id === "string" && typeof c.title === "string" && Array.isArray(c.notes) && Array.isArray(c.links) && Array.isArray(c.messages),
   );
@@ -80,28 +81,82 @@ export function readCaseFile(text: string): { file: CaseFile } | { error: string
   return { file: { ...(raw as unknown as CaseFile), cases, photos } };
 }
 
+/** Someone's own work on a case: their notes, their questions, their photos, anything pinned or tossed. */
+function work(c: Case) {
+  return {
+    user: c.notes.filter((n) => n.origin?.kind === "user").length + c.messages.filter((m) => m.role === "user").length,
+    photos: c.notes.filter((n) => photoIdOf(n.imageUrl)).length,
+    shape: `${c.notes.length}/${c.notes.filter((n) => n.status === "pinned").length}/${c.links.length}/${c.messages.length}`,
+  };
+}
+
 /**
- * Which cases in a file to add to the cabinet. A case already here, unchanged or newer here, is
- * skipped; a built-in demo that's already here is skipped; one that changed elsewhere comes in as a
- * copy beside the one here, so nothing on this wall is ever overwritten.
+ * Which cases in a file to add to the cabinet. Nothing on this wall is ever overwritten:
+ * - a case already here, unchanged or newer here, is skipped;
+ * - a built-in demo is skipped unless the file's copy carries the user's own work on it;
+ * - a case that changed elsewhere comes in as a copy beside the one here, labelled as one, and a
+ *   copy of the same version isn't filed twice.
  */
-export function planImport(file: CaseFile, here: Record<string, Case>, newId: () => string): { add: Case[]; skipped: number } {
+export function planImport(file: CaseFile, here: Record<string, Case>, newId: () => string): { add: Case[]; copies: number; skipped: number; from: string } {
   const add: Case[] = [];
+  let copies = 0;
   let skipped = 0;
-  const demos = new Set(Object.values(here).flatMap((c) => (c.demo ? [c.demo] : [])));
+  let from = "";
+  const mine = Object.values(here);
   for (const c of file.cases) {
-    const mine = here[c.id];
-    if ((c.demo && demos.has(c.demo)) || (mine && mine.updatedAt >= c.updatedAt)) {
+    const same = here[c.id];
+    const demo = c.demo ? mine.find((m) => m.demo === c.demo) : undefined;
+    // this version of it was filed as a copy before
+    const copied = mine.some((m) => m.copiedFrom?.id === c.id && m.copiedFrom.updatedAt >= c.updatedAt);
+    let untouched = false;
+    if (demo) {
+      const [a, b] = [work(c), work(demo)];
+      // same edition: any difference at all is the user's; another edition: only their own cards, questions and photos count
+      untouched = (c.demoVersion ?? 1) === (demo.demoVersion ?? 1) ? a.shape === b.shape && a.user === b.user && !a.photos : a.user <= b.user && !a.photos;
+    }
+    if ((same && same.updatedAt >= c.updatedAt) || (demo && untouched) || copied) {
       skipped++;
       continue;
     }
     const camera = isObj(c.camera) ? c.camera : { x: 0, y: 0, zoom: 1 };
     const base = { ...c, camera, focusNoteId: null, frameOnOpen: true, lastOpenedAt: Date.now() };
-    // a copy of a changed case is a case of its own: a new id, and no demo script behind it
-    add.push(mine ? { ...base, id: newId(), demo: undefined, demoVersion: undefined } : base);
+    if (!same && !demo) {
+      add.push(base);
+      continue;
+    }
+    // a copy is a case of its own: a new id, no demo script behind it, and a title that says so
+    copies++;
+    from ||= caseTitle(c.title);
+    add.push({ ...base, id: newId(), demo: undefined, demoVersion: undefined, title: t("{title} (copy)", { title: caseTitle(c.title) }), copiedFrom: { id: c.id, updatedAt: c.updatedAt } });
   }
-  return { add, skipped };
+  return { add, copies, skipped, from };
 }
+
+/** What an import did, in a sentence or two for the slip. */
+export function importReport(add: Case[], copies: number, skipped: number, from = ""): string {
+  if (!add.length) return t(skipped === 1 ? "That case is already in the cabinet." : "Those cases are already in the cabinet.");
+  const parts: string[] = [];
+  if (add.length === 1)
+    parts.push(copies ? t("Filed a copy of “{title}” beside the one here: it had changed elsewhere.", { title: from }) : t("Filed “{title}”.", { title: caseTitle(add[0].title) }));
+  else {
+    parts.push(t("Filed {n} cases.", { n: add.length }));
+    if (copies) parts.push(t(copies === 1 ? "One came in as a copy: it had changed elsewhere." : "{c} came in as copies: they had changed elsewhere.", { c: copies }));
+  }
+  if (skipped) parts.push(t(skipped === 1 ? "1 was already here." : "{m} were already here.", { m: skipped }));
+  return parts.join(getLang() === "zh" ? "" : " ");
+}
+
+/** A case file dropped outside the cabinet (on the wall), waiting for the cabinet to file it. */
+let pending: File | null = null;
+export const queueImport = (f: File) => void (pending = f);
+export function takePendingImport(): File | null {
+  const f = pending;
+  pending = null;
+  return f;
+}
+
+/** Whether a dragged or dropped file looks like a case file rather than a photo. */
+export const isCaseFile = (f: { type: string; name?: string }) => f.type === "application/json" || !!f.name?.toLowerCase().endsWith(".json");
 
 /** Puts the file's photos back into this browser's photo store. */
 export async function unpackPhotos(file: CaseFile, cases: Case[]): Promise<void> {

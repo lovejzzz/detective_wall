@@ -23,6 +23,7 @@ import { Timeline3D } from "../scene/Timeline3D.tsx";
 import { layoutTimeline, storyMoments } from "../lib/timeline.ts";
 import { importPhoto, isPhotoFile } from "../lib/images.ts";
 import { essentialsOf, litBy } from "../lib/lens.ts";
+import { isCaseFile, queueImport } from "../lib/casefile.ts";
 import { arrangeWall } from "../lib/arrange.ts";
 
 export interface Stage {
@@ -421,7 +422,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   }, [dossierId]);
 
   // ---- Photos: drop them on the wall, or paste one ----
-  const [dropping, setDropping] = useState(false);
+  /** A file dragged over the wall: a photo (pinned where it's dropped), a case file (filed in the cabinet), or unclear. */
+  const [dropping, setDropping] = useState<false | "photo" | "case" | "any">(false);
   const pinPhotos = useCallback(
     async (files: File[], at: { x: number; y: number }) => {
       const photos = files.filter(isPhotoFile).slice(0, 6);
@@ -919,10 +921,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       tabIndex={0}
       aria-label={t("The wall. Tab walks the evidence, Enter opens it.")}
       onDragOver={(e) => {
-        if (![...e.dataTransfer.items].some((i) => i.kind === "file")) return;
+        const files = [...e.dataTransfer.items].filter((i) => i.kind === "file");
+        if (!files.length) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
-        setDropping(true);
+        setDropping(files.some((i) => i.type.startsWith("image/")) ? "photo" : files.some((i) => isCaseFile(i)) ? "case" : "any");
       }}
       onDragLeave={(e) => {
         if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setDropping(false);
@@ -930,7 +933,15 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       onDrop={(e) => {
         e.preventDefault();
         setDropping(false);
-        void pinPhotos([...e.dataTransfer.files], toWorld({ x: e.clientX, y: e.clientY }));
+        const files = [...e.dataTransfer.files];
+        const caseFile = files.find((f) => isCaseFile(f));
+        if (caseFile && !files.some(isPhotoFile)) {
+          // a case file goes to the cabinet, which files it and says what it did
+          queueImport(caseFile);
+          store().setCabinetOpen(true);
+          return;
+        }
+        void pinPhotos(files, toWorld({ x: e.clientX, y: e.clientY }));
       }}
       onPointerDown={onBgDown}
       onPointerMove={onBgMove}
@@ -1342,7 +1353,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
         {!timeline && <Wastebasket ref={binRef} shown={!!draggingId || crumples.length > 0} hot={binHot} gulps={crumples} left={stage.cx} carrying={draggingId ? placedById.get(draggingId)?.title : undefined} />}
         {dropping && (
           <div className="drop-hint" aria-hidden>
-            <span>{t("Drop to pin the photo here")}</span>
+            <span>{dropping === "case" ? t("Drop to file this case in the cabinet") : dropping === "photo" ? t("Drop to pin the photo here") : t("Drop a photo to pin it, or a case file to file it")}</span>
           </div>
         )}
         {c.notes.length === 0 && (
