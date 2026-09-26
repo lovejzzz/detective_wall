@@ -13,7 +13,7 @@ Every question becomes a case. You talk it through with Claude, and the evidence
 
 ![Close-up: typed ink, a rubber stamp, push pins and string throwing shadows](docs/closeup.jpg)
 
-Four real, unsolved cases come with it: the Glico-Morinaga extortions (1984–85), the 300 million yen robbery (1968), the Chicago Tylenol murders (1982) and the Flight 305 hijacking ("D. B. Cooper", 1971). Each is a fact-checked case file: dated and sourced events in chapters, real photos from Wikimedia Commons hung on the events they show, an evidence-based profile of the unknown offender, a subject file for each publicly named person of interest (the evidence for and against, and the one test that would settle it), and an assessment of the most likely explanation, with what cuts against it and where information can go. Without an API key the offline partner walks through three fact-checked leads on the Flight 305 case. The full product spec is in [SPEC.md](SPEC.md).
+Eight real, unsolved cases come with it: from Japan the Setagaya family murder (2000), the Hachiōji supermarket shooting (1995), the Glico-Morinaga extortions (1984–85) and the 300 million yen robbery (1968); from Korea the Frog Boys of Waryongsan and the kidnapping of Lee Hyung-ho (both 1991); and the Chicago Tylenol murders (1982) and the Flight 305 hijacking ("D. B. Cooper", 1971). Each is a fact-checked case file: dated and sourced events in chapters, real photos (from Wikimedia Commons, or from the police, archive or newspaper page that published them) hung on the events they show, sketch maps and charts, an evidence-based profile of the unknown offender, a subject file for each publicly named person of interest (the evidence for and against, and the one test that would settle it), and an assessment of the most likely explanation, with what cuts against it and where information can go. Without an API key the offline partner walks through three fact-checked leads on the Flight 305 case. The full product spec is in [SPEC.md](SPEC.md).
 
 ## Run it
 
@@ -53,7 +53,8 @@ npm start                 # serves dist/ and the API on $PORT (default 8787)
 |---|---|
 | Ask | Type on the typewriter and press Enter (`/` jumps there) |
 | Accept or reject | Press and hold a loose note to pin it, or drag any note into the wastebasket that rises while you carry it. **Pin it** / **Toss**, ✓ / ✕ on a dashed string, `P` / `X`, and "pin all" under each reply work too. |
-| Photos from the partner | Ask for photos ("find photos of the suspects") and the partner searches Wikimedia Commons and pins real, freely licensed photos, captioned and credited from each file's own page. If there's no free photo, it says so and links to where one is published. |
+| Photos from the partner | Ask for photos ("find photos of the evidence") and the partner pins real photos: from Wikimedia Commons, captioned and credited from each file's page, or, when Commons has nothing right, by the authoritative page that publishes the picture (a police appeal, the FBI, an archive record, a newspaper's photo page); the wall shows that page's own lead image, credited to it. |
+| Sketch maps | Where things happened matters: the partner draws hand-drawn maps and floor plans (a red X for scenes, a dashed route through numbered stops, north arrow), alongside flow and bar charts. |
 | Watch it work | While the partner researches, each find goes up on the wall as it's made, and its searches and pages are pencilled into the notepad margin. |
 | Tie a string | Drag from a note's pin to another note, then pick *supports*, *causes*, *contradicts* or *references* (keys `1`–`4`) |
 | Open a note | Click it to open its file; the spotlight goes to it at the same moment (`Tab` then `Enter` works too). Edits save as you type. |
@@ -100,6 +101,8 @@ src/
   lib/when.ts           partial dates ("1971", "1971-11-24T20:13"): parse, sort, label
   lib/images.ts         photo import (downscale), IndexedDB storage, base64 for Claude
   lib/commons.ts        real photos from Wikimedia Commons: URL + author/licence from file metadata
+  lib/pagephoto.ts      photos by the page that publishes them ("page:<url>")
+  server/pageimage.ts   fetches a page's lead image for the wall (https, public hosts, size limits)
 server/
   api.ts                Claude turn: streaming, web search, update_wall tool
   index.ts              production static and API server
