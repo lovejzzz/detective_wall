@@ -5,6 +5,7 @@
 import type { Beat, Case, Confidence, DiagramSpec, Link, Message, Note, NoteType, Phase, Relation, Stamp, StickyColor, SubjectFile } from "./types.ts";
 import { uid } from "./geometry.ts";
 import { arrangeWall } from "./arrange.ts";
+import { getLang } from "./i18n.ts";
 
 export const commonsPage = (file: string) => `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(file.replace(/ /g, "_"))}`;
 
@@ -48,6 +49,61 @@ export interface DemoSpec {
   messages: { role: Message["role"]; text: string; notes?: string[]; sources?: { url: string; title: string }[] }[];
   /** How long ago the case was opened, in minutes. */
   openedMinutesAgo?: number;
+}
+
+/**
+ * A case file's translation, keyed to the English spec: the case title, the chapters in order, each
+ * note by its key, each link by "from>to", and the conversation's messages in order. Anything
+ * left out stays in English.
+ */
+export interface DemoTranslation {
+  title?: string;
+  phases?: string[];
+  notes?: Record<
+    string,
+    {
+      title?: string;
+      body?: string;
+      subject?: { for?: string[]; against?: string[]; profile?: string[]; settle?: string };
+      /** The diagram's labels, in the order of its items. */
+      diagram?: string[];
+    }
+  >;
+  links?: Record<string, string>;
+  messages?: string[];
+}
+
+/** The spec in another language: every translated line swapped in, everything else as it was. */
+export function localize(spec: DemoSpec, tr?: DemoTranslation): DemoSpec {
+  if (!tr) return spec;
+  return {
+    ...spec,
+    title: tr.title ?? spec.title,
+    phases: spec.phases.map((p, i) => ({ ...p, title: tr.phases?.[i] ?? p.title })),
+    notes: spec.notes.map((n) => {
+      const t = tr.notes?.[n.key];
+      if (!t) return n;
+      return {
+        ...n,
+        title: t.title ?? n.title,
+        body: t.body ?? n.body,
+        ...(n.subject && t.subject
+          ? {
+              subject: {
+                ...n.subject,
+                ...(t.subject.for && n.subject.for ? { for: t.subject.for } : {}),
+                ...(t.subject.against && n.subject.against ? { against: t.subject.against } : {}),
+                ...(t.subject.profile && n.subject.profile ? { profile: t.subject.profile } : {}),
+                ...(t.subject.settle && n.subject.settle ? { settle: t.subject.settle } : {}),
+              },
+            }
+          : {}),
+        ...(n.diagram && t.diagram ? { diagram: { ...n.diagram, items: n.diagram.items.map((it, i) => ({ ...it, label: t.diagram![i] ?? it.label })) } } : {}),
+      };
+    }),
+    links: spec.links.map((l) => ({ ...l, reason: tr.links?.[`${l.from}>${l.to}`] ?? l.reason })),
+    messages: spec.messages.map((m, i) => ({ ...m, text: tr.messages?.[i] ?? m.text })),
+  };
 }
 
 /** A small, repeatable tilt, so the cards look pinned by hand. */
@@ -134,5 +190,6 @@ export function buildDemo(spec: DemoSpec, now = Date.now()): Case {
     messages,
     demo: spec.demo,
     phases: spec.phases,
+    lang: getLang(),
   };
 }

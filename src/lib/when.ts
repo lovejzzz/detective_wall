@@ -1,6 +1,8 @@
 // Partial dates for evidence: "1971", "1971-11", "1971-11-24", "1971-11-24T20:00".
 // Real cases are rarely known to the minute, so precision is part of the value.
 
+import { getLang } from "./i18n.ts";
+
 export const WHEN_PATTERN = /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01])(T([01]\d|2[0-3]):[0-5]\d)?)?)?$/;
 
 export type Precision = "year" | "month" | "day" | "time";
@@ -32,13 +34,25 @@ export function whenYears(when: string): number {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** Human label: "1971", "Nov 1971", "24 Nov 1971", "24 Nov 1971 · 20:00". */
-export function whenLabel(when: string, approx?: boolean): string {
+/**
+ * Human label: "1971", "Nov 1971", "24 Nov 1971", "24 Nov 1971 · 20:00"; in Chinese
+ * "1971年", "1971年11月", "1971年11月24日", "1971年11月24日 20:00". `noYear` leaves the year off
+ * (a date on the cord right after another in the same year).
+ */
+export function whenLabel(when: string, approx?: boolean, noYear = false): string {
   const [date, time] = when.split("T");
   const [y, m, d] = date.split("-");
+  const drop = noYear && !!m;
+  if (getLang() === "zh") {
+    let out = drop ? "" : `${y}年`;
+    if (m) out += `${Number(m)}月`;
+    if (d) out += `${Number(d)}日`;
+    if (time) out += ` ${time}`;
+    return approx ? `约 ${out}` : out;
+  }
   let out = y;
-  if (m) out = `${MONTHS[Number(m) - 1]} ${y}`;
-  if (d) out = `${Number(d)} ${MONTHS[Number(m) - 1]} ${y}`;
+  if (m) out = drop ? MONTHS[Number(m) - 1] : `${MONTHS[Number(m) - 1]} ${y}`;
+  if (d) out = drop ? `${Number(d)} ${MONTHS[Number(m) - 1]}` : `${Number(d)} ${MONTHS[Number(m) - 1]} ${y}`;
   if (time) out += ` · ${time}`;
   return approx ? `c. ${out}` : out;
 }

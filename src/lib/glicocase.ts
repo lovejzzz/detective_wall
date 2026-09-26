@@ -8,7 +8,9 @@
 // kidnapping count) the date is marked approximate. People never charged appear only as the
 // record describes them.
 import type { Case, Phase } from "./types.ts";
-import { buildDemo, type DemoSpec } from "./demo.ts";
+import { buildDemo, localize, type DemoSpec } from "./demo.ts";
+import { getLang } from "./i18n.ts";
+import { GLICO_ZH } from "./zh/glicocase.zh.ts";
 
 export const GLICO_DEMO = "glico-morinaga-1984";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
@@ -30,7 +32,8 @@ const KOBE_2020 = "https://www.kobe-np.co.jp/news/sougou/202002/0013106686.shtml
 const SHINCHO = "https://que.dailyshincho.jp/node/1261/";
 const UPI_1985 = "https://www.upi.com/Archives/1985/08/08/Head-of-cyanide-candy-investigation-commits-suicide/2269492321600/";
 
-const spec: DemoSpec = {
+/** The English case file; translations are keyed to it. */
+export const GLICO_SPEC: DemoSpec = {
   demo: GLICO_DEMO,
   title: "The Glico-Morinaga case",
   openedMinutesAgo: 260,
@@ -190,5 +193,5 @@ const spec: DemoSpec = {
 };
 
 export function glicoCase(now = Date.now()): Case {
-  return { ...buildDemo(spec, now), demoVersion: GLICO_VERSION };
+  return { ...buildDemo(getLang() === "zh" ? localize(GLICO_SPEC, GLICO_ZH) : GLICO_SPEC, now), demoVersion: GLICO_VERSION };
 }

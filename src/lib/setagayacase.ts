@@ -11,7 +11,9 @@
 // approximate where it is. The police have named no suspect: everyone else appears by role. The DNA
 // lineage result is stated as released and attributed; it does not identify a nationality.
 import type { Case, Phase } from "./types.ts";
-import { buildDemo, type DemoSpec } from "./demo.ts";
+import { buildDemo, localize, type DemoSpec } from "./demo.ts";
+import { getLang } from "./i18n.ts";
+import { SETAGAYA_ZH } from "./zh/setagayacase.zh.ts";
 
 export const SETAGAYA_DEMO = "setagaya-2000";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
@@ -37,7 +39,8 @@ const FNN_AGE = "https://www.fnn.jp/articles/-/906356";
 const TV_ASAHI_KNIFE = "https://news.tv-asahi.co.jp/news_society/articles/000238721.html";
 const TOKYO_NP = "https://www.tokyo-np.co.jp/article/372760";
 
-const spec: DemoSpec = {
+/** The English case file; translations are keyed to it. */
+export const SETAGAYA_SPEC: DemoSpec = {
   demo: SETAGAYA_DEMO,
   title: "The Setagaya family murder",
   openedMinutesAgo: 270,
@@ -227,5 +230,5 @@ const spec: DemoSpec = {
 };
 
 export function setagayaCase(now = Date.now()): Case {
-  return { ...buildDemo(spec, now), demoVersion: SETAGAYA_VERSION };
+  return { ...buildDemo(getLang() === "zh" ? localize(SETAGAYA_SPEC, SETAGAYA_ZH) : SETAGAYA_SPEC, now), demoVersion: SETAGAYA_VERSION };
 }

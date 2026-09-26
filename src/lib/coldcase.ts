@@ -7,7 +7,9 @@
 // FBI or credible reporting has publicly named them, each with the evidence both ways and the
 // FBI's own position; no one is presented as Cooper.
 import type { Case, Phase } from "./types.ts";
-import { buildDemo, type DemoSpec } from "./demo.ts";
+import { buildDemo, localize, type DemoSpec } from "./demo.ts";
+import { getLang } from "./i18n.ts";
+import { COOPER_ZH } from "./zh/coldcase.zh.ts";
 
 export const COOPER_DEMO = "cooper-1971";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
@@ -45,7 +47,8 @@ const FBI_2016 = "https://www.fbi.gov/contact-us/field-offices/seattle/news/pres
 
 const C = COMMONS;
 
-const spec: DemoSpec = {
+/** The English case file; translations are keyed to it. */
+export const COOPER_SPEC: DemoSpec = {
   demo: COOPER_DEMO,
   title: "The Flight 305 hijacker (“D. B. Cooper”)",
   openedMinutesAgo: 95,
@@ -196,5 +199,5 @@ const spec: DemoSpec = {
 };
 
 export function coldCase(now = Date.now()): Case {
-  return { ...buildDemo(spec, now), demoVersion: COOPER_VERSION };
+  return { ...buildDemo(getLang() === "zh" ? localize(COOPER_SPEC, COOPER_ZH) : COOPER_SPEC, now), demoVersion: COOPER_VERSION };
 }

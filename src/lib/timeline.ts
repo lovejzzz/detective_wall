@@ -5,6 +5,7 @@
 import type { Beat, Link, Note, Phase } from "./types.ts";
 import { NOTE_SIZE } from "./geometry.ts";
 import { isWhen, precisionOf, whenDay, whenKey, whenLabel, whenYears } from "./when.ts";
+import { getLang } from "./i18n.ts";
 
 export interface TimelineSlot {
   x: number;
@@ -91,9 +92,11 @@ function settledOf(notes: Note[]): Note[] {
 const tagSpan = (label: string) => (label.length * 8.9 + 36) * 1.25;
 
 function gapLabel(years: number): string {
-  if (years >= 1.5) return `≈ ${Math.round(years)} years`;
-  if (years >= 0.9) return "≈ 1 year";
+  const zh = getLang() === "zh";
+  if (years >= 1.5) return zh ? `≈ ${Math.round(years)} 年` : `≈ ${Math.round(years)} years`;
+  if (years >= 0.9) return zh ? "≈ 1 年" : "≈ 1 year";
   const months = Math.round(years * 12);
+  if (zh) return `≈ ${Math.max(1, months)} 个月`;
   return months <= 1 ? "≈ 1 month" : `≈ ${months} months`;
 }
 
@@ -107,7 +110,8 @@ const BAND_MIN = 1400;
 
 function laterLabel(years: number): string | null {
   if (years < 0.25) return null;
-  return `${gapLabel(years).replace(/^≈ /, "")} later`;
+  const span = gapLabel(years).replace(/^≈ /, "");
+  return getLang() === "zh" ? `${span}后` : `${span} later`;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -120,6 +124,10 @@ export function rangeLabel(first: string, last: string): string {
   const [yb] = b.split("-");
   if (a === b) return whenLabel(a);
   if (ya !== yb) return `${ya} – ${yb}`;
+  if (getLang() === "zh") {
+    if (!a.includes("-") || !b.includes("-")) return `${ya}年`;
+    return `${whenLabel(a)} – ${whenLabel(b, false, true)}`;
+  }
   const short = (d: string) => {
     const [, m, day] = d.split("-");
     if (!m) return null;
@@ -383,8 +391,7 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
       // hangs to the left of its point) must clear the previous tag and any gap chip.
       const day = whenDay(group[0].when!);
       const year = day.slice(0, 4);
-      let label = whenLabel(day, group.every((g) => g.approx));
-      if (year === row.tagYear && day.length > 4) label = label.replace(new RegExp(` ${year}$`), "");
+      const label = whenLabel(day, group.every((g) => g.approx), year === row.tagYear);
       const clear = Math.max(row.tagEnd, gap ? gap.x + tagSpan(gap.label) / 2 : -Infinity) + tagSpan(label) + 16;
       if (row.ids.length || gap) minAnchor = Math.max(minAnchor, clear);
       group.forEach((n, i) => {

@@ -12,7 +12,9 @@
 // the expiry date) the date is marked approximate and the standard figure is used. People never
 // charged appear by role only.
 import type { Case, Phase } from "./types.ts";
-import { buildDemo, type DemoSpec } from "./demo.ts";
+import { buildDemo, localize, type DemoSpec } from "./demo.ts";
+import { getLang } from "./i18n.ts";
+import { LEEHYUNGHO_ZH } from "./zh/leehyunghocase.zh.ts";
 
 export const LEEHYUNGHO_DEMO = "leehyungho-1991";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
@@ -36,7 +38,8 @@ const SBS_2011 = "https://news.sbs.co.kr/news/endPage.do?news_id=N1000916446";
 const DONGA_2019 = "https://www.donga.com/news/Society/article/all/20191016/97895463/1";
 const XPORTS_2025 = "https://www.xportsnews.com/article/2007540";
 
-const spec: DemoSpec = {
+/** The English case file; translations are keyed to it. */
+export const LEEHYUNGHO_SPEC: DemoSpec = {
   demo: LEEHYUNGHO_DEMO,
   title: "The Lee Hyung-ho kidnapping",
   openedMinutesAgo: 255,
@@ -221,5 +224,5 @@ const spec: DemoSpec = {
 };
 
 export function leeHyungHoCase(now = Date.now()): Case {
-  return { ...buildDemo(spec, now), demoVersion: LEEHYUNGHO_VERSION };
+  return { ...buildDemo(getLang() === "zh" ? localize(LEEHYUNGHO_SPEC, LEEHYUNGHO_ZH) : LEEHYUNGHO_SPEC, now), demoVersion: LEEHYUNGHO_VERSION };
 }

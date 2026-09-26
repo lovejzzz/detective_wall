@@ -12,6 +12,7 @@ import { SETAGAYA_DEMO, SETAGAYA_VERSION, setagayaCase } from "./lib/setagayacas
 import { HACHIOJI_DEMO, HACHIOJI_VERSION, hachiojiCase } from "./lib/hachiojicase.ts";
 import { FROGBOYS_DEMO, FROGBOYS_VERSION, frogBoysCase } from "./lib/frogboyscase.ts";
 import { LEEHYUNGHO_DEMO, LEEHYUNGHO_VERSION, leeHyungHoCase } from "./lib/leehyunghocase.ts";
+import { getLang } from "./lib/i18n.ts";
 
 export type PartnerMode = "unknown" | "live" | "offline";
 
@@ -784,9 +785,10 @@ export function ensureCases() {
     }));
 
   // A demo saved from an older edition gets the new one: same folder, corrected and fuller file.
+  // So does one written in another language than the page's now.
   for (const c of Object.values(useStore.getState().cases)) {
     const d = DEMOS.find((x) => x.demo === c.demo);
-    if (!d || (c.demoVersion ?? 1) >= d.version) continue;
+    if (!d || ((c.demoVersion ?? 1) >= d.version && (c.lang ?? "en") === getLang())) continue;
     const next = d.make();
     useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...next, id: c.id, lastOpenedAt: c.lastOpenedAt } } }));
   }

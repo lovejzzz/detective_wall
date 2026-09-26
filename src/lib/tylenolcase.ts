@@ -9,7 +9,9 @@
 // in 1982 and never charged with the poisonings; his DNA did not match in 2010. The Idaho identification is reported as the sheriff reported it,
 // with the pushback that followed: a disputed lead, not a named suspect.
 import type { Case, Phase } from "./types.ts";
-import { buildDemo, type DemoSpec } from "./demo.ts";
+import { buildDemo, localize, type DemoSpec } from "./demo.ts";
+import { getLang } from "./i18n.ts";
+import { TYLENOL_ZH } from "./zh/tylenolcase.zh.ts";
 
 export const TYLENOL_DEMO = "tylenol-1982";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
@@ -58,7 +60,8 @@ const NPR_LEWIS = "https://www.npr.org/2023/07/10/1186906874/james-lewis-suspect
 
 const C = TYLENOL_COMMONS;
 
-const spec: DemoSpec = {
+/** The English case file; translations are keyed to it. */
+export const TYLENOL_SPEC: DemoSpec = {
   demo: TYLENOL_DEMO,
   title: "The Chicago Tylenol murders",
   openedMinutesAgo: 240,
@@ -227,5 +230,5 @@ const spec: DemoSpec = {
 };
 
 export function tylenolCase(now = Date.now()): Case {
-  return { ...buildDemo(spec, now), demoVersion: TYLENOL_VERSION };
+  return { ...buildDemo(getLang() === "zh" ? localize(TYLENOL_SPEC, TYLENOL_ZH) : TYLENOL_SPEC, now), demoVersion: TYLENOL_VERSION };
 }

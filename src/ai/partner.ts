@@ -7,6 +7,7 @@ import { photoBase64, photoIdOf } from "../lib/images.ts";
 import { uid } from "../lib/geometry.ts";
 import { key as typeKey } from "../lib/sound.ts";
 import { commonsFileOf, resolveCommons } from "../lib/commons.ts";
+import { getLang } from "../lib/i18n.ts";
 
 export async function checkPartner() {
   try {
@@ -78,6 +79,7 @@ async function runOffline(caseId: string, c: Case, text: string, photoNoteIds: s
 function toRequest(c: Case): InvestigateRequest {
   return {
     caseTitle: c.title,
+    lang: getLang(),
     ...(c.phases?.length ? { phases: c.phases } : {}),
     notes: c.notes.map((n) => ({
       id: n.id,

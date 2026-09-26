@@ -53,6 +53,8 @@ type Grab =
   | { kind: "pin"; id: string };
 
 let fontsLoaded = false;
+/** Chinese characters whose glyphs this page has already fetched. */
+const cjkFetched = new Set<string>();
 /** Hold a loose lead this long, without moving, to press its pin in. */
 const HOLD_MS = 520;
 
@@ -67,9 +69,29 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     if (fontsLoaded) return;
     void fontsReady().then(() => {
       fontsLoaded = true;
-      setFontsVersion(1);
+      setFontsVersion((v) => v + 1);
     });
   }, []);
+  // Chinese glyphs arrive piece by piece: when the wall holds characters not fetched yet, fetch
+  // them and repaint the sheets once they're here.
+  const cjkText = useMemo(() => {
+    const all = [c.title, ...c.notes.map((n) => `${n.title}${n.body}${JSON.stringify(n.subject ?? "")}${JSON.stringify(n.diagram ?? "")}`)].join("");
+    return [...new Set(all.match(/[\u2e80-\u9fff\uf900-\ufaff\uff00-\uffef\u3000-\u303f]/g) ?? [])].filter((ch) => !cjkFetched.has(ch)).join("");
+  }, [c.title, c.notes]);
+  const [cjkDone, setCjkDone] = useState("");
+  useEffect(() => {
+    if (!cjkText) return;
+    let alive = true;
+    void fontsReady(cjkText).then(() => {
+      for (const ch of cjkText) cjkFetched.add(ch);
+      if (!alive) return;
+      setCjkDone(cjkText);
+      setFontsVersion((v) => v + 1);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [cjkText]);
 
   // Each case keeps its own camera (SPEC §9); restore it on switch.
   const caseIdRef = useRef(c.id);
@@ -720,7 +742,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
         }}
       >
         <color attach="background" args={["#0d0906"]} />
-        {fontsVersion > 0 && <FirstFrames />}
+        {fontsVersion > 0 && (!cjkText || cjkDone === cjkText) && <FirstFrames />}
         <CameraRig view={view} />
         <Lights view={view} focus={focusNote} rig={rig} />
         <Cork />

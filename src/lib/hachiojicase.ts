@@ -12,7 +12,9 @@
 // partial print resembled the tape print and the gang member with the similar gun appear by role
 // only; the executed informant is named as Tokyo Shimbun names him.
 import type { Case, Phase } from "./types.ts";
-import { buildDemo, type DemoSpec } from "./demo.ts";
+import { buildDemo, localize, type DemoSpec } from "./demo.ts";
+import { getLang } from "./i18n.ts";
+import { HACHIOJI_ZH } from "./zh/hachiojicase.zh.ts";
 
 export const HACHIOJI_DEMO = "hachioji-1995";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
@@ -38,7 +40,8 @@ const KYODO_2026 = "https://news.yahoo.co.jp/articles/1bf1ac2cd3993d4b07d07acdc5
 const NHK = "https://www.web.nhk/tv/an/mikaiketsu/pl/series-tep-57615R8KYY/ep/1ZZ8KXLXJ5";
 const BUNSHUN = "https://bunshun.jp/articles/-/82476?page=4";
 
-const spec: DemoSpec = {
+/** The English case file; translations are keyed to it. */
+export const HACHIOJI_SPEC: DemoSpec = {
   demo: HACHIOJI_DEMO,
   title: "The Hachiōji supermarket murders",
   openedMinutesAgo: 250,
@@ -219,5 +222,5 @@ const spec: DemoSpec = {
 };
 
 export function hachiojiCase(now = Date.now()): Case {
-  return { ...buildDemo(spec, now), demoVersion: HACHIOJI_VERSION };
+  return { ...buildDemo(getLang() === "zh" ? localize(HACHIOJI_SPEC, HACHIOJI_ZH) : HACHIOJI_SPEC, now), demoVersion: HACHIOJI_VERSION };
 }

@@ -71,6 +71,8 @@ export interface WallUpdate {
 
 export interface InvestigateRequest {
   caseTitle: string;
+  /** The page's language: the partner writes its notes and reply in it. */
+  lang?: "en" | "zh";
   /** The timeline's named chapters, if any. */
   phases?: { title: string; from: string }[];
   notes: { id: string; type: NoteType; status: string; title: string; body: string; url?: string; when?: string; beat?: string; subjectStatus?: string }[];

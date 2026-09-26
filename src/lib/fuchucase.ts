@@ -9,7 +9,9 @@
 // left behind) the date is approximate and the standard figure is used. People who were never
 // charged appear by role only, and the man wrongly arrested in 1969 is not named.
 import type { Case, Phase } from "./types.ts";
-import { buildDemo, type DemoSpec } from "./demo.ts";
+import { buildDemo, localize, type DemoSpec } from "./demo.ts";
+import { getLang } from "./i18n.ts";
+import { FUCHU_ZH } from "./zh/fuchucase.zh.ts";
 
 export const FUCHU_DEMO = "fuchu-300m-1968";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
@@ -31,7 +33,8 @@ const TAMA = "https://tama-meguri.com/tama-meguri/report/tamameguri-18-191207/";
 const NHK = "https://www.web.nhk/tv/an/mikaiketsu/pl/series-tep-57615R8KYY/ep/7RJG53J6N4";
 const JIJI = "https://www.jiji.com/jc/d4?d=004soc&p=mos001-00570255";
 
-const spec: DemoSpec = {
+/** The English case file; translations are keyed to it. */
+export const FUCHU_SPEC: DemoSpec = {
   demo: FUCHU_DEMO,
   title: "The 300 million yen robbery",
   openedMinutesAgo: 250,
@@ -195,5 +198,5 @@ const spec: DemoSpec = {
 };
 
 export function fuchuCase(now = Date.now()): Case {
-  return { ...buildDemo(spec, now), demoVersion: FUCHU_VERSION };
+  return { ...buildDemo(getLang() === "zh" ? localize(FUCHU_SPEC, FUCHU_ZH) : FUCHU_SPEC, now), demoVersion: FUCHU_VERSION };
 }

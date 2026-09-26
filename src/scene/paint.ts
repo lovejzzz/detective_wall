@@ -9,12 +9,25 @@ export const TEXEL = 3; // canvas pixels per world px
 type Ctx = CanvasRenderingContext2D;
 type Rand = () => number;
 
-const HAND = `"Caveat"`;
-const TYPED = `"Special Elite"`;
-const NEWS = `"Old Standard TT"`;
-const MONO = `"Courier Prime"`;
+// Each face is followed by its Chinese partner: a Latin glyph comes from the first, a Chinese one
+// from the second (a casual hand for the handwriting, a Song serif for anything typed or printed).
+const HAND = `"Caveat", "Long Cang"`;
+const TYPED = `"Special Elite", "Noto Serif SC"`;
+const NEWS = `"Old Standard TT", "Noto Serif SC"`;
+const MONO = `"Courier Prime", "Noto Serif SC"`;
+const CJK = /[\u2e80-\u9fff\uf900-\ufaff\uff00-\uffef\u3000-\u303f]/;
 
-export async function fontsReady() {
+/**
+ * Waits for the faces the wall paints with. Chinese faces come in many small pieces (by character
+ * range), so for Chinese text pass the text itself: the pieces it needs are fetched too.
+ */
+export async function fontsReady(text = "") {
+  const cjk = [...new Set(text.match(new RegExp(CJK.source, "g")) ?? [])].join("");
+  if (cjk) {
+    await Promise.all(
+      [`400 40px "Long Cang"`, `400 40px "Noto Serif SC"`, `700 40px "Noto Serif SC"`].map((f) => document.fonts.load(f, cjk).catch(() => undefined)),
+    );
+  }
   const faces = [
     `700 40px ${HAND}`,
     `600 40px ${HAND}`,
@@ -85,6 +98,26 @@ function paintStock(g: Ctx, w: number, h: number, s: Stock, rand: Rand) {
 
 // ───────────────────────── text ─────────────────────────
 
+/**
+ * A paragraph as the pieces a line may break between: words in Latin script, single characters in
+ * Chinese (which has no spaces). `sp` marks a piece that had a space before it.
+ */
+export function pieces(para: string): { t: string; sp: boolean }[] {
+  const out: { t: string; sp: boolean }[] = [];
+  let sp = false;
+  for (const m of para.matchAll(new RegExp(`\\s+|${CJK.source}|[^\\s${CJK.source.slice(1, -1)}]+`, "g"))) {
+    if (/^\s+$/.test(m[0])) {
+      sp = true;
+      continue;
+    }
+    out.push({ t: m[0], sp: sp && out.length > 0 });
+    sp = false;
+  }
+  return out;
+}
+/** Chinese punctuation that may not start a line: it stays with the character before it. */
+const NO_START = /^[，。、；：？！）」』》〉”’…・,.;:?!)\]]$/;
+
 function wrapLines(g: Ctx, text: string, maxW: number): string[] {
   const out: string[] = [];
   for (const para of text.split("\n")) {
@@ -93,12 +126,12 @@ function wrapLines(g: Ctx, text: string, maxW: number): string[] {
       continue;
     }
     let line = "";
-    for (const word of para.split(/\s+/)) {
-      const next = line ? `${line} ${word}` : word;
-      if (g.measureText(next).width <= maxW || !line) line = next;
+    for (const p of pieces(para)) {
+      const next = line ? `${line}${p.sp ? " " : ""}${p.t}` : p.t;
+      if (g.measureText(next).width <= maxW || !line || NO_START.test(p.t)) line = next;
       else {
         out.push(line);
-        line = word;
+        line = p.t;
       }
     }
     if (line) out.push(line);
@@ -215,33 +248,38 @@ function newsColumn(g: Ctx, text: string, x: number, y: number, o: { size: numbe
   g.textBaseline = "alphabetic";
   g.fillText(cap, x, y + o.lineH * 1.02);
   g.font = `${o.size}px ${NEWS}`;
-  // Wrap: first two lines are indented around the drop cap.
-  const words = rest.split(/\s+/);
-  const lines: { words: string[]; x: number; w: number }[] = [];
-  let cur: string[] = [];
+  // Wrap: first two lines are indented around the drop cap. (Chinese breaks between characters.)
+  const words = pieces(rest);
+  const lines: { words: { t: string; sp: boolean }[]; x: number; w: number }[] = [];
+  let cur: { t: string; sp: boolean }[] = [];
   const lineStart = (i: number) => (i < 2 ? x + capW : x);
   const lineWidth = (i: number) => (i < 2 ? o.maxW - capW : o.maxW);
+  const joined = (ws: { t: string; sp: boolean }[]) => ws.map((w2, i) => (i && w2.sp ? " " : "") + w2.t).join("");
   for (const word of words) {
-    const test = [...cur, word].join(" ");
-    if (g.measureText(test).width > lineWidth(lines.length) && cur.length) {
+    const test = joined([...cur, word]);
+    if (g.measureText(test).width > lineWidth(lines.length) && cur.length && !NO_START.test(word.t)) {
       lines.push({ words: cur, x: lineStart(lines.length), w: lineWidth(lines.length) });
-      cur = [word];
+      cur = [{ ...word, sp: false }];
     } else cur.push(word);
   }
   if (cur.length) lines.push({ words: cur, x: lineStart(lines.length), w: lineWidth(lines.length) });
   const shown = lines.slice(0, o.maxLines);
+  const space = g.measureText(" ").width;
   shown.forEach((ln, i) => {
     const last = i === lines.length - 1;
     const truncated = i === o.maxLines - 1 && lines.length > o.maxLines;
-    if (truncated) ln.words[ln.words.length - 1] += "…";
-    const natural = ln.words.reduce((a, w2) => a + g.measureText(w2).width, 0);
-    const gap = last || truncated || ln.words.length < 2 ? g.measureText(" ").width : (ln.w - natural) / (ln.words.length - 1);
+    if (truncated) ln.words[ln.words.length - 1] = { ...ln.words[ln.words.length - 1], t: ln.words[ln.words.length - 1].t + "…" };
+    const natural = ln.words.reduce((a, w2) => a + g.measureText(w2.t).width, 0);
+    // justified: the slack is shared between the gaps (between words, or between characters)
+    const slack = (ln.w - natural - ln.words.slice(1).filter((w2) => w2.sp).length * space) / Math.max(1, ln.words.length - 1);
+    const even = !(last || truncated || ln.words.length < 2);
     let cx = ln.x;
-    for (const w2 of ln.words) {
+    ln.words.forEach((w2, k) => {
+      if (k) cx += (w2.sp ? space : 0) + (even ? slack : 0);
       g.globalAlpha = 0.86 + o.rand() * 0.14;
-      g.fillText(w2, cx, y + i * o.lineH);
-      cx += g.measureText(w2).width + gap;
-    }
+      g.fillText(w2.t, cx, y + i * o.lineH);
+      cx += g.measureText(w2.t).width;
+    });
   });
   g.globalAlpha = 1;
 }

@@ -21,10 +21,10 @@
   --sticky-blue: #acd3ec;
   --sticky-green: #c2e2a2;
 
-  --hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
-  --typed: "Special Elite", "American Typewriter", "Courier New", monospace;
-  --news-face: "Old Standard TT", "Times New Roman", serif;
-  --mono: "Courier Prime", "Courier New", monospace;
+  --hand: "Caveat", "Long Cang", "Bradley Hand", "Segoe Print", cursive;
+  --typed: "Special Elite", "Noto Serif SC", "American Typewriter", "Courier New", monospace;
+  --news-face: "Old Standard TT", "Noto Serif SC", "Times New Roman", serif;
+  --mono: "Courier Prime", "Noto Serif SC", "Courier New", monospace;
 
   --notepad-w: 404px;
   color-scheme: dark;
@@ -1719,35 +1719,131 @@ kbd {
   height: 13px;
   fill: currentColor;
 }
-.view-tabs button.sound-switch {
+/* settings: a gear on the strip, and the index card it opens */
+.settings {
+  position: relative;
+  display: flex;
+}
+.view-tabs button.settings-switch {
+  position: relative;
   display: grid;
   place-items: center;
   width: 34px;
+  height: 28px;
   margin-left: 4px;
   padding: 0;
   border-radius: 50%;
-  height: 28px;
   background: #3d372c;
   color: #cdbd97;
-  opacity: 0.75;
 }
-.sound-switch svg {
-  width: 17px;
-  height: 14px;
-}
-.sound-switch path {
-  fill: currentColor;
-}
-.sound-switch .wave {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-}
-.view-tabs button.sound-switch.is-on {
+.view-tabs button.settings-switch:hover,
+.view-tabs button.settings-switch.is-on {
   color: #f0d9a4;
   background-color: #4a4133;
   translate: 0 0;
+  filter: none;
+}
+.settings-switch svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+}
+/* sound off: a small red slash on the gear, so the state reads at a glance */
+.settings-muted {
+  position: absolute;
+  right: 4px;
+  bottom: 3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background:
+    linear-gradient(45deg, transparent 42%, #f4e4c4 42%, #f4e4c4 58%, transparent 58%),
+    #9b2a1c;
+  box-shadow: 0 0 0 1.5px #241710;
+}
+.settings-card {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: -8px;
+  z-index: 40;
+  width: 268px;
+  padding: 16px 18px 14px;
+  color: #2f2415;
+  background: #efe3c3 var(--grain);
+  border-radius: 2px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 18px 40px -14px rgba(0, 0, 0, 0.9),
+    0 2px 4px rgba(0, 0, 0, 0.35);
+  rotate: 0.6deg;
+  animation: settings-in 0.22s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+/* the card's red rule under its heading, like an index card */
+.settings-card h3 {
+  margin: 0 0 12px;
+  padding-bottom: 7px;
+  border-bottom: 1.5px solid rgba(155, 42, 28, 0.55);
+  font: 13px/1 var(--typed);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 10px 0;
+}
+.settings-label {
+  font: 600 21px/1 var(--hand);
+  color: #3b2d17;
+}
+.settings-choice {
+  display: flex;
+  gap: 4px;
+}
+.settings-choice button {
+  min-width: 58px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1.5px solid rgba(59, 45, 23, 0.5);
+  border-radius: 2px;
+  background: transparent;
+  font: 12.5px/1 var(--typed);
+  letter-spacing: 0.06em;
+  color: #3b2d17;
+  cursor: pointer;
+}
+/* the card lives inside the tab strip: none of the tabs' own look carries over */
+.view-tabs .settings-card button {
+  box-shadow: none;
+  filter: none;
+  translate: none;
+  opacity: 1;
+  border-radius: 2px;
+}
+.settings-choice button:hover {
+  background: rgba(59, 45, 23, 0.08);
+}
+.settings-choice button.is-on {
+  color: #f6ecd6;
+  background: #2b261e;
+  border-color: #2b261e;
+}
+.settings-choice button:focus-visible {
+  outline: 2px solid #b9892f;
+  outline-offset: 2px;
+}
+.settings-hint {
+  margin: 12px 0 0;
+  font: 11px/1.4 var(--typed);
+  color: #7a6a4c;
+}
+@keyframes settings-in {
+  from {
+    opacity: 0;
+    translate: 0 -6px;
+  }
 }
 
 /* ───────────────────────── Timeline labels ───────────────────────── */

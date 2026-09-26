@@ -70,8 +70,12 @@ You have web search, web fetch, pin_lead and find_photos; you cannot read or wri
 Wall update schema (JSON Schema):
 ${JSON.stringify(UPDATE_WALL_SCHEMA)}`;
 
+/** The page is in Chinese: everything the partner writes goes on the wall in Chinese too. */
+const IN_CHINESE =
+  "Language: the user reads this wall in Simplified Chinese. Write your reply and everything you put on the wall (note titles and bodies, subject points and settle tests, diagram labels, chapter titles, link reasons) in Simplified Chinese, plain and precise, the voice of a case file. Keep names as the record writes them (Japanese and Korean names in their own script, Western names in Latin letters, e.g. Arthur Leigh Allen), keep quotes in their original language with a Chinese gloss, and search in whatever language finds the best sources. The length limits count characters, so Chinese titles are short.";
+
 export function renderWallState(req: InvestigateRequest): string {
-  const lines = [`Case: ${req.caseTitle}`, "", "Notes on the wall (id · type · status · title — body):"];
+  const lines = [...(req.lang === "zh" ? [IN_CHINESE, ""] : []), `Case: ${req.caseTitle}`, "", "Notes on the wall (id · type · status · title — body):"];
   if (req.notes.length === 0) lines.push("(none yet)");
   for (const n of req.notes) {
     const max = n.type === "subject" ? 700 : 220; // a subject's file is its points

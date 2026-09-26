@@ -12,7 +12,9 @@
 // accused in 1996 is not named, nor is any other living person outside the official record; the
 // researcher whose theory led to the 1996 dig is named because MBC named him at the time.
 import type { Case, Phase } from "./types.ts";
-import { buildDemo, type DemoSpec } from "./demo.ts";
+import { buildDemo, localize, type DemoSpec } from "./demo.ts";
+import { getLang } from "./i18n.ts";
+import { FROGBOYS_ZH } from "./zh/frogboyscase.zh.ts";
 
 export const FROGBOYS_DEMO = "frogboys-1991";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
@@ -60,7 +62,8 @@ const YNA_2026 = "https://www.yna.co.kr/view/AKR20260326038251053";
 const DONGA_2026 = "https://www.donga.com/news/Society/article/all/20260326/133614597/1";
 const DGPOLICE = "https://www.dgpolice.go.kr/dgpo/PageLink.do?link=/dgpo/06/02_06";
 
-const spec: DemoSpec = {
+/** The English case file; translations are keyed to it. */
+export const FROGBOYS_SPEC: DemoSpec = {
   demo: FROGBOYS_DEMO,
   title: "The Frog Boys of Waryongsan",
   openedMinutesAgo: 270,
@@ -237,5 +240,5 @@ const spec: DemoSpec = {
 };
 
 export function frogBoysCase(now = Date.now()): Case {
-  return { ...buildDemo(spec, now), demoVersion: FROGBOYS_VERSION };
+  return { ...buildDemo(getLang() === "zh" ? localize(FROGBOYS_SPEC, FROGBOYS_ZH) : FROGBOYS_SPEC, now), demoVersion: FROGBOYS_VERSION };
 }
