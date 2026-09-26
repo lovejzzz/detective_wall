@@ -7,6 +7,7 @@ import { reducedMotion } from "../lib/motion.ts";
 import { photoIdOf, photoURL } from "../lib/images.ts";
 import { commonsFileOf, loadCommonsImage } from "../lib/commons.ts";
 import { loadPagePhoto, pagePhotoOf } from "../lib/pagephoto.ts";
+import { trackBootLoad } from "../lib/boot.ts";
 import { paintKey, paintNote } from "./paint.ts";
 import { PUSHPIN, TACK, binderClip, contactShadow, liftAtPin, paperGeometry, pinMaterials, sharedTextures, tapeMaterial } from "./objects.ts";
 
@@ -31,25 +32,42 @@ interface Props extends NoteHandlers {
  * Loads a photo note's picture: from this browser's IndexedDB, a real case photo from
  * Wikimedia Commons, or the lead picture of the page that published it. Painting doesn't wait: the sheet shows its fallback, then repaints.
  */
+/** Prints that arrived after the page was up, and when: they develop in rather than pop. */
+const developing = new Map<string, number>();
+const DEVELOP_MS = 650;
+
 function usePhoto(note: Note): HTMLImageElement | undefined {
   const id = photoIdOf(note.imageUrl);
   const commons = commonsFileOf(note.imageUrl);
   const page = pagePhotoOf(note.imageUrl);
-  const [img, setImg] = useState<HTMLImageElement | undefined>(undefined);
+  const [img, setShown] = useState<HTMLImageElement | undefined>(undefined);
+  const setImg = (el: HTMLImageElement) => {
+    if (document.documentElement.classList.contains("is-ready") && !reducedMotion()) developing.set(note.id, performance.now());
+    setShown(el);
+  };
   useEffect(() => {
-    setImg(undefined);
+    setShown(undefined);
     let alive = true;
     if (id) {
-      void photoURL(id).then((url) => {
-        if (!url || !alive) return;
-        const el = new Image();
-        el.onload = () => alive && setImg(el);
-        el.src = url;
-      });
+      trackBootLoad(
+        photoURL(id).then(
+          (url) =>
+            new Promise<void>((done) => {
+              if (!url || !alive) return done();
+              const el = new Image();
+              el.onload = () => {
+                if (alive) setImg(el);
+                done();
+              };
+              el.onerror = () => done();
+              el.src = url;
+            }),
+        ),
+      );
     } else if (commons) {
-      void loadCommonsImage(commons).then((r) => alive && r && setImg(r.img));
+      trackBootLoad(loadCommonsImage(commons).then((r) => alive && r && setImg(r.img)));
     } else if (page) {
-      void loadPagePhoto(page).then((el) => alive && el && setImg(el));
+      trackBootLoad(loadPagePhoto(page).then((el) => alive && el && setImg(el)));
     }
     return () => {
       alive = false;
@@ -222,6 +240,13 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
     const age = (Date.now() - note.createdAt) / 1000;
     const arrival = age < 6 ? 0.45 * (1 - age / 6) ** 2 : 0;
     material.emissiveIntensity = Math.max(arrival, proposed ? 0.1 : 0);
+    // A print that came in late comes up out of the dark, like one in the developing tray.
+    const dev = developing.get(note.id);
+    if (dev !== undefined) {
+      const t = Math.min(1, (performance.now() - dev) / DEVELOP_MS);
+      material.color.setScalar(0.3 + 0.7 * (1 - (1 - t) ** 3));
+      if (t >= 1) developing.delete(note.id);
+    }
   });
 
   return (

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPE } from "react";
-import { Canvas, type ThreeEvent } from "@react-three/fiber";
+import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
+import { markWallDrawn } from "../lib/boot.ts";
 import * as THREE from "three";
 import { BEAT_LABEL, type Camera, type Case, type Note } from "../lib/types.ts";
 import { whenLabel } from "../lib/when.ts";
@@ -713,6 +714,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
         }}
       >
         <color attach="background" args={["#0d0906"]} />
+        {fontsVersion > 0 && <FirstFrames />}
         <CameraRig view={view} />
         <Lights view={view} focus={focusNote} rig={rig} />
         <Cork />
@@ -1009,4 +1011,14 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       </div>
     </div>
   );
+}
+
+/** Tells the page the wall is on screen: two frames drawn after the cards were painted in their fonts. */
+function FirstFrames() {
+  const frames = useRef(0);
+  useFrame(() => {
+    frames.current += 1;
+    if (frames.current === 2) markWallDrawn();
+  });
+  return null;
 }

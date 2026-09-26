@@ -3171,6 +3171,10 @@ kbd {
   background: radial-gradient(ellipse at 50% 45%, #140d08, #050302 70%);
   cursor: pointer;
 }
+/* before the page has faded in, the card holds still: its lettering starts with the fade */
+.title-card.is-waiting * {
+  animation-play-state: paused !important;
+}
 /* the lights come up: the black lifts off the wall */
 .title-card.is-leaving {
   animation: title-out 700ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
@@ -3202,9 +3206,12 @@ kbd {
   color: #efe2c4;
   text-shadow: 0 0 24px rgba(255, 200, 130, 0.18);
   opacity: 0;
+  letter-spacing: 0.06em;
+  /* a long title breaks once, evenly, and never re-wraps while it settles */
+  text-wrap: balance;
   animation:
     title-in 1100ms ease-out 300ms forwards,
-    title-settle 1800ms cubic-bezier(0.2, 0.7, 0.2, 1) 300ms forwards;
+    title-settle 1800ms cubic-bezier(0.2, 0.7, 0.2, 1) 300ms both;
 }
 .title-rule {
   width: 0;
@@ -3225,12 +3232,16 @@ kbd {
     opacity: 1;
   }
 }
+/* a lens pulling focus: slightly large and soft, then sharp. Transform and filter only, so the
+   type is laid out once and never shifts. */
 @keyframes title-settle {
   from {
-    letter-spacing: 0.22em;
+    scale: 1.05;
+    filter: blur(4px);
   }
   to {
-    letter-spacing: 0.04em;
+    scale: 1;
+    filter: blur(0);
   }
 }
 @keyframes title-rule {

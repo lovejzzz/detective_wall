@@ -8,6 +8,7 @@ import { TitleCard } from "./components/TitleCard.tsx";
 import { setSound, soundOn } from "./lib/sound.ts";
 import { Dossier, LinkPicker } from "./components/Dossier.tsx";
 import { UndoSlip } from "./components/UndoSlip.tsx";
+import { useBooted } from "./lib/boot.ts";
 import { ViewTabs } from "./components/ViewTabs.tsx";
 
 // The WebGL wall is the heavy part; load it separately so the room's paper objects appear first.
@@ -127,10 +128,12 @@ export function App() {
 function KeyPlaque() {
   const view = useStore((s) => s.view);
   const [open, setOpen] = useState(true);
+  const booted = useBooted();
   useEffect(() => {
+    if (!booted) return;
     const t = setTimeout(() => setOpen(false), 9000);
     return () => clearTimeout(t);
-  }, []);
+  }, [booted]);
   const keys: [string, string][] = [
     ["Tab", "next note"],
     ["↵", "open"],

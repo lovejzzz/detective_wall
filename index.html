@@ -4,9 +4,39 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#140d08" />
+    <!-- dark from the very first paint, before any stylesheet arrives -->
+    <meta name="color-scheme" content="dark" />
     <meta name="description" content="Turn every question into a case: an AI research partner on a lamp-lit evidence wall." />
     <title>Detective Wall</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      /* Until the page can be shown whole (fonts in, wall drawn), it stays a dark room; then it
+         fades up at once (src/lib/boot.ts). */
+      html,
+      body {
+        margin: 0;
+        background: #140d08;
+      }
+      #root {
+        opacity: 0;
+      }
+      /* nothing slides into place behind the curtain: every element is where it belongs when the
+         page fades up, and moves only after that */
+      html:not(.is-ready) #root *,
+      html:not(.is-ready) #root *::before,
+      html:not(.is-ready) #root *::after {
+        transition: none !important;
+      }
+      html.is-ready #root {
+        opacity: 1;
+        transition: opacity 0.8s cubic-bezier(0.3, 0.6, 0.3, 1);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html.is-ready #root {
+          transition-duration: 0.2s;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
