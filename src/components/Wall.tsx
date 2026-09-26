@@ -3,10 +3,10 @@ import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import { markWallDrawn } from "../lib/boot.ts";
 import { livePose } from "../scene/live.ts";
 import * as THREE from "three";
-import { BEAT_LABEL, type Camera, type Case, type Link, type Note } from "../lib/types.ts";
+import { BEAT_LABEL, RELATIONS, type Camera, type Case, type Link, type Note } from "../lib/types.ts";
 import { PLAQUE, plaqueHeight, rankedSuspects } from "../lib/suspects.ts";
 import { whenLabel } from "../lib/when.ts";
-import { NOTE_SIZE } from "../lib/geometry.ts";
+import { NOTE_SIZE, pinPoint } from "../lib/geometry.ts";
 import { useStore } from "../store.ts";
 import { tween, reducedMotion } from "../lib/motion.ts";
 import { NoteMesh } from "../scene/NoteMesh.tsx";
@@ -693,11 +693,22 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   const onPinLink = useCallback((id: string) => store().pinLink(id), [store]);
   const onTossLink = useCallback((id: string) => store().tossLink(id), [store]);
 
+  // The string being tied: from the pin to the pointer while dragging, then held pin to pin while
+  // its kind is chosen, so it doesn't vanish at the moment you decide what it means.
+  const pendingLink = useStore((s) => s.pendingLink);
   const draft = useMemo(() => {
+    if (pendingLink) {
+      const from = c.notes.find((n) => n.id === pendingLink.from);
+      const to = c.notes.find((n) => n.id === pendingLink.to);
+      return from && to ? { from, to: pinPoint(to) } : null;
+    }
     if (grab?.kind !== "pin" || !cursor) return null;
     const from = c.notes.find((n) => n.id === grab.id);
     return from ? { from, to: toWorld(cursor) } : null;
-  }, [grab, cursor, c.notes, toWorld]);
+  }, [grab, cursor, c.notes, toWorld, pendingLink]);
+  /** While a string is dragged, the card it would tie to (rung in red pencil). */
+  const aimId = grab?.kind === "pin" ? hoverRef.current : null;
+  const aimAt = aimId && aimId !== grab?.id ? placedById.get(aimId) : pendingLink ? placedById.get(pendingLink.to) : undefined;
 
   const ordered = useMemo(() => [...c.notes].sort((a, b) => a.createdAt - b.createdAt), [c.notes]);
   const view: View = useMemo(() => ({ cam, stage }), [cam, stage]);
@@ -896,6 +907,18 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       {/* Paper controls over the scene. The camera looks straight at the wall, so world → screen is exact.
           They shrink with the wall so they never swamp the notes. */}
       <div className={`wall-overlay ${settling ? "is-settling" : ""}`}>
+        {aimAt && (() => {
+          const f = live(aimAt);
+          const p = toScreen(f);
+          const { w, h } = NOTE_SIZE[f.type];
+          return (
+            <div
+              className="focus-ring is-aim"
+              aria-hidden
+              style={{ left: p.x, top: p.y, width: w * cam.zoom + 16, height: h * cam.zoom + 16, transform: `translate(-50%, -50%) rotate(${f.rotation}deg)` }}
+            />
+          );
+        })()}
         {kbFocus && focusNote && (() => {
           // Walking the wall by keyboard: the note in hand gets red-pencil corners.
           const f = live(focusNote);
@@ -1044,6 +1067,21 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                   “{a.title}” {t(info.blurb)} “{b.title}”
                 </span>
                 {l.reason && <em>{l.reason}</em>}
+                {/* change what the string says, or cut it */}
+                <div className="tag-kinds" role="radiogroup" aria-label={t("Kind of string")}>
+                  {RELATIONS.map((r) => (
+                    <button
+                      key={r}
+                      role="radio"
+                      aria-checked={l.relation === r}
+                      className={`rel-${r} ${l.relation === r ? "is-on" : ""}`}
+                      title={t(RELATION_INFO[r].name)}
+                      onClick={() => l.relation !== r && store().addLink(l.from, l.to, r)}
+                    >
+                      {RELATION_INFO[r].glyph}
+                    </button>
+                  ))}
+                </div>
                 <button
                   onClick={() => {
                     onTossLink(l.id);

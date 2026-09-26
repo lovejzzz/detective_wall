@@ -127,6 +127,11 @@ function DiagramPrint({ note }: { note: Note }) {
   );
 }
 
+function FallbackPrint({ note }: { note: Note }) {
+  const src = useMemo(() => paintNote(note, 3).toDataURL("image/png"), [note]);
+  return <img src={src} alt={note.title} className="d-fallback" />;
+}
+
 function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
   const id = photoIdOf(note.imageUrl);
   const commons = commonsFileOf(note.imageUrl);
@@ -162,7 +167,12 @@ function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
       {url ? (
         <img src={url} alt={note.title} onError={() => setFailed(true)} />
       ) : (
-        <div className="d-photo-empty">{failed ? t("The print couldn't be loaded (offline?)") : t("Developing…")}</div>
+        failed && note.imageFallback ? (
+          // the print is out of reach: show the drawing the wall shows in its place
+          <FallbackPrint note={note} />
+        ) : (
+          <div className="d-photo-empty">{failed ? t("The print couldn't be loaded (offline?)") : t("Developing…")}</div>
+        )
       )}
       <figcaption>
         {page && (
@@ -444,12 +454,24 @@ export function LinkPicker() {
     return () => window.removeEventListener("keydown", onKey);
   }, [pending]);
   if (!pending) return null;
-  const x = Math.min(window.innerWidth - 220, Math.max(12, pending.x - 100));
-  const y = Math.min(window.innerHeight - 220, Math.max(12, pending.y + 12));
+  const x = Math.min(window.innerWidth - 280, Math.max(12, pending.x - 130));
+  const y = Math.min(window.innerHeight - 250, Math.max(12, pending.y + 12));
+  const s = useStore.getState();
+  const c = s.activeId ? s.cases[s.activeId] : undefined;
+  const title = (id: string) => {
+    const tt = c?.notes.find((n) => n.id === id)?.title ?? "";
+    return tt.length > 60 ? `${tt.slice(0, 59)}…` : tt;
+  };
   return (
     <div className="link-picker-backdrop" onPointerDown={() => useStore.getState().setPendingLink(null)}>
       <div className="link-picker" style={{ left: x, top: y }} onPointerDown={(e) => e.stopPropagation()} role="menu" aria-label={t("Choose a string")}>
         <div className="lp-title">{t("Tie a string…")}</div>
+        {/* what's being tied to what, so the choice reads as a sentence */}
+        <div className="lp-ends">
+          <span>{title(pending.from)}</span>
+          <i aria-hidden>→</i>
+          <span>{title(pending.to)}</span>
+        </div>
         {RELATIONS.map((r, i) => (
           <button
             key={r}
@@ -462,7 +484,10 @@ export function LinkPicker() {
           >
             <span className="lp-swatch" />
             <span className="lp-glyph">{RELATION_INFO[r].glyph}</span>
-            {t(RELATION_INFO[r].name)}
+            <span className="lp-name">
+              {t(RELATION_INFO[r].name)}
+              {t(RELATION_INFO[r].blurb).toLowerCase() !== t(RELATION_INFO[r].name).toLowerCase() && <small>{t(RELATION_INFO[r].blurb)}</small>}
+            </span>
             <kbd>{i + 1}</kbd>
           </button>
         ))}

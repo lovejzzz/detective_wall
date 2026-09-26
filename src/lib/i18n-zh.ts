@@ -314,6 +314,7 @@ export const ZH: Record<string, string> = {
   "No date": "无日期",
   "Undated evidence": "未注日期的证据",
   "Most likely suspects": "最可能的嫌疑人",
+  "Kind of string": "连线类型",
   "{label} (T)": "{label}（T）",
   "high effort": "高推理强度",
   "medium effort": "中推理强度",

@@ -198,6 +198,8 @@ export function Notepad({ c }: { c: Case }) {
     const next = [...attachedRef.current, ...ids].slice(0, 3);
     attachedRef.current = next;
     setAttached(next);
+    // the camera goes to the photo just pinned, so you see where it went
+    if (ids.length) useStore.getState().setFocus(ids[ids.length - 1]);
     setImporting(false);
     input.current?.focus();
     return ids;
@@ -221,7 +223,8 @@ export function Notepad({ c }: { c: Case }) {
   };
   // A lead from the partner goes onto the typewriter, ready to send or reword.
   const followLead = (lead: string) => {
-    setDraft(lead);
+    // Something already typed stays: the lead goes on the line after it (unless it's already there).
+    setDraft((d) => (!d.trim() || d.trim() === lead ? lead : `${d.trimEnd()}\n${lead}`));
     setOpen(true);
     requestAnimationFrame(() => {
       const el = input.current;

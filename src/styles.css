@@ -265,6 +265,42 @@ kbd {
   text-underline-offset: 3px;
   font: 12.5px var(--typed);
 }
+/* the four kinds of string as small chips, the current one filled */
+.tag-pop .tag-kinds {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.tag-pop .tag-kinds button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 26px;
+  margin: 0;
+  border: 1px solid rgba(60, 50, 38, 0.25);
+  border-radius: 2px;
+  font: 700 14px/1 var(--typed);
+  text-decoration: none;
+  color: var(--rel, #3a332a);
+  cursor: pointer;
+}
+.tag-pop .tag-kinds button.is-on {
+  color: #f6f1e4;
+  background: var(--rel, #3a332a);
+  border-color: var(--rel, #3a332a);
+}
+.tag-kinds .rel-supports {
+  --rel: var(--wool);
+}
+.tag-kinds .rel-causes {
+  --rel: var(--thread);
+}
+.tag-kinds .rel-contradicts {
+  --rel: var(--blue-thread);
+}
+.tag-kinds .rel-references {
+  --rel: #9c8457;
+}
 .tag-pop .tag-close {
   position: absolute;
   right: 8px;
@@ -1473,7 +1509,7 @@ kbd {
 }
 .link-picker {
   position: fixed;
-  width: 210px;
+  width: 264px;
   padding: 10px 8px 8px;
   background: #f4eedf var(--grain);
   box-shadow: 0 16px 30px -10px rgba(0, 0, 0, 0.8);
@@ -1481,8 +1517,39 @@ kbd {
   animation: fade 0.15s ease-out;
 }
 .lp-title {
-  padding: 0 8px 8px;
+  padding: 0 8px 6px;
   font: 700 20px/1 var(--hand);
+}
+/* the two cards being tied, typed small under the heading */
+.lp-ends {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: baseline;
+  margin: 0 8px 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(60, 50, 38, 0.18);
+  font: 11.5px/1.3 var(--typed);
+  color: #5a4f40;
+}
+.lp-ends span {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.lp-ends i {
+  font-style: normal;
+  color: #9a8e78;
+}
+.lp-name {
+  display: grid;
+  gap: 3px;
+}
+.lp-name small {
+  font: 11px/1 var(--typed);
+  color: #8a7c62;
 }
 .lp-opt {
   display: flex;
@@ -2678,6 +2745,7 @@ kbd {
   rotate: -0.6deg;
 }
 /* a drawing is shown whole, never cropped */
+.d-photo img.d-fallback,
 .d-drawing img {
   object-fit: contain;
 }
@@ -3415,8 +3483,14 @@ kbd {
     flex-basis: 100%;
   }
   .file-tab {
-    width: 46%;
-    left: calc(var(--tab) * 0.8);
+    width: max-content;
+    min-width: 40%;
+    max-width: calc(100% - var(--tab) * 0.5 - 4px); /* never past the drawer's edge */
+    left: calc(var(--tab) * 0.5);
+  }
+  /* no thumbnail on a phone: the face uses the width it kept for one */
+  .file-face {
+    padding-right: 20px;
   }
   .file-thumb,
   .file-span,
@@ -3524,6 +3598,10 @@ kbd {
 }
 
 /* The note you've tabbed to: four red-pencil corners, the way you'd mark a card on a board. */
+/* the card a string being tied would reach: the same red-pencil corners, a little softer */
+.focus-ring.is-aim {
+  --c: rgba(160, 36, 24, 0.7);
+}
 .focus-ring {
   position: absolute;
   pointer-events: none;
