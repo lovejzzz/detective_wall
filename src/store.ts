@@ -554,6 +554,9 @@ export const useStore = create<Store>()(
             n.rotation = Math.max(-4, Math.min(4, n.rotation * 0.45));
             claimBeat(c, n);
             c.focusNoteId = n.id;
+            // A proposed card's strings ride on it: pinned with it once the other end is up too.
+            const up = new Set(c.notes.filter((x) => x.status === "pinned").map((x) => x.id));
+            for (const l of c.links) if (l.status === "proposed" && (l.from === n.id || l.to === n.id) && up.has(l.from) && up.has(l.to)) l.status = "pinned";
           });
         },
         pinAll(noteIds) {

@@ -3,7 +3,7 @@ import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import { markWallDrawn } from "../lib/boot.ts";
 import { livePose } from "../scene/live.ts";
 import * as THREE from "three";
-import { BEAT_LABEL, type Camera, type Case, type Note } from "../lib/types.ts";
+import { BEAT_LABEL, type Camera, type Case, type Link, type Note } from "../lib/types.ts";
 import { whenLabel } from "../lib/when.ts";
 import { NOTE_SIZE } from "../lib/geometry.ts";
 import { useStore } from "../store.ts";
@@ -32,6 +32,11 @@ export interface Stage {
 const MIN_Z = 0.2;
 /** Below this zoom the taped-on far labels start to shrink with the wall. */
 const LABEL_Z = 0.35;
+/** Zoomed out past FAR_NONE the far labels start to fade in over the cards; by FAR_FULL they're fully up. */
+const FAR_NONE = 0.58;
+const FAR_FULL = 0.54;
+/** A zoom the camera can come to rest at: never where the far labels are half faded over the cards. */
+const settleZ = (z: number) => (z > FAR_FULL && z < FAR_NONE ? FAR_FULL : z);
 const MAX_Z = 2.2;
 const TRAY_W = 70;
 /** The timeline's chapter index along the stage's right edge. */
@@ -173,7 +178,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const bw = Math.max(...xs) - Math.min(...xs) + 120;
       const bh = Math.max(...ys) - Math.min(...ys) + 200;
       // The case folders take the stage's left 70px: frame what's left of it.
-      const zoom = clampZ(Math.min((stage.w - TRAY_W) / bw, stage.h / bh, maxZoom));
+      const zoom = settleZ(clampZ(Math.min((stage.w - TRAY_W) / bw, stage.h / bh, maxZoom)));
       return { x: (Math.max(...xs) + Math.min(...xs)) / 2 - TRAY_W / 2 / zoom, y: (Math.max(...ys) + Math.min(...ys)) / 2 - 20, zoom };
     },
     [stage.w, stage.h],
@@ -198,7 +203,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       if (f.zoom >= wholeDownTo && bottom - top <= (stage.h - 160) / f.zoom) return f;
       const left = Math.min(...notes.map((n) => n.x - NOTE_SIZE[n.type].w / 2));
       const right = Math.max(...notes.map((n) => n.x + NOTE_SIZE[n.type].w / 2));
-      const zoom = clampZ(Math.min(0.9, (stage.w - TRAY_W - 80) / (right - left)));
+      const zoom = settleZ(clampZ(Math.min(0.9, (stage.w - TRAY_W - 80) / (right - left))));
       return { zoom, x: (left + right) / 2 - TRAY_W / 2 / zoom, y: top + (stage.cy - 100) / zoom };
     },
     [framing, stage.w, stage.h, stage.cy],
@@ -227,21 +232,24 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     const fresh = placed.filter((n) => !seen.current.ids.has(n.id));
     seen.current.ids = new Set(c.notes.map((n) => n.id));
     const k = camRef.current;
-    if (fresh.some((n) => n.status === "proposed")) {
+    const reply = fresh.find((n) => n.origin.messageId)?.origin.messageId;
+    // The reply itself has landed (its message is in): the turn is over, and it's framed as a whole below.
+    const landed = !!reply && c.messages.some((m) => m.role === "assistant" && m.id === reply);
+    if (fresh.some((n) => n.status === "proposed") && !(landed && focusChanged && focusNote)) {
       // Leads stream in one at a time: keep every lead of this reply in view together, not just
       // the newest, but never zoom out past reading distance.
-      const reply = fresh.find((n) => n.origin.messageId)?.origin.messageId;
       const batch = placed.filter((n) => n.status === "proposed" && (fresh.includes(n) || (reply && n.origin.messageId === reply)));
       if (!batch.every((n) => inView(n, k))) {
         const f = framing(batch, Math.max(k.zoom, 0.7));
-        flyTo({ ...f, zoom: Math.max(f.zoom, Math.min(k.zoom, 0.6)) }, 900);
+        flyTo({ ...f, zoom: settleZ(Math.max(f.zoom, Math.min(k.zoom, 0.6))) }, 900);
       }
       return;
     }
-    if (justFramed.current) {
+    if (justFramed.current && !landed) {
       justFramed.current = false;
       return;
     }
+    justFramed.current = false;
     // Follow the focus when it moves, not when a note comes or goes elsewhere on the wall.
     // At the end of a turn the focus and that turn's proposals stay in view together, so a new card
     // isn't left half off the screen while the camera looks at the one the partner points to.
@@ -250,7 +258,10 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const waiting = placed.filter((n) => n.status === "proposed" && reply && n.origin.messageId === reply);
       // Cards it proposes taking down are part of what it's asking: keep their slips in view too.
       const doubted = placed.filter((n) => n.retire && n.status !== "proposed");
-      const group = [focusNote, ...[...waiting, ...doubted].filter((n) => n.id !== focusNote.id)];
+      // and a new string it asks to tie between two cards already up: both ends, so its tag shows.
+      const ends = new Set(c.links.filter(asksForTie).flatMap((l) => [l.from, l.to]));
+      const tied = placed.filter((n) => ends.has(n.id));
+      const group = [focusNote, ...new Set([...waiting, ...doubted, ...tied].filter((n) => n.id !== focusNote.id))];
       if (group.every((n) => inView(n, k))) return;
       const f = framing(group, k.zoom);
       if (group.length > 1 && f.zoom >= Math.min(k.zoom, LABEL_Z)) flyTo(f);
@@ -700,7 +711,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   }, [timelineLayout, cam.zoom, tagScale]);
   // Far away, the paper's own type is too small to read: tape a marker label over each note.
   // A short cross-fade, so a resting camera never shows both the label and the paper's own type.
-  const farOpacity = Math.max(0, Math.min(1, (0.58 - cam.zoom) / 0.04));
+  const farOpacity = Math.max(0, Math.min(1, (FAR_NONE - cam.zoom) / (FAR_NONE - FAR_FULL)));
+  // A proposed string asks for its own ✓/✕ only between two cards already on the wall. One that
+  // touches a proposed card rides on that card: pinned with it, tossed with it, so it needs no tag.
+  const noteStatus = new Map(c.notes.map((n) => [n.id, n.status]));
+  const asksForTie = (l: Link) => l.status === "proposed" && noteStatus.get(l.from) === "pinned" && noteStatus.get(l.to) === "pinned";
   // Proposed-string tags: nudge apart so they never stack on top of each other.
   // Proposed strings carry a small "supports? ✓ ✕" tag. When several strings meet at one note, their
   // midpoints crowd onto it; each tag slides along its own string to a clear spot instead, away
@@ -711,7 +726,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     const tw = 122 * Math.max(0.85, tagScale);
     const th = 32 * Math.max(0.85, tagScale);
     const byId = new Map(placed.map((n) => [n.id, live(n)]));
-    const proposed = c.links.filter((l) => l.status === "proposed");
+    const proposed = c.links.filter(asksForTie);
     const degree = new Map<string, number>();
     for (const l of proposed) for (const id of [l.from, l.to]) degree.set(id, (degree.get(id) ?? 0) + 1);
     const cards = [...byId.values()].map((n) => {
@@ -928,6 +943,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
           if (!a0 || !b0) return null;
           const [a, b] = [live(a0), live(b0)];
           if (l.status === "pinned" && openTag !== l.id) return null;
+          if (l.status === "proposed" && !asksForTie(l)) return null;
           const m = stringMid(a, b);
           const p = l.status === "proposed" ? (tagSpots.get(l.id) ?? toScreen(m)) : toScreen(m);
           const info = RELATION_INFO[l.relation];

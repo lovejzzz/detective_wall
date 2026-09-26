@@ -69,6 +69,16 @@ describe("key moments in the store", async () => {
     expect(byTitle("Undated event")).toMatchObject({ when: "1995-06", approx: true });
     expect(byTitle("Old news").when).toBe("1990");
   });
+
+  it("pins a proposed card's strings with it once both ends are up", () => {
+    s().newCase("Strings");
+    turn({ notes: [fact("a", "First card"), fact("b", "Second card")], links: [{ from: "a", to: "b", relation: "causes", reason: "r" }] });
+    const link = () => s().cases[s().activeId!].links[0];
+    s().pinNote(byTitle("First card").id);
+    expect(link().status).toBe("proposed");
+    s().pinNote(byTitle("Second card").id);
+    expect(link().status).toBe("pinned");
+  });
 });
 
 describe("arranging the wall", async () => {
