@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPE } from "react";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import { markWallDrawn } from "../lib/boot.ts";
+import { livePose } from "../scene/live.ts";
 import * as THREE from "three";
 import { BEAT_LABEL, type Camera, type Case, type Note } from "../lib/types.ts";
 import { whenLabel } from "../lib/when.ts";
@@ -623,6 +624,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   });
   const draggingId = grab?.kind === "note" && grab.moved ? grab.id : null;
   const tagScale = Math.max(0.6, Math.min(1, cam.zoom * 1.25));
+  /** A note where it is this frame (gliding between layouts, or carried), for what the page draws on it. */
+  const live = (n: Note): Note => {
+    const l = livePose.get(n.id);
+    return l ? { ...n, x: l.x, y: l.y, rotation: l.rotation } : n;
+  };
   // Whether the wall is being walked by keyboard (Tab), so the focused note shows where you are.
   const [kbFocus, setKbFocus] = useState(false);
   useEffect(() => {
@@ -745,22 +751,23 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
 
       {/* Paper controls over the scene. The camera looks straight at the wall, so world → screen is exact.
           They shrink with the wall so they never swamp the notes. */}
-      <div className="wall-overlay">
+      <div className={`wall-overlay ${settling ? "is-settling" : ""}`}>
         {kbFocus && focusNote && (() => {
           // Walking the wall by keyboard: the note in hand gets red-pencil corners.
-          const p = toScreen(focusNote);
-          const { w, h } = NOTE_SIZE[focusNote.type];
+          const f = live(focusNote);
+          const p = toScreen(f);
+          const { w, h } = NOTE_SIZE[f.type];
           return (
             <div
               className="focus-ring"
               aria-hidden
-              style={{ left: p.x, top: p.y, width: w * cam.zoom + 16, height: h * cam.zoom + 16, transform: `translate(-50%, -50%) rotate(${focusNote.rotation}deg)` }}
+              style={{ left: p.x, top: p.y, width: w * cam.zoom + 16, height: h * cam.zoom + 16, transform: `translate(-50%, -50%) rotate(${f.rotation}deg)` }}
             />
           );
         })()}
-        {!settling &&
-          placed
+        {placed
           .filter((n) => n.status === "proposed")
+          .map(live)
           .map((n) => {
             // Above the timeline's cord, the tabs go over the note so they don't sit on the cord.
             const above = timeline?.slots.get(n.id)?.row === "above";
@@ -784,8 +791,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             );
           })}
         {farOpacity > 0 &&
-          !settling &&
-          placed.map((n) => {
+          placed.map(live).map((n) => {
             // On a photo the label goes on the polaroid's caption strip, so the picture stays visible.
             const p = toScreen(n.type === "photo" ? { x: n.x, y: n.y + NOTE_SIZE.photo.h / 2 - 26 } : n);
             // Zoomed out past the wall's usual limit (a phone), the labels shrink with the notes.
@@ -803,9 +809,9 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             );
           })}
         {/* key moments: a ribbon on the note's corner, on the wall and on the timeline */}
-        {!settling &&
-          placed
+        {placed
             .filter((n) => n.beat)
+            .map(live)
             .map((n) => {
               const { w, h } = NOTE_SIZE[n.type];
               // Hanging below the timeline's cord, the ribbon goes on the bottom edge, clear of the date and time tags.
@@ -823,9 +829,10 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               );
             })}
         {!timeline && c.links.map((l) => {
-          const a = c.notes.find((n) => n.id === l.from);
-          const b = c.notes.find((n) => n.id === l.to);
-          if (!a || !b) return null;
+          const a0 = c.notes.find((n) => n.id === l.from);
+          const b0 = c.notes.find((n) => n.id === l.to);
+          if (!a0 || !b0) return null;
+          const [a, b] = [live(a0), live(b0)];
           if (l.status === "pinned" && openTag !== l.id) return null;
           const m = stringMid(a, b);
           const p = l.status === "proposed" ? (tagSpots.get(l.id) ?? toScreen(m)) : toScreen(m);
@@ -871,7 +878,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             </div>
           );
         })}
-        {timeline && !settling && (
+        {timeline && (
           <>
             {timeline.heading && (
               <div className="tl-heading" style={{ left: toScreen(timeline.heading).x, top: toScreen(timeline.heading).y, transform: `scale(${cam.zoom})` }}>

@@ -3267,3 +3267,15 @@ kbd {
   background-repeat: no-repeat;
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35));
 }
+
+/* Switching between the wall and the timeline: the labels travel with their notes (they read the
+   notes' live positions) and the page furniture comes up with the move, instead of appearing after
+   it. Only a "from", so each element settles to its own opacity (the far labels fade with zoom). */
+.wall-overlay.is-settling > * {
+  animation: overlay-in 0.55s cubic-bezier(0.3, 0.6, 0.3, 1) backwards;
+}
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}

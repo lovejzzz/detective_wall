@@ -8,6 +8,7 @@ import { photoIdOf, photoURL } from "../lib/images.ts";
 import { commonsFileOf, loadCommonsImage } from "../lib/commons.ts";
 import { loadPagePhoto, pagePhotoOf } from "../lib/pagephoto.ts";
 import { trackBootLoad } from "../lib/boot.ts";
+import { livePose } from "./live.ts";
 import { paintKey, paintNote } from "./paint.ts";
 import { PUSHPIN, TACK, binderClip, contactShadow, liftAtPin, paperGeometry, pinMaterials, sharedTextures, tapeMaterial } from "./objects.ts";
 
@@ -168,6 +169,7 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
   const proposed = note.status === "proposed";
   const group = useRef<THREE.Group>(null);
   const phase = useMemo(() => (note.id.charCodeAt(1) % 17) / 3, [note.id]);
+  useEffect(() => () => void livePose.delete(note.id), [note.id]);
 
   const material = useMemo(() => {
     const normalMap = paperNormal.clone();
@@ -236,6 +238,14 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
     g.rotation.x += (sway - g.rotation.x) * k;
     const s = g.scale.x + (target.current.scale - g.scale.x) * k;
     g.scale.setScalar(s);
+    // the page's labels follow the sheet itself, not where it's headed
+    const pose = livePose.get(note.id);
+    const rotation = -THREE.MathUtils.radToDeg(g.rotation.z);
+    if (pose) {
+      pose.x = g.position.x;
+      pose.y = -g.position.y;
+      pose.rotation = rotation;
+    } else livePose.set(note.id, { x: g.position.x, y: -g.position.y, rotation });
     // New evidence warms up as it arrives, and loose sheets stay faintly lit so none hide in the dark.
     const age = (Date.now() - note.createdAt) / 1000;
     const arrival = age < 6 ? 0.45 * (1 - age / 6) ** 2 : 0;
