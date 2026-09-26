@@ -43,9 +43,26 @@ export const BEAT_LABEL: Record<Beat, string> = {
   latest: "Where it stands",
 };
 
+/** How a point on a sketch map is marked. */
+export type MapMark = "scene" | "start" | "end" | "place";
+
+export interface DiagramItem {
+  label: string;
+  /** bars/circles: the quantity. map: the item's place in the route (1, 2, 3…), if it is on it. */
+  value?: number;
+  /** map only: where it sits, 0–100 across and down the drawing. */
+  x?: number;
+  y?: number;
+  /** map only: an area (a building, a room, a park) rather than a point, in the same units. */
+  w?: number;
+  h?: number;
+  mark?: MapMark;
+}
+
 export interface DiagramSpec {
-  kind: "bars" | "circles" | "flow";
-  items: { label: string; value?: number }[];
+  /** "map" is a sketch map or floor plan: places and areas, with a route through the numbered ones. */
+  kind: "bars" | "circles" | "flow" | "map";
+  items: DiagramItem[];
 }
 
 export interface NoteOrigin {

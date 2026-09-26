@@ -11,6 +11,7 @@ import {
   STAMPS,
   type Beat,
   type Confidence,
+  type DiagramItem,
   type DiagramSpec,
   type NoteType,
   type Relation,
@@ -149,16 +150,25 @@ export const UPDATE_WALL_SCHEMA = {
             type: "object",
             additionalProperties: false,
             required: ["kind", "items"],
-            description: "Diagram notes only. circles/bars need numeric values; flow is an ordered chain of labels.",
+            description:
+              "Diagram notes only. circles/bars need numeric values; flow is an ordered chain of labels; map is a sketch map or floor plan: each item placed at x, y (0-100 across and down), an area if it has w and h (a building, room, park, road block), a point otherwise, marked scene (an X), start, end or place, and value = its step on the route (1, 2, 3...) if the route passes it. Up to 6 items, 10 for a map.",
             properties: {
-              kind: { type: "string", enum: ["bars", "circles", "flow"] },
+              kind: { type: "string", enum: ["bars", "circles", "flow", "map"] },
               items: {
                 type: "array",
                 items: {
                   type: "object",
                   additionalProperties: false,
                   required: ["label"],
-                  properties: { label: { type: "string" }, value: { type: "number" } },
+                  properties: {
+                    label: { type: "string" },
+                    value: { type: "number" },
+                    x: { type: "number" },
+                    y: { type: "number" },
+                    w: { type: "number" },
+                    h: { type: "number" },
+                    mark: { type: "string", enum: ["scene", "start", "end", "place"] },
+                  },
                 },
               },
             },
@@ -276,15 +286,33 @@ function isHttpUrl(v: unknown): v is string {
 function sanitizeDiagram(v: unknown): DiagramSpec | undefined {
   if (!v || typeof v !== "object") return undefined;
   const d = v as Record<string, unknown>;
-  const kind = oneOf(d.kind, ["bars", "circles", "flow"] as const);
+  const kind = oneOf(d.kind, ["bars", "circles", "flow", "map"] as const);
   if (!kind || !Array.isArray(d.items)) return undefined;
-  const items = d.items
-    .filter((i): i is Record<string, unknown> => !!i && typeof i === "object" && isStr((i as Record<string, unknown>).label))
-    .slice(0, 6)
-    .map((i) => ({
-      label: clip(String(i.label), 28),
-      ...(typeof i.value === "number" && Number.isFinite(i.value) ? { value: i.value } : {}),
-    }));
+  const num = (v: unknown) => typeof v === "number" && Number.isFinite(v);
+  const pct = (v: unknown) => Math.round(Math.min(100, Math.max(0, v as number)) * 10) / 10;
+  const raw = d.items.filter((i): i is Record<string, unknown> => !!i && typeof i === "object" && isStr((i as Record<string, unknown>).label));
+  if (kind === "map") {
+    // every place needs a position; an area needs a size that stays on the sheet
+    const items: DiagramItem[] = [];
+    for (const i of raw) {
+      if (items.length >= 10) break;
+      if (!num(i.x) || !num(i.y)) continue;
+      const it: DiagramItem = { label: clip(String(i.label), 28), x: pct(i.x), y: pct(i.y) };
+      if (num(i.w) && num(i.h) && (i.w as number) > 0 && (i.h as number) > 0) {
+        it.w = Math.min(pct(i.w), 100 - it.x!);
+        it.h = Math.min(pct(i.h), 100 - it.y!);
+      }
+      const mark = oneOf(i.mark, ["scene", "start", "end", "place"] as const);
+      if (mark) it.mark = mark;
+      if (num(i.value) && (i.value as number) > 0) it.value = Math.round(i.value as number);
+      items.push(it);
+    }
+    return items.length >= 2 ? { kind, items } : undefined;
+  }
+  const items = raw.slice(0, 6).map((i) => ({
+    label: clip(String(i.label), 28),
+    ...(num(i.value) ? { value: i.value as number } : {}),
+  }));
   if (items.length === 0) return undefined;
   if (kind !== "flow" && items.some((i) => i.value === undefined || i.value <= 0)) return undefined;
   return { kind, items };

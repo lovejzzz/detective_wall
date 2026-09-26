@@ -11,7 +11,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const COOPER_DEMO = "cooper-1971";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const COOPER_VERSION = 5;
+export const COOPER_VERSION = 6;
 
 /** Real photos of the case on Wikimedia Commons (credit is read from each file's metadata at runtime). */
 export const COMMONS = {
@@ -71,6 +71,14 @@ const spec: DemoSpec = {
     { key: "pMerwin", type: "photo", photo: C.merwin, title: "Lake Merwin from the air", body: "The original drop-zone estimate lay near here, in the forest north of the Columbia (2017)." },
     { key: "pMap", type: "photo", photo: C.map, title: "Map of the flight", body: "The route and the drop-zone estimate (a 2013 map with German labels)." },
     { key: "reno", type: "fact", title: "Reno: the cabin is empty", when: "1971-11-24T23:02", url: WIKI, body: "Flight 305 landed with its airstair down. Cooper, the money and two parachutes were gone; his tie, its clip and two parachutes were left behind." },
+    { key: "flightMap", type: "diagram", title: "Flight 305, 24 November 1971", body: "Sketch, not to scale; north is up. The jump point is the FBI's presumption.", diagram: { kind: "map", items: [
+      { label: "Portland, 2:50 pm", x: 40, y: 86, mark: "start", value: 1 },
+      { label: "Sea-Tac: money aboard", x: 62, y: 6, mark: "place", value: 2 },
+      { label: "Jump? about 8:13 pm", x: 52, y: 62, mark: "scene", value: 3 },
+      { label: "On to Reno, 11:02 pm", x: 74, y: 90, mark: "end", value: 4 },
+      { label: "Tena Bar: $5,800 (1980)", x: 18, y: 76, mark: "place" },
+      { label: "1972 ground search", x: 38, y: 50, w: 40, h: 22 },
+    ] } },
 
     // ── Manhunt and copycats ──
     { key: "sketchA", type: "fact", title: "The first composite sketch", when: "1971-11-28", url: WIKI, body: "FBI artist Roy Rose drew Composite A from the flight attendants' accounts: a man in his mid-40s, 5'10\" to 6'0\", olive skin, brown eyes." },
@@ -127,6 +135,7 @@ const spec: DemoSpec = {
     { from: "pVane", to: "copycat", relation: "references", reason: "One of the fixes that ended it" },
     { from: "pSketchB", to: "sketchB", relation: "references", reason: "The final version" },
     { from: "pBills", to: "tena", relation: "references", reason: "The bills themselves" },
+    { from: "flightMap", to: "jump", relation: "references", reason: "Where he went out" },
     { from: "split", to: "tena", relation: "references", reason: "What became of the find" },
     { from: "tie", to: "tieFindings", relation: "references", reason: "The tie tested" },
     { from: "profile2007", to: "tieFindings", relation: "references", reason: "The same tie" },

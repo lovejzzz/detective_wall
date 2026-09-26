@@ -159,3 +159,34 @@ describe("subject files", () => {
     expect(subject({ for: ["one point"] })!.subject!.status).toEqual(["person of interest"]);
   });
 });
+
+describe("sketch maps", () => {
+  const diagram = (d: unknown) => sanitizeWallUpdate({ notes: [{ ref: "m1", type: "diagram", title: "The route", body: "", diagram: d }], links: [] }, new Set()).notes[0]?.diagram;
+
+  it("keeps placed points and areas, clamped to the sheet, with route steps and marks", () => {
+    expect(
+      diagram({
+        kind: "map",
+        items: [
+          { label: "Bank", x: 10, y: 12, mark: "start", value: 1 },
+          { label: "The stop", x: 50.04, y: 120, mark: "scene", value: 2.4 },
+          { label: "Prison", x: 40, y: 70, w: 80, h: 20, mark: "bogus" },
+          { label: "Nowhere" },
+        ],
+      }),
+    ).toEqual({
+      kind: "map",
+      items: [
+        { label: "Bank", x: 10, y: 12, mark: "start", value: 1 },
+        { label: "The stop", x: 50, y: 100, mark: "scene", value: 2 },
+        { label: "Prison", x: 40, y: 70, w: 60, h: 20 },
+      ],
+    });
+  });
+
+  it("needs at least two places, and allows up to ten", () => {
+    expect(diagram({ kind: "map", items: [{ label: "Alone", x: 1, y: 1 }] })).toBeUndefined();
+    const many = Array.from({ length: 14 }, (_, i) => ({ label: `P${i}`, x: i * 5, y: i * 5 }));
+    expect(diagram({ kind: "map", items: many })!.items).toHaveLength(10);
+  });
+});

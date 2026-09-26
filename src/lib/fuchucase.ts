@@ -13,7 +13,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const FUCHU_DEMO = "fuchu-300m-1968";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const FUCHU_VERSION = 4;
+export const FUCHU_VERSION = 5;
 
 export const FUCHU_PHASES: Phase[] = [
   { title: "Threats in the Tama hills", from: "1968-04-25" },
@@ -68,6 +68,15 @@ const spec: DemoSpec = {
     { key: "alarm", type: "fact", title: "A slow alarm", when: "1968-12-10T09:35", approx: true, url: TAMA, body: "The driver realised the abandoned bike was fake. The deputy manager's first 110 call only asked about checkpoints; at about 09:35 a passing off-duty officer made a proper report." },
     { key: "dragnet", type: "fact", title: "A Tokyo-wide dragnet for the wrong car", when: "1968-12-10T09:50", approx: true, url: JA_WIKI, body: "Police set checkpoints across Tokyo, looking for a black Cedric; no one expected a car switch. The traffic jams got them lifted by evening." },
     { key: "cedricFound", type: "fact", title: "The Cedric found empty at the ruins", when: "1968-12-10T10:18", approx: true, url: TAMA, body: "A constable cycling out alone found it by the graveyard at the Kokubunji pagoda site, about 1.3–1.5 km north, the cases gone, with another car's tyre tracks beside it." },
+    { key: "routeMap", type: "diagram", title: "The route, 10 December 1968", body: "Sketch, not to scale; north is up.", diagram: { kind: "map", items: [
+      { label: "Kokubunji branch", x: 26, y: 8, mark: "start", value: 1 },
+      { label: "The stop", x: 50, y: 64, mark: "scene", value: 2 },
+      { label: "Pagoda site: Cedric", x: 54, y: 34, mark: "scene", value: 3 },
+      { label: "Fuchū Prison", x: 36, y: 70, w: 38, h: 24 },
+      { label: "Toshiba works", x: 4, y: 70, w: 26, h: 22 },
+      { label: "Scout car (green Corolla)", x: 80, y: 52, mark: "place" },
+      { label: "Koganei, Apr 1969", x: 76, y: 14, mark: "end" },
+    ] } },
     { key: "pRuins", type: "photo", photo: "Musashi-kokubunji-ato tou.JPG", title: "Musashi Kokubunji pagoda site", body: "The \"second scene\", where the bank car was switched for the Corolla (2012)." },
     { key: "insured", type: "fact", title: "Bonuses paid anyway", when: "1968-12-11", url: JA_WIKI, body: "Toshiba's 4,525 Fuchū workers got their full bonuses next day: the bank had taken out transit insurance that very morning, and the insurer had reinsured abroad. The press called it the robbery without hatred." },
     { key: "pToshiba", type: "photo", photo: "Toshiba fuchu factory tokyo 2009.JPG", title: "Toshiba's Fuchū works", body: "Where the bonuses were going, a few hundred metres from the stop (2009)." },
@@ -133,6 +142,7 @@ const spec: DemoSpec = {
     { from: "flare", to: "drivesOff", relation: "causes", reason: "Staff ran; keys left" },
     { from: "corollaWaits", to: "cedricFound", relation: "supports", reason: "The switch at the ruins" },
     { from: "cedricFound", to: "corollaFound", relation: "references", reason: "The second car, four months on" },
+    { from: "routeMap", to: "drivesOff", relation: "references", reason: "Where he went" },
     { from: "boyS", to: "montage", relation: "causes", reason: "Chosen for resembling him" },
     { from: "montageDoubt", to: "montage", relation: "contradicts", reason: "The witnesses were vague" },
     { from: "statute", to: "verdict", relation: "supports", reason: "No one can be charged" },

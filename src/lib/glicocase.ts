@@ -12,7 +12,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const GLICO_DEMO = "glico-morinaga-1984";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const GLICO_VERSION = 4;
+export const GLICO_VERSION = 5;
 
 export const GLICO_PHASES: Phase[] = [
   { title: "Kidnap and the Glico siege", from: "1984-03-18" },
@@ -79,6 +79,15 @@ const spec: DemoSpec = {
 
     // ── The Otsu miss and the last letter ──
     { key: "otsu", type: "fact", title: "The Otsu miss: a white van escapes", when: "1984-11-14T20:20", approx: true, beat: "dead_end", url: JA_WIKI, body: "A taped child's voice sent the cash car to the Meishin's Otsu Service Area in Shiga. Detectives saw the fox-eyed man again but had no authority to stop him; a Shiga patrol that knew nothing of the operation approached an unlit white van, which sped off and was found abandoned with a police-band radio." },
+    { key: "kansaiMap", type: "diagram", title: "Kansai, 1984", body: "Sketch, not to scale; north is up. The dashed line is the Takatsuki–Kyoto train of 28 June.", diagram: { kind: "map", items: [
+      { label: "Ezaki home: kidnap", x: 12, y: 62, mark: "scene" },
+      { label: "Kōshienguchi: poisoned sweets", x: 15, y: 76, mark: "scene" },
+      { label: "Glico HQ: arson", x: 29, y: 88, mark: "scene" },
+      { label: "Ai River store: escape", x: 46, y: 50, mark: "place" },
+      { label: "Takatsuki", x: 53, y: 42, mark: "start", value: 1 },
+      { label: "Kyoto: lost in the crowd", x: 70, y: 16, mark: "end", value: 2 },
+      { label: "Otsu SA: the van", x: 86, y: 30, mark: "scene" },
+    ] } },
     { key: "pOtsu", type: "photo", photo: "Otsu SA 002.jpg", title: "Otsu Service Area, Meishin Expressway", body: "Where the cash car was sent on 14 November 1984 (photographed 2009)." },
     { key: "pRadio", type: "photo", photo: "YAESU-FT208.JPG", title: "A handheld radio of the gang's type", body: "A Yaesu FT-208, the model police matched to a radio the gang left behind: easily modified to hear police radio." },
     { key: "fujiya", type: "fact", title: "Fujiya: throw the cash from a roof", when: "1984-12-07", url: JA_WIKI, body: "Letters with sodium cyanide reached a Fujiya manager; later ones demanded ¥20 million be scattered from a department-store roof in Umeda, Osaka, then Ikebukuro, Tokyo. Fujiya did not comply." },
@@ -131,6 +140,7 @@ const spec: DemoSpec = {
     { from: "train", to: "sketch", relation: "supports", reason: "First sighting" },
     { from: "otsu", to: "sketch", relation: "supports", reason: "Second sighting" },
     { from: "otsu", to: "vanSketch", relation: "references", reason: "The patrol's account" },
+    { from: "kansaiMap", to: "train", relation: "references", reason: "The train on the map" },
     { from: "hokkaido", to: "fujiya", relation: "references", reason: "Talking about Fujiya" },
     { from: "otsu", to: "yamamoto", relation: "causes", reason: "He took responsibility for the escape" },
     { from: "yamamoto", to: "last", relation: "references", reason: "The letter cites his death" },

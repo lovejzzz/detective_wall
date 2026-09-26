@@ -1,6 +1,6 @@
 // Paints each note's paper onto a canvas: stock, ink, typesetting, stamps, sketches.
 // The imperfections are deliberate and seeded by the note id, so a note always looks the same.
-import type { Note, Relation, SubjectStatus } from "../lib/types.ts";
+import type { DiagramItem, DiagramSpec, Note, Relation, SubjectStatus } from "../lib/types.ts";
 import { NOTE_SIZE } from "../lib/geometry.ts";
 import { hashString, mulberry32, paperGrain } from "./textures.ts";
 
@@ -554,6 +554,8 @@ function paintDiagram(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
       g.restore();
       if (it.value !== undefined) label(String(it.value), bx + len + 4 * u, y + bh * 0.85, red, 14);
     });
+  } else if (d.kind === "map") {
+    paintMap(g, d, area, u, rand);
   } else {
     const per = Math.min(3, d.items.length);
     const bw = 66 * u;
@@ -593,6 +595,163 @@ function paintDiagram(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
       });
     });
   }
+}
+
+/**
+ * A sketch map or floor plan in pen and pencil: areas lightly hatched, the route a dashed line with
+ * arrowheads through its numbered stops, scenes a red X, and a north arrow in the corner.
+ */
+function paintMap(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: number; h: number }, u: number, rand: Rand) {
+  const ink = "#243552";
+  const red = "#8a2a1f";
+  const pencil = "rgba(60,58,54,0.55)";
+  const at = (it: DiagramItem): [number, number] => [area.x + ((it.x ?? 50) / 100) * area.w, area.y + ((it.y ?? 50) / 100) * area.h];
+  const write = (text: string, x: number, y: number, color: string, size: number, weight = 600) =>
+    handwrite(g, text, x, y, { size: size * u, weight, lineH: size * u, maxW: 150 * u, maxLines: 1, color, rand });
+  const width = (text: string, size: number, weight = 600) => {
+    g.font = `${weight} ${size * u}px ${HAND}`;
+    return g.measureText(text).width;
+  };
+
+  // everything written or marked so far, so labels can find a clear spot
+  const taken: { x0: number; x1: number; y0: number; y1: number }[] = [];
+  const points = d.items.filter((x) => !(x.w && x.h));
+  for (const it of points) {
+    const [x, y] = at(it);
+    taken.push({ x0: x - 7 * u, x1: x + 7 * u, y0: y - 7 * u, y1: y + 7 * u });
+  }
+
+  // the sheet's edges, a little generous: handwriting may run to the paper's margin
+  const lo = area.x - 8 * u;
+  const hi = area.x + area.w + 8 * u;
+  const top = area.y - 4 * u;
+  const bottom = area.y + area.h + 10 * u;
+  /** Writes a label at the first spot that is on the sheet and clear of everything so far. */
+  const place = (text: string, size: number, color: string, spots: [number, number][]) => {
+    const tw = width(text, size);
+    const box = ([lx, ly]: [number, number]) => ({ x0: lx, x1: lx + tw, y0: ly - 11 * u, y1: ly + 3 * u });
+    // the first spot on the sheet that touches nothing; failing that, the one that touches least
+    const cost = (sp: [number, number]) => {
+      const b = box(sp);
+      if (b.x0 < lo - 0.5 || b.x1 > hi + 0.5 || b.y0 < top || b.y1 > bottom) return 1e9;
+      let hit = 0;
+      for (const t of taken) hit += Math.max(0, Math.min(b.x1, t.x1) - Math.max(b.x0, t.x0)) * Math.max(0, Math.min(b.y1, t.y1) - Math.max(b.y0, t.y0));
+      return hit;
+    };
+    let spot = spots[0];
+    let best = Infinity;
+    for (const sp of spots) {
+      const c = cost(sp);
+      if (c < best) [spot, best] = [sp, c];
+      if (c === 0) break;
+    }
+    taken.push(box(spot));
+    write(text, spot[0], spot[1], color, size);
+  };
+
+  // areas first, underneath: buildings, rooms, parks
+  const areas = d.items.filter((it) => it.w && it.h);
+  for (const it of areas) {
+    const [x, y] = at(it);
+    const aw = (it.w! / 100) * area.w;
+    const ah = (it.h! / 100) * area.h;
+    g.save();
+    g.beginPath();
+    g.rect(x, y, aw, ah);
+    g.clip();
+    for (let k = -ah; k < aw; k += 5 * u) penLine(g, [[x + k, y + ah], [x + k + ah, y]], { color: "rgba(60,58,54,0.13)", width: 0.7 * u, rand, wobble: 0.25 });
+    g.restore();
+    penLine(g, [[x, y], [x + aw, y], [x + aw, y + ah], [x, y + ah], [x, y + 1.5 * u]], { color: it.mark === "scene" ? red : pencil, width: 1.2 * u, rand, wobble: 0.45, passes: 2 });
+  }
+
+  // the route: numbered stops joined in order by a dashed, arrowed pen line
+  const stops = d.items.filter((it) => it.value !== undefined && !(it.w && it.h)).sort((a, b) => a.value! - b.value!);
+  for (let i = 0; i + 1 < stops.length; i++) {
+    const a = at(stops[i]);
+    const b = at(stops[i + 1]);
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (len < 12 * u) continue;
+    const ux = (b[0] - a[0]) / len;
+    const uy = (b[1] - a[1]) / len;
+    // a gentle bow, so the route reads as travelled rather than ruled
+    const bow = Math.min(18 * u, len * 0.12) * (i % 2 ? -1 : 1);
+    const pt = (t: number): [number, number] => {
+      const s = Math.sin(t * Math.PI) * bow;
+      return [a[0] + (b[0] - a[0]) * t - uy * s, a[1] + (b[1] - a[1]) * t + ux * s];
+    };
+    const t0 = (8 * u) / len;
+    const t1 = 1 - (10 * u) / len;
+    const dash = (6 * u) / len;
+    for (let t = t0; t < t1; t += dash * 1.8) {
+      const p0 = pt(t);
+      penLine(g, [p0, pt(Math.min(t1, t + dash))], { color: ink, width: 1.4 * u, rand, wobble: 0.2 });
+      taken.push({ x0: p0[0] - 3 * u, x1: p0[0] + 3 * u, y0: p0[1] - 3 * u, y1: p0[1] + 3 * u });
+    }
+    const tip = pt(t1);
+    const back = pt(t1 - (4 * u) / len);
+    const ang = Math.atan2(tip[1] - back[1], tip[0] - back[0]);
+    const hl = 7 * u;
+    penLine(g, [[tip[0] - Math.cos(ang - 0.5) * hl, tip[1] - Math.sin(ang - 0.5) * hl], tip, [tip[0] - Math.cos(ang + 0.5) * hl, tip[1] - Math.sin(ang + 0.5) * hl]], { color: ink, width: 1.4 * u, rand, wobble: 0.15 });
+  }
+
+  // area names: inside the top corner if they fit, else beside the area
+  for (const it of areas) {
+    const [x, y] = at(it);
+    const aw = (it.w! / 100) * area.w;
+    const ah = (it.h! / 100) * area.h;
+    const tw = width(it.label, 12);
+    const spots: [number, number][] = [];
+    if (tw < aw - 10 * u && ah > 20 * u) spots.push([x + 5 * u, y + 16 * u], [x + 5 * u, y + ah - 5 * u], [x + aw - tw - 5 * u, y + ah - 5 * u]);
+    spots.push([x, y + ah + 13 * u], [x, y - 5 * u], [x + aw - tw, y + ah + 13 * u], [x + aw - tw, y - 5 * u]);
+    place(it.label, 12, it.mark === "scene" ? red : "#4a4640", spots);
+  }
+
+  // points and their labels: right of the point, else left, below or above, wherever is clear
+  for (const it of points) {
+    const [x, y] = at(it);
+    const color = it.mark === "scene" ? red : ink;
+    if (it.mark === "scene") {
+      const r = 5.5 * u;
+      penLine(g, [[x - r, y - r], [x + r, y + r]], { color: red, width: 2.2 * u, rand, wobble: 0.3, passes: 2 });
+      penLine(g, [[x + r, y - r], [x - r, y + r]], { color: red, width: 2.2 * u, rand, wobble: 0.3, passes: 2 });
+    } else if (it.mark === "start") {
+      handCircle(g, x, y, 5 * u, ink, 1.5 * u, rand);
+    } else if (it.mark === "end") {
+      const r = 4.5 * u;
+      penLine(g, [[x - r, y - r], [x + r, y - r], [x + r, y + r], [x - r, y + r], [x - r, y - r]], { color: ink, width: 1.5 * u, rand, wobble: 0.3 });
+      g.fillStyle = "rgba(36,53,82,0.55)";
+      g.fillRect(x - r * 0.7, y - r * 0.7, r * 1.4, r * 1.4);
+    } else {
+      g.fillStyle = ink;
+      g.beginPath();
+      g.arc(x, y, 2.8 * u, 0, Math.PI * 2);
+      g.fill();
+    }
+    const size = 13;
+    const text = it.value !== undefined ? `${it.value}. ${it.label}` : it.label;
+    const tw = width(text, size);
+    place(text, size, color, [
+      [x + 9 * u, y + 4 * u],
+      [x - 9 * u - tw, y + 4 * u],
+      [x - tw / 2, y + 19 * u],
+      [x - tw / 2, y - 10 * u],
+      [x + 9 * u, y + 17 * u],
+      [x - 9 * u - tw, y + 17 * u],
+      [x + 9 * u, y - 8 * u],
+      [x - 9 * u - tw, y - 8 * u],
+      [hi - tw, y + 19 * u],
+      [lo, y + 19 * u],
+      [hi - tw, y - 10 * u],
+      [lo, y - 10 * u],
+    ]);
+  }
+
+  // north arrow, top right
+  const nx = area.x + area.w - 6 * u;
+  const ny = area.y + 4 * u;
+  penLine(g, [[nx, ny + 20 * u], [nx, ny + 2 * u]], { color: pencil, width: 1.1 * u, rand, wobble: 0.2 });
+  penLine(g, [[nx - 4 * u, ny + 8 * u], [nx, ny + 1 * u], [nx + 4 * u, ny + 8 * u]], { color: pencil, width: 1.1 * u, rand, wobble: 0.2 });
+  write("N", nx - 3.5 * u, ny + 32 * u, pencil, 12, 700);
 }
 
 /** Torn newsprint edge: a jittered outline along all four sides. */

@@ -13,7 +13,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const TYLENOL_DEMO = "tylenol-1982";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const TYLENOL_VERSION = 4;
+export const TYLENOL_VERSION = 5;
 
 export const TYLENOL_PHASES: Phase[] = [
   { title: "Seven deaths", from: "1982-09-29" },
@@ -87,6 +87,14 @@ const spec: DemoSpec = {
     { key: "pOld", type: "photo", photo: C.oldTown, title: "Old Town, Wells Street", body: "Her Walgreens stood at 1601 North Wells." },
     { key: "pOhare", type: "photo", photo: C.ohare, title: "O'Hare", body: "Present-day aerial. Prince had worked a Las Vegas round trip and then an out-and-back to Hartford before landing here." },
     { key: "marys", type: "fact", title: "Mary Reiner and Mary McFarland", when: "1982-09-30T09:03", url: CBS, body: "Mary McFarland, 31, of Elmhurst collapsed at 6:35 p.m. on the 29th at work in Yorktown Center, Lombard, and died at 3:15 a.m. Mary \"Lynn\" Reiner, 27, of Winfield, a week after giving birth, died at Central DuPage Hospital at 9:03 a.m." },
+    { key: "deathsMap", type: "diagram", title: "Seven deaths in three days", body: "Where each victim collapsed, 29 September to 1 October 1982. Sketch, not to scale; north is up.", diagram: { kind: "map", items: [
+      { label: "Arlington Hts: 3 Janus", x: 39, y: 18, mark: "scene" },
+      { label: "Elk Grove Village: Kellerman", x: 40, y: 42, mark: "scene" },
+      { label: "O'Hare", x: 55, y: 50, mark: "place" },
+      { label: "Old Town: Prince", x: 86, y: 68, mark: "scene" },
+      { label: "Yorktown, Lombard: McFarland", x: 37, y: 86, mark: "scene" },
+      { label: "Winfield: Reiner", x: 13, y: 76, mark: "scene" },
+    ] } },
     { key: "pWinfield", type: "photo", photo: C.winfield, title: "Central DuPage Hospital, Winfield", body: "Where Mary Reiner died." },
     { key: "pYorktown", type: "photo", photo: C.yorktown, title: "Yorktown Center, Lombard", body: "Where Mary McFarland worked and collapsed." },
     { key: "cyanide", type: "fact", title: "Cyanide in the capsules", when: "1982-09-30", url: UPI_LOTS, body: "Cook County toxicologist Michael Schaffer confirmed cyanide in the Kellerman and Janus bottles. The capsules had been emptied and refilled with potassium cyanide, in doses that varied: a sign of tampering by hand." },
@@ -165,6 +173,7 @@ const spec: DemoSpec = {
     { from: "pBoise", to: "boise", relation: "references", reason: "How he may have arrived" },
     { from: "pPills", to: "elsroth", relation: "references", reason: "Capsules were dropped" },
     { from: "kellerman", to: "firefighters", relation: "references", reason: "One of the two scenes" },
+    { from: "deathsMap", to: "who", relation: "supports", reason: "Stores far apart" },
     { from: "janus", to: "firefighters", relation: "references", reason: "The other scene" },
     { from: "firefighters", to: "cyanide", relation: "causes", reason: "Their tip led to the capsules" },
     { from: "theory", to: "cyanide", relation: "supports", reason: "Tampering after sale" },
