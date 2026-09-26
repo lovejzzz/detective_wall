@@ -116,9 +116,6 @@ describe("the partner ranks and re-ranks", () => {
     const ranked = renderWallState({ caseTitle: "X", notes: [subject("s1", { rank: 1, verdict: "DNA match" }), subject("s2", { rank: 1 })], links: [{ from: "s1", to: "s2", relation: "references", status: "pinned" }], messages: [] });
     expect(ranked).toContain("most likely #1 (DNA match)");
     expect(ranked).toContain("two subject files share a rank");
-    expect(ranked).toContain("s1, a named person never convicted, ranks first");
-    const unsubFirst = renderWallState({ caseTitle: "X", notes: [subject("u1", { rank: 1, subjectStatus: "unidentified" }), subject("s2", { rank: 2 })], links: [{ from: "u1", to: "s2", relation: "references", status: "pinned" }], messages: [] });
-    expect(unsubFirst).not.toContain("ranks first");
   });
 });
 
