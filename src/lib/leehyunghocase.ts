@@ -16,7 +16,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const LEEHYUNGHO_DEMO = "leehyungho-1991";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const LEEHYUNGHO_VERSION = 2;
+export const LEEHYUNGHO_VERSION = 3;
 
 export const LEEHYUNGHO_PHASES: Phase[] = [
   { title: "The playground and the car phone", from: "1991-01-29" },

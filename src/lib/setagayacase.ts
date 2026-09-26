@@ -15,7 +15,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const SETAGAYA_DEMO = "setagaya-2000";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const SETAGAYA_VERSION = 2;
+export const SETAGAYA_VERSION = 3;
 
 export const SETAGAYA_PHASES: Phase[] = [
   { title: "A house in the park's path", from: "1990" },

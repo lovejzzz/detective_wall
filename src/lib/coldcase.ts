@@ -11,7 +11,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const COOPER_DEMO = "cooper-1971";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const COOPER_VERSION = 8;
+export const COOPER_VERSION = 9;
 
 /** Real photos of the case on Wikimedia Commons (credit is read from each file's metadata at runtime). */
 export const COMMONS = {

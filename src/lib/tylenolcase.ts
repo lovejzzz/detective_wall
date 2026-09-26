@@ -13,7 +13,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const TYLENOL_DEMO = "tylenol-1982";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const TYLENOL_VERSION = 8;
+export const TYLENOL_VERSION = 9;
 
 export const TYLENOL_PHASES: Phase[] = [
   { title: "Seven deaths", from: "1982-09-29" },

@@ -13,7 +13,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const FUCHU_DEMO = "fuchu-300m-1968";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const FUCHU_VERSION = 7;
+export const FUCHU_VERSION = 8;
 
 export const FUCHU_PHASES: Phase[] = [
   { title: "Threats in the Tama hills", from: "1968-04-25" },

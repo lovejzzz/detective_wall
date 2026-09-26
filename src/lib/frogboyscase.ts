@@ -16,7 +16,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const FROGBOYS_DEMO = "frogboys-1991";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const FROGBOYS_VERSION = 2;
+export const FROGBOYS_VERSION = 3;
 
 export const FROGBOYS_PHASES: Phase[] = [
   { title: "Salamander eggs on election day", from: "1991-03-26" },

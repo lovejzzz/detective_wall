@@ -16,7 +16,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const HACHIOJI_DEMO = "hachioji-1995";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const HACHIOJI_VERSION = 2;
+export const HACHIOJI_VERSION = 3;
 
 export const HACHIOJI_PHASES: Phase[] = [
   { title: "The last night of the summer sale", from: "1995-07-30" },

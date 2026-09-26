@@ -12,7 +12,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const GLICO_DEMO = "glico-morinaga-1984";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const GLICO_VERSION = 7;
+export const GLICO_VERSION = 8;
 
 export const GLICO_PHASES: Phase[] = [
   { title: "Kidnap and the Glico siege", from: "1984-03-18" },
