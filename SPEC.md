@@ -86,7 +86,7 @@ These decide trade-offs whenever the rest of this document doesn't.
 |---|---|---|---|---|
 | `hypothesis` | Square sticky note (yellow, plus pink/blue/green variants) | Handwritten | Red push-pin | Hunches, questions, what-ifs |
 | `fact` | Typed A-series sheet, slightly curled | Typewriter | Brass tack | Specs, figures, definitions |
-| `diagram` | Graph paper with an inline SVG sketch | Handwritten labels | Two push-pins | Mechanisms, comparisons, structure |
+| `diagram` | Graph paper with an inline SVG sketch | Handwritten labels | Two push-pins | Mechanisms, comparisons, structure, and sketch maps / floor plans (`map`: places and areas at 0–100 positions, north up, a red X for scenes, a dashed route through numbered stops) |
 | `web` | Clipping with torn edges, two strips of masking tape | Serif headline, sans body, URL footer | Tape (no pin) | Articles, docs, forum threads |
 | `photo` | Polaroid, glossy highlight, slight bend | Handwritten caption | Clip | Reference images |
 | `conclusion` | Index card with a red rubber stamp (`LIKELY`, `CONFIRMED`, `RULED OUT`, `OPEN`) | Typewriter, stamp | Push-pin | The current answer to the case question |
@@ -189,7 +189,7 @@ update_wall({
     url?: string                // required for type "web"
     confidence?: "high" | "medium" | "low"
     stamp?: "LIKELY" | "CONFIRMED" | "RULED OUT" | "OPEN"   // conclusion only
-    diagram?: { kind: "bars" | "circles" | "flow"; items: Array<{ label: string; value?: number }> }
+    diagram?: { kind: "bars" | "circles" | "flow" | "map"; items: Array<{ label: string; value?: number; x?: number; y?: number; w?: number; h?: number; mark?: "scene" | "start" | "end" | "place" }> }
     near?: string               // id or ref of a note to place it near
   }>,
   links: Array<{
