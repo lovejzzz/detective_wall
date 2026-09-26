@@ -13,7 +13,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const FUCHU_DEMO = "fuchu-300m-1968";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const FUCHU_VERSION = 6;
+export const FUCHU_VERSION = 7;
 
 export const FUCHU_PHASES: Phase[] = [
   { title: "Threats in the Tama hills", from: "1968-04-25" },
@@ -61,6 +61,7 @@ const spec: DemoSpec = {
     { key: "pCedric", type: "photo", photo: "Nissan Cedric Custom H31.jpg", title: "A Nissan Cedric Custom", body: "The same type as the bank car (not the car itself)." },
     { key: "pKokubunji", type: "photo", photo: "Kokubunji station north entrance in 2016 (Familymart direction).jpg", title: "Kokubunji Station, north exit", body: "The bank branch stood near here; its building is gone (2016)." },
     { key: "stop", type: "fact", title: "A \"police motorcycle\" pulls them over", when: "1968-12-10T09:21", approx: true, beat: "origin", url: JA_WIKI, body: "On the road along Fuchū Prison's north wall, a white \"police\" motorcycle dragging a green car cover blocked the Cedric. The rider, in a white helmet and black leather jacket, said the manager's house had been bombed and this car might hold dynamite too." },
+    { key: "pBikeScene", type: "photo", photoPage: "https://www.jiji.com/jc/d4?d=d4_oldnews&p=soe924", title: "The fake police bike at the scene", body: "Left on the road, the body cover it dragged still behind it (Jiji, 10 Dec 1968)." },
     { key: "pPrison", type: "photo", photo: "Fuchu Prison (Nov 3, 2025).jpg", title: "Fuchū Prison", body: "The wall the bank car was stopped beside (photographed 2025)." },
     { key: "pAerial", type: "photo", photo: "Fuchu prison 1989 air.jpg", title: "Fuchū Prison from the air, 1989", body: "The road along the north wall and the prison-corner junction the robber drove through." },
     { key: "flare", type: "fact", title: "\"It's dynamite, run!\"", when: "1968-12-10T09:23", approx: true, url: YOMIURI, body: "The staff got out, leaving the key in the ignition with the trunk and case keys on the same ring. The \"officer\" crawled under the car; red flame and white smoke burst out, and the staff ran about 100 m. It was a road flare." },
@@ -71,6 +72,7 @@ const spec: DemoSpec = {
     { key: "alarm", type: "fact", title: "A slow alarm", when: "1968-12-10T09:35", approx: true, url: TAMA, body: "The driver realised the abandoned bike was fake. The deputy manager's first 110 call only asked about checkpoints; at about 09:35 a passing off-duty officer made a proper report." },
     { key: "dragnet", type: "fact", title: "A Tokyo-wide dragnet for the wrong car", when: "1968-12-10T09:50", approx: true, url: JA_WIKI, body: "Police set checkpoints across Tokyo, looking for a black Cedric; no one expected a car switch. The traffic jams got them lifted by evening." },
     { key: "cedricFound", type: "fact", title: "The Cedric found empty at the ruins", when: "1968-12-10T10:18", approx: true, url: TAMA, body: "A constable cycling out alone found it by the graveyard at the Kokubunji pagoda site, about 1.3–1.5 km north, the cases gone, with another car's tyre tracks beside it." },
+    { key: "pCedricFound", type: "photo", photoPage: "https://www.jiji.com/jc/d4?d=d4_oldnews&p=soe924-jlp04101844", title: "The abandoned bank car at the ruins", body: "Investigators at the Cedric in the Kokubunji temple grounds (Jiji, 10 Dec 1968)." },
     { key: "routeMap", type: "diagram", title: "The route, 10 December 1968", body: "Sketch, not to scale; north is up.", diagram: { kind: "map", items: [
       { label: "Kokubunji branch", x: 26, y: 8, mark: "start", value: 1 },
       { label: "The stop", x: 50, y: 64, mark: "scene", value: 2 },
@@ -93,7 +95,7 @@ const spec: DemoSpec = {
     { key: "hiratsuka", type: "fact", title: "Inspector Hiratsuka joins to re-examine the case", when: "1969-04", approx: true, url: NHK, body: "Veteran inspector Hachibei Hiratsuka joined four months in to re-examine the case. A note of his found by NHK reads: the stumble of the first investigation is not easily recovered." },
     { key: "pFuchuPolice", type: "photo", photo: "Fuchu police station tokyo 2009.JPG", title: "Fuchū police station", body: "Seat of the special investigation headquarters (building photographed 2009)." },
     { key: "corollaFound", type: "fact", title: "The getaway Corolla, three empty cases", when: "1969-04-09", beat: "breakthrough", url: TAMA, body: "Car dealers at a Koganei housing-estate car park saw duralumin cases under a car cover: the navy Corolla, cases inside and empty. An Air Self-Defense Force reconnaissance photo showed it already there at 11:17 on 11 December 1968." },
-    { key: "pCorolla", type: "photo", photo: "Toyota Corolla 4door Deluxe (KE10) '67 (1).jpg", title: "A 1967 Corolla Deluxe", body: "The same model as the getaway car (not the car itself)." },
+    { key: "pCorolla", type: "photo", photoPage: "https://www.jiji.com/jc/d4?d=d4_oldnews&p=soe924-jlp04228216", title: "The getaway Corolla, cases in the back", body: "The navy Corolla found at a Koganei estate car park, duralumin cases on the back seat (Jiji, 9 Apr 1969)." },
     { key: "montageDoubt", type: "fact", title: "Hiratsuka: the montage can't be trusted", when: "1969-09", approx: true, url: JA_WIKI, body: "He found the bank staff's accounts vague and one had never really seen the face. He reported the montage unreliable; it stayed in use." },
     { key: "wrongMan", type: "fact", title: "Named, arrested, cleared: the wrong man", when: "1969-12-12", beat: "dead_end", url: EN_WIKI, body: "After a newspaper scoop, police arrested a Fuchū driver in his twenties on an unrelated charge and the press printed his name and photo. An alibi cleared him within a day; the Japan Federation of Bar Associations called the arrest illegal in 1970." },
     { key: "drop", type: "fact", title: "Suspects no longer have to look like it", when: "1971", url: JA_WIKI, body: "The investigation formally dropped the rule that a suspect must resemble the montage." },
@@ -111,6 +113,7 @@ const spec: DemoSpec = {
 
     // ── Exhibits ──
     { key: "bike", type: "fact", title: "Exhibit: the fake police motorcycle", url: YOMIURI, body: "A blue Yamaha 350R1 hand-painted white, with a red lamp, a towel-rail bracket and a white-painted megaphone. Real Tokyo police bikes were Hondas. Left at the scene still dragging a green car cover." },
+    { key: "pBikes", type: "photo", photoPage: "https://mainichi.jp/graphs/20170420/hpj/00m/040/003000g/1", title: "The fake police bike (left) and a real one", body: "The robber's repainted Yamaha beside a genuine police motorcycle (Mainichi, 1968)." },
     { key: "scrap", type: "fact", title: "Exhibit: a 4 mm scrap of newspaper", url: JA_WIKI, body: "Masking paper under the megaphone's paint matched page 11 of the Sankei for 6 December 1968, 13,485 copies delivered in the Tama area. The match took two years; the delivery lists were gone." },
     { key: "cap", type: "fact", title: "Exhibit: a hunting cap, 18 untraced", url: JA_WIKI, body: "Found in the car cover the bike dragged: 54 were made, 36 traced, 18 sold at a Tachikawa bargain sale. Detectives reportedly tried it on, spoiling any sweat evidence." },
     { key: "flareEx", type: "fact", title: "Exhibit: a road flare and two magnets", url: JA_WIKI, body: "A Hi-Flare 5 (4,190 sold, mostly at petrol stations) wrapped in a page from the July 1968 Denpa Kagaku, with two cabinet-catch magnets wired on to hold it under the car." },
@@ -118,6 +121,7 @@ const spec: DemoSpec = {
     { key: "tin", type: "fact", title: "Exhibit: a cookie tin as a police box", url: YOMIURI, body: "A white-painted Meiji Shōji cookie tin taped to the bike as a police document box. With about 30,000 on sale, tracing buyers was dropped." },
     { key: "letters", type: "fact", title: "Exhibit: letters cut from magazines", url: JA_WIKI, body: "Characters cut from the film magazine Kindai Eiga, plus handwriting. Saliva on a stamp gave blood type B; the letters say \"we\"." },
     { key: "soil", type: "fact", title: "Exhibit: 1.5 g of soil in an empty case", url: JA_WIKI, body: "Found in one duralumin case in the Corolla. Labs likened it to woodland soil in Koigakubo and to the soil at the temple ruins." },
+    { key: "pCases", type: "photo", photoPage: "https://www.jiji.com/jc/d4?d=d4_oldnews&p=soe924-jlp01100508", title: "The empty duralumin cases", body: "Police show the press the cases left in the getaway Corolla (Jiji, 9 Apr 1969)." },
     { key: "serials", type: "fact", title: "Exhibit: 2,000 ¥500 notes, never confirmed spent", url: JA_WIKI, body: "Only ¥1 million of the cash had recorded serials, XF227001A to XF229000A. Police published them; none has ever been confirmed as spent." },
     { key: "pYen", type: "photo", photo: "Series B 500 Yen Bank of Japan note - front.jpg", title: "A ¥500 note of the series", body: "The type whose serial numbers were published (Series B, issued 1951–71)." },
 
@@ -129,6 +133,10 @@ const spec: DemoSpec = {
     { key: "knots", type: "fact", title: "Two car covers, two different knots", when: "1971", proposed: true, url: JA_WIKI, body: "An engineer examining the evidence for police found the covers on two stolen cars tied with different knots: if one thief took both cars, the knots suggest a second person." },
   ],
   links: [
+    { from: "pBikeScene", to: "stop", relation: "references", reason: "Left where he stopped them" },
+    { from: "pCedricFound", to: "cedricFound", relation: "references", reason: "The car as found" },
+    { from: "pBikes", to: "bike", relation: "references", reason: "Fake beside real" },
+    { from: "pCases", to: "soil", relation: "references", reason: "The cases themselves" },
     { from: "pCorolla2", to: "fleet", relation: "references", reason: "The scouting car's type" },
     { from: "pTamadaira", to: "fleet", relation: "references", reason: "Where the getaway car was stolen" },
     { from: "pCedric", to: "leaves", relation: "references", reason: "The bank car's type" },
@@ -140,7 +148,7 @@ const spec: DemoSpec = {
     { from: "pToshiba", to: "insured", relation: "references", reason: "Whose bonuses they were" },
     { from: "pNote", to: "insured", relation: "references", reason: "The money of the day" },
     { from: "pFuchuPolice", to: "hiratsuka", relation: "references", reason: "The task force's base" },
-    { from: "pCorolla", to: "corollaFound", relation: "references", reason: "The getaway car's model" },
+    { from: "pCorolla", to: "corollaFound", relation: "references", reason: "The car as found" },
     { from: "pYen", to: "serials", relation: "references", reason: "The notes with known serials" },
     { from: "pMpd", to: "statute", relation: "references", reason: "The force that ran out of time" },
     { from: "pNhk", to: "nhk", relation: "references", reason: "Who reopened the file" },

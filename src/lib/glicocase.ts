@@ -12,7 +12,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const GLICO_DEMO = "glico-morinaga-1984";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const GLICO_VERSION = 6;
+export const GLICO_VERSION = 7;
 
 export const GLICO_PHASES: Phase[] = [
   { title: "Kidnap and the Glico siege", from: "1984-03-18" },
@@ -51,6 +51,7 @@ const spec: DemoSpec = {
     { key: "kidnap", type: "fact", title: "Glico's president taken from his bath", when: "1984-03-18T21:00", approx: true, beat: "origin", url: SANKEI, body: "Two armed men, with a third waiting in a car, broke into the Ezaki homes in Nishinomiya, Hyōgo, tied up his mother, wife and daughter and took the Ezaki Glico president, 42, naked from the bath. A note found by a Glico director demanded ¥1 billion and 100 kg of gold." },
     { key: "pGlico", type: "photo", photo: "Glico Man sign, Dotonbori.JPG", title: "Glico's running man, Dōtonbori", body: "The confectioner's famous sign in Osaka (as it stood in 2013): the first company the gang targeted." },
     { key: "escape", type: "fact", title: "Ezaki escapes after 65 hours", when: "1984-03-21T14:30", approx: true, url: JA_WIKI, body: "He freed himself from a flood-control storehouse on the Ai River in Ibaraki, Osaka, and reached the Osaka Freight Terminal, where rail workers called police. No ransom was paid." },
+    { key: "pStorehouse", type: "photo", photoPage: "https://www.jiji.com/jc/d4?d=d4_oldnews&p=kai021-jpp000957276", title: "The storehouse on the Ai River, 1984", body: "Where Ezaki was held, beside the shinkansen line in Settsu, Osaka (Jiji, 21 Mar 1984)." },
     { key: "pFreight", type: "photo", photo: "Osaka Freight terminal.jpg", title: "Osaka Freight Terminal", body: "Where Ezaki came out after his escape (photographed 2009)." },
     { key: "fools", type: "fact", title: "First letter: \"to the police fools\"", when: "1984-04-08", url: JA_WIKI, body: "A ¥60 million drop set for 8 April drew no one. The same day the gang's first public letter, addressed けいさつの あほども え (\"to the police fools\"), reached the Mainichi and Sankei in Osaka." },
     { key: "arson", type: "fact", title: "Arson at Glico headquarters", when: "1984-04-10T20:50", url: JA_WIKI, body: "Fire gutted about 150 m² of the prototype room at Glico's head office in Nishiyodogawa, Osaka; half an hour later a van burned at a Glico affiliate 3 km away. On 12 April the National Police Agency designated the series Wide-Area Case 114." },
@@ -71,10 +72,11 @@ const spec: DemoSpec = {
 
     // ── Poison on the shelves ──
     { key: "shelves", type: "fact", title: "Cyanide on the shelves", when: "1984-10-07", beat: "escalation", url: KOBE_2020, body: "Morinaga sweets laced with sodium cyanide, labelled どくいり きけん たべたら しぬで (\"poison, danger, eat it and die\"), turned up over the next week in Hyōgo, Osaka, Kyoto and Aichi. The first was found at 11:45 at FamilyMart Kōshienguchi, Nishinomiya; each held 0.1–0.23 g of cyanide." },
-    { key: "pHichew", type: "photo", photo: "Hi-chew - panoramio.jpg", title: "Hi-Chew soft candy", body: "One of the Morinaga lines laced with cyanide (present-day packaging)." },
+    { key: "pHichew", type: "photo", photoPage: "https://www.jiji.com/jc/d4?d=d4_yy&p=mkj929-jpp00624186", title: "Hi-Chew with a どくいりきけん sticker", body: "Morinaga soft candy carrying the gang's poison label (Jiji, Osaka, 9 Oct 1984)." },
     { key: "pCaramel", type: "photo", photo: "Morinaga Milk Caramel (pouched).jpg", title: "Morinaga Milk Caramel", body: "Also among the poisoned products (present-day packaging)." },
     { key: "video", type: "fact", title: "The \"Video Man\" released", when: "1984-10-15", approx: true, url: KOBE_2020, body: "Police released security-camera footage from FamilyMart Kōshienguchi of a man in a Yomiuri Giants baseball cap, filmed on 7 October around when the poisoned drops were planted. Sources give 15 or 16 October; he has never been identified." },
-    { key: "pKoshien", type: "photo", photo: "Kōshienguchi Station-south.jpg", title: "Kōshienguchi Station", body: "The FamilyMart where the first poisoned sweets were planted stood near this station (the store is not pictured)." },
+    { key: "pVideoMan", type: "photo", photoPage: "https://www.kobe-np.co.jp/news/sougou/202002/p2_0013106686.shtml", title: "The Video Man on the store camera", body: "The police-released security-camera still of the unidentified man, dated 15 Oct 1984 (Kobe Shimbun)." },
+    { key: "pKoshien", type: "photo", photoPage: "https://www.kobe-np.co.jp/news/sougou/202002/p1_0013106686.shtml", title: "FamilyMart Kōshienguchi, 2020", body: "The store where the first cyanide sweets were found, days before it closed (Kobe Shimbun, Feb 2020)." },
     { key: "house", type: "fact", title: "House Foods gets poisoned stew", when: "1984-11-07", url: JA_WIKI, body: "Letters to a House Foods executive demanded ¥100 million, set a handover for 14 November in Fushimi, Kyoto, and enclosed cyanide-laced stew with a tape of Ezaki's voice from captivity as proof. The press agreed to a blackout." },
     { key: "pHouse", type: "photo", photo: "HOUSE FOODS GROUP INC. HEADQUARTER.JPG", title: "House Foods head office", body: "The company whose president went to the police instead of paying (photographed 2015)." },
 
@@ -96,6 +98,7 @@ const spec: DemoSpec = {
     { key: "hokkaido", type: "fact", title: "The \"Hokkaido tape\"", when: "1984-12-04", url: JA_WIKI, body: "A radio ham in Hokkaido recorded an off-band exchange between two men calling themselves \"21面相\" and \"玉三郎\" about Fujiya not paying. Police judged it likely to be the gang and released part of it." },
     { key: "vanSketch", type: "fact", title: "A likeness of the van driver", when: "1984-12-11", url: JA_WIKI, body: "Police released a drawing of the white-van driver made from the three Shiga patrol officers' accounts." },
     { key: "sketch", type: "fact", title: "The fox-eyed man's sketch published", when: "1985-01-10", url: SHINCHO, body: "Police released the composite of the man seen at the Marudai and House drops, drawn from detectives' sightings. It became Japan's best-known police sketch and has never been matched to anyone." },
+    { key: "pSketch", type: "photo", photoPage: "https://www.jiji.com/jc/d4?d=d4_yy&p=mkj929-jpp10564365", title: "The fox-eyed man: the police sketch", body: "The composite released by Osaka police (Jiji, 10 Jan 1985)." },
     { key: "valentine", type: "fact", title: "Valentine's cyanide in Tokyo and Nagoya", when: "1985-02-12", approx: true, url: JAPAN_TIMES_2000, body: "Cyanide-laced chocolates labelled どくいり きけん were found in Tokyo and Aichi; some harmless boxes were labelled どくなし あんしん (\"no poison, don't worry\"). As attempted murders, they were the last counts in the case to expire." },
     { key: "truce", type: "fact", title: "A truce with Morinaga", when: "1985-02-24", url: JA_WIKI, body: "A letter to the press ended the campaign against Morinaga, days before the gang turned to Surugaya." },
     { key: "surugaya", type: "fact", title: "Surugaya, the last company", when: "1985-03-06", url: JA_WIKI, body: "The Wakayama confectioner got a ¥50 million demand. On 8 March the gang put off the handover and never contacted the company again." },
@@ -108,11 +111,12 @@ const spec: DemoSpec = {
     // ── The clock runs out ──
     { key: "kidnapExpires", type: "fact", title: "The kidnapping count expires", when: "1994-03", approx: true, url: "https://www.japantimes.co.jp/news/1999/02/24/national/clock-ticking-on-glico-morinaga-cases/", body: "The statute of limitations on Ezaki's abduction ran out and the task force was scaled back. A 1992 questioning of an ex-yakuza boss's circle had produced no confession and no evidence." },
     { key: "expiry", type: "fact", title: "All 28 cases expire at midnight", when: "2000-02-13T00:00", beat: "latest", url: JAPAN_TIMES_2000, body: "The last counts, from the February 1985 poisonings, expired after some 1.3 million officer-days, 28,300 tips and 125,000 people checked. Case 114 became the first designated case never to produce an arrest." },
-    { key: "pNishinomiya", type: "photo", photo: "Nishinomiya Police Station.JPG", title: "Nishinomiya police station", body: "Home of the task force whose sign came down at midnight on 13 February 2000 (photographed 2012)." },
+    { key: "pNishinomiya", type: "photo", photoPage: "https://mainichi.jp/graphs/20260420/mpj/00m/040/046000f/9", title: "The task-force sign comes down", body: "Officers remove the kidnapping HQ sign at Nishinomiya station at midnight (Mainichi, 13 Feb 2000)." },
     { key: "film", type: "web", title: "罪の声: the children's voices, in fiction", when: "2020-10-30", url: "https://ja.wikipedia.org/wiki/罪の声", body: "Toho's film of Takeshi Shiota's 2016 novel follows a man who finds a tape of his own childhood voice used in a fictionalised version of the case. Shiota began with the real children on the tapes." },
 
     // ── Evidence without a date ──
     { key: "letters", type: "fact", title: "144 letters on a Pan-writer", url: KOBE_2024, body: "Some 144 letters in hiragana-heavy Kansai dialect taunted police and press. They were typed on a Japanese Pan-writer typewriter; police traced thousands of units and most of their owners, without result." },
+    { key: "pLetter", type: "photo", photoPage: "https://mainichi.jp/graphs/20260420/mpj/00m/040/046000f/7", title: "A challenge letter to the Mainichi", body: "One of the gang's letters received by the Mainichi's Osaka office (Mainichi)." },
     { key: "tapes", type: "fact", title: "Three voices on tape", url: JA_WIKI, body: "A young female voice (a girl, by one voiceprint analysis) and a small boy's voice gave orders by phone, and a tape of Ezaki's voice from captivity was mailed to targets as proof. The speakers have never been identified." },
     { key: "chain", type: "diagram", title: "Six companies, no money collected", diagram: { kind: "flow", items: [{ label: "Glico" }, { label: "Marudai" }, { label: "Morinaga" }, { label: "House" }, { label: "Fujiya" }, { label: "Surugaya" }] } },
 
@@ -124,15 +128,19 @@ const spec: DemoSpec = {
     { key: "tape1978", type: "fact", title: "A 1978 tape foretold it", when: "1978-08-17", proposed: true, url: JA_WIKI, body: "An hour-long tape sent to a Glico director had an older man forecasting a kidnapping, arson and poisoned candy. Investigators linked it to the gang and released a one-minute edit in 1993." },
   ],
   links: [
+    { from: "pStorehouse", to: "escape", relation: "references", reason: "Where he was held" },
+    { from: "pVideoMan", to: "video", relation: "references", reason: "The still itself" },
+    { from: "pSketch", to: "sketch", relation: "references", reason: "The sketch itself" },
+    { from: "pLetter", to: "letters", relation: "references", reason: "One of the 144" },
     { from: "pGlico", to: "kidnap", relation: "references", reason: "The company targeted" },
     { from: "pFreight", to: "escape", relation: "references", reason: "Where he came out" },
     { from: "pHq", to: "arson", relation: "references", reason: "The building that burned" },
     { from: "pTakatsuki", to: "train", relation: "references", reason: "Where the courier boarded" },
     { from: "pMarudai", to: "train", relation: "references", reason: "The company paying" },
     { from: "pMorinaga", to: "morinaga", relation: "references", reason: "The next target" },
-    { from: "pHichew", to: "shelves", relation: "references", reason: "A poisoned line" },
+    { from: "pHichew", to: "shelves", relation: "references", reason: "The label itself" },
     { from: "pCaramel", to: "shelves", relation: "references", reason: "A poisoned line" },
-    { from: "pKoshien", to: "video", relation: "references", reason: "Near the store" },
+    { from: "pKoshien", to: "video", relation: "references", reason: "The store he was filmed in" },
     { from: "pRampo", to: "name", relation: "references", reason: "Whose villain they borrowed" },
     { from: "pHouse", to: "house", relation: "references", reason: "The company targeted" },
     { from: "pOtsu", to: "otsu", relation: "references", reason: "The drop site" },
@@ -141,7 +149,7 @@ const spec: DemoSpec = {
     { from: "pShiga", to: "yamamoto", relation: "references", reason: "His force" },
     { from: "pSurugaya", to: "surugaya", relation: "references", reason: "The company targeted" },
     { from: "pJal", to: "last", relation: "references", reason: "The flight House's president was on" },
-    { from: "pNishinomiya", to: "expiry", relation: "references", reason: "Where the sign came down" },
+    { from: "pNishinomiya", to: "expiry", relation: "references", reason: "The moment it expired" },
     { from: "kidnap", to: "escape", relation: "causes", reason: "65 hours later" },
     { from: "morinaga", to: "shelves", relation: "causes", reason: "The threat carried out" },
     { from: "shelves", to: "video", relation: "references", reason: "Filmed that day" },

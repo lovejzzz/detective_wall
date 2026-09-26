@@ -16,7 +16,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const HACHIOJI_DEMO = "hachioji-1995";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const HACHIOJI_VERSION = 1;
+export const HACHIOJI_VERSION = 2;
 
 export const HACHIOJI_PHASES: Phase[] = [
   { title: "The last night of the summer sale", from: "1995-07-30" },
@@ -66,6 +66,7 @@ const spec: DemoSpec = {
     { key: "lastSeen", type: "fact", title: "Milk and eggs: the last sighting", when: "1995-07-30T20:51", url: JA_WIKI, body: "A till receipt shows Maeda bought milk and eggs. Inagaki chatted with a neighbour while drawing the chiller curtains. It is the last corroborated sighting of the three." },
     { key: "couple", type: "fact", title: "The last customers: a young couple", when: "1995-07-30T20:56", url: MPD, body: "A couple paid ¥1,754 for seven items, yakisoba and okonomiyaki among them, and left in a white sedan. He was about 177 cm with clipped sides; she had straight shoulder-length hair and a dark dress. Police still want to find them as possible witnesses." },
     { key: "close", type: "fact", title: "Closing: the takings go in the safe", when: "1995-07-30T21:00", url: JA_WIKI, body: "Yabuki carried the till cash out, round the building and up the outside stairs to the office, as staff always did in view of the car park. Inagaki put it in the safe and spun the dial." },
+    { key: "pStoreModel", type: "photo", photoPage: "https://mainichi.jp/graphs/20250730/mpj/00m/040/101000f/6", title: "Police model of the Nanpei store", body: "The MPD's model of the store's exterior (Mainichi, 24 Jul 2025)." },
     { key: "pNote", type: "photo", photo: "Series D 10K Yen Bank of Japan note - front.jpg", title: "A ¥10,000 note of the day", body: "Series D, first issued in 1984: the notes then in circulation. About ¥5.26 million lay in the safe." },
     { key: "lockup", type: "fact", title: "Lock-up, and a face turned away", when: "1995-07-30T21:06", url: JA_WIKI, body: "Inagaki finished locking the store; the dance ended a minute later. A neighbour parking a car saw a young man in the passage under the office, who dropped his head in the headlights and walked off." },
     { key: "call", type: "fact", title: "A phone call, and the door locks", when: "1995-07-30T21:15", url: JA_WIKI, body: "Phone records show Inagaki called a male acquaintance to pick her up. The office security system logged the door being locked: the three were leaving." },
@@ -81,6 +82,7 @@ const spec: DemoSpec = {
       { label: "JR Hachiōji Stn", x: 30, y: 86, mark: "place" },
     ] } },
     { key: "found", type: "fact", title: "Found at ten o'clock", when: "1995-07-30T22:00", approx: true, url: JA_WIKI, body: "After checking a restaurant where they had planned to meet, the acquaintance returned with its owner. The door was unlocked; they found the three on the floor and at 22:08 ran to the Kita-Hachiōji police box." },
+    { key: "pScene", type: "photo", photoPage: "https://mainichi.jp/graphs/20250730/mpj/00m/040/101000f/4", title: "Investigators at the office, 31 July 1995", body: "Detectives at the upstairs office in the small hours after the shooting (Mainichi)." },
     { key: "officeMap", type: "diagram", title: "The office, as found", body: "Sketch from press accounts, not to scale. The safe had its key in and a bullet mark; Inagaki lay beside it. Footprints ran only from the door to the safe and the victims.", diagram: { kind: "map", north: false, items: [
       { label: "Office, upstairs", x: 10, y: 10, w: 80, h: 66 },
       { label: "Outside stairs", x: 22, y: 88, mark: "start", value: 1 },
@@ -90,6 +92,7 @@ const spec: DemoSpec = {
       { label: "Inagaki", x: 76, y: 50, mark: "scene" },
       { label: "Desk: 5th bullet", x: 14, y: 22, w: 14, h: 7 },
     ] } },
+    { key: "pOfficeModel", type: "photo", photoPage: "https://mainichi.jp/graphs/20250730/mpj/00m/040/101000f/8", title: "Police model of the office", body: "The MPD's model of the upstairs office interior (Mainichi, 24 Jul 2025)." },
     { key: "pKitaStn", type: "photo", photo: "Kita-hachioji sta west.jpg", title: "Kita-Hachiōji Station, west entrance", body: "The nearest station, about 750 m from the store (2006)." },
     { key: "lastMinutes", type: "diagram", title: "Two minutes after the phone call", diagram: { kind: "flow", items: [{ label: "21:06 lock-up" }, { label: "21:15 call; door locked" }, { label: "21:16 door reopened" }, { label: "21:17 shots" }, { label: "21:20 lift arrives" }, { label: "22:08 police told" }] } },
 
@@ -118,6 +121,7 @@ const spec: DemoSpec = {
     { key: "pPrint", type: "photo", photo: "Fingerprint Whorl.jpg", title: "A whorl fingerprint", body: "A NIST sample print: ridge endings and forks like these are the \"points\" examiners count." },
     { key: "pTape", type: "photo", photo: "Duct-tape.jpg", title: "A roll of adhesive tape", body: "Silver duct tape, for illustration: the brand of the case tape isn't public." },
     { key: "shoes", type: "fact", title: "The gunman's sneakers, rebuilt", when: "2018-07-17", url: MPD_SHOES, body: "From the prints police narrowed his shoes to two 26 cm models: a ¥7,800 one sold at Marui in 1990–91 (439 pairs) and a ¥12,000 one sold at Parco and Marui in 1993–94 (94 pairs). They published replicas, the last customers' details, and a request about lipstick-stained cigarette butts." },
+    { key: "pShoes", type: "photo", photoPage: "https://mainichi.jp/graphs/20250730/mpj/00m/040/101000f/5", title: "The two shoe models police narrowed to", body: "Shown at MPD headquarters for the 30th anniversary (Mainichi, 24 Jul 2025)." },
     { key: "rifling", type: "fact", title: "The 2009 revolver comes to light", when: "2020-07-21", url: "https://www.nikkei.com/article/DGXMZO61772440R20C20A7CC1000/", body: "Nikkei and Yomiuri reported the rifling match between the case bullets and the revolver seized in 2009 from a gang member, then in prison. Police said they were still tracing how he got it." },
 
     // ── Thirty years on ──
@@ -128,6 +132,7 @@ const spec: DemoSpec = {
     { key: "nhk", type: "web", title: "NHK opens its Unsolved Cases series", when: "2025-10-04T22:00", url: NHK, body: "NHK's new weekly 未解決事件 series began with this case in two parts (4 and 11 October), drawing on investigation files and over 200 interviews, including the Dalian questioning and the Canada operation." },
     { key: "pObirin", type: "photo", photo: "Obirin highschool.jpg", title: "Ōbirin junior and senior high school", body: "Yabuki's school, where classmates formed a group against gun crime and hold a memorial service each July (2009)." },
     { key: "year31", type: "fact", title: "88 tips in the thirtieth year", when: "2026-07-22", url: ASAHI_2026, body: "Police said 88 tips came in between 30 July 2025 and 22 July 2026, against about 33 a year in 2020–24, and that about 230,000 officer-days had gone into the case. They asked for any photos or video of the store from the time." },
+    { key: "pFloor", type: "photo", photoPage: "https://www.47news.jp/14666270.html", title: "The Nanpei sales floor after the killings", body: "One of three police photos of the shop floor released on 22 Jul 2026 (Kyodo via 47NEWS)." },
     { key: "tipsBars", type: "diagram", title: "Tips per year", diagram: { kind: "bars", items: [{ label: "Average, 2020–24", value: 33 }, { label: "Jul 2025 – Jul 2026", value: 88 }] } },
     { key: "latest", type: "fact", title: "Thirty-one years, still open", when: "2026-07-30", beat: "latest", url: KYODO_2026, body: "Officers handed out tissue packs printed with the store's photo at JR Hachiōji Station. The police case page added a 3D video of the neighbourhood as it was in 1995." },
     { key: "pStation", type: "photo", photo: "Hachioji Station Iriguchi.jpg", title: "In front of Hachiōji Station", body: "Where the anniversary appeals are made each year (photographed 2006)." },
@@ -146,6 +151,11 @@ const spec: DemoSpec = {
     { key: "gunTrail", type: "hypothesis", title: "Where was the revolver from 1995 to 2008?", color: "green", body: "If the 2009 gun is the murder weapon, whoever held it in between may know who fired it." },
   ],
   links: [
+    { from: "pStoreModel", to: "close", relation: "references", reason: "The store as it was" },
+    { from: "pScene", to: "found", relation: "references", reason: "That night" },
+    { from: "pOfficeModel", to: "officeMap", relation: "references", reason: "The room itself" },
+    { from: "pShoes", to: "shoes", relation: "references", reason: "The two candidates" },
+    { from: "pFloor", to: "year31", relation: "references", reason: "Released that day" },
     { from: "pAerial", to: "shift", relation: "references", reason: "The city, 1989" },
     { from: "pBon", to: "bon", relation: "references", reason: "The dance next door" },
     { from: "pNote", to: "close", relation: "references", reason: "The money in the safe" },

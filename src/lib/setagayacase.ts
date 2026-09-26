@@ -15,7 +15,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const SETAGAYA_DEMO = "setagaya-2000";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const SETAGAYA_VERSION = 1;
+export const SETAGAYA_VERSION = 2;
 
 export const SETAGAYA_PHASES: Phase[] = [
   { title: "A house in the park's path", from: "1990" },
@@ -91,6 +91,7 @@ const spec: DemoSpec = {
     { key: "dark", type: "fact", title: "By 03:30 the house is dark", when: "2000-12-31T03:30", approx: true, url: JA_WIKI, body: "A neighbour said the lights were off and the house silent at about 03:30; another said it was dark at 04:00. Police think the lights were on until after 01:00 and that he left in between (reported 2015)." },
     { key: "second", type: "fact", title: "10:05: a second connection", when: "2000-12-31T10:05", approx: true, url: MAINICHI, body: "The PC connected again for about four minutes without opening any page. Long read as the killer still at the keyboard, it was later traced to the fallen mouse: tests on the same model showed a knock could trigger a connection." },
     { key: "found", type: "fact", title: "10:40: found by her mother", when: "2000-12-31T10:40", approx: true, url: JA_WIKI, body: "The phone went unanswered, so Yasuko's mother came from next door, rang, got no reply and let herself in with a spare key. The special investigation HQ was set up at Seijo station for a robbery-murder." },
+    { key: "pAerialHouse", type: "photo", photoPage: "https://mainichi.jp/graphs/20231123/mpj/00m/040/195000f/1", title: "The house from the air, 31 December 2000", body: "The Miyazawa house the day it was found, from the paper's helicopter (Mainichi)." },
     { key: "pHouseNight", type: "photo", photo: "祖師谷公園 世田谷一家殺人事件現場 - Panoramio 63788090.jpg", title: "The house beside Soshigaya Park", body: "The scene of the Setagaya family murder next to the park, photographed at night in December 2011." },
     { key: "runner", type: "fact", title: "10:53: a man running toward Sengawa", when: "2000-12-31T10:53", url: MAINICHI_RUNNER, body: "A 7-Eleven camera a few hundred metres away caught a slim man about 180 cm tall, in a blue half-coat and black trousers, running toward Sengawa Station three minutes before the 110 call. Police seized footage from only 18 cameras." },
     { key: "pSengawa", type: "photo", photo: "Sengawa Station 200509-2.jpg", title: "Sengawa Station, 2005", body: "The Keiō Line station the running man was heading toward, as it looked in 2005." },
@@ -117,8 +118,10 @@ const spec: DemoSpec = {
     { key: "pParkSide", type: "photo", photo: "Setagaya-file2.jpg", title: "The house from the park side", body: "The victims' house in the Setagaya case, seen from the park (October 2010)." },
     { key: "cleared", type: "fact", title: "The knife buyer found, and ruled out", when: "2021-01", approx: true, beat: "dead_end", url: TV_ASAHI_KNIFE, body: "Enhanced camera stills let police identify the man who bought the same-model knife on 29 December 2000. His DNA did not match the blood at the scene." },
     { key: "window", type: "fact", title: "Police: in and out by the bath window", when: "2024-12-10", url: TOKYO_NP, body: "In its first official statement on the route, the task force said he most likely came and went by the open mid-floor bathroom window, 3.4 m up, reachable from a 1.8 m fence. The front door had been locked; the screen lay outside." },
+    { key: "pBathWindow", type: "photo", photoPage: "https://mainichi.jp/graphs/20231123/mpj/00m/040/195000f/3", title: "The bath window at the back", body: "The window (right) he may have reached from the water heater (Mainichi, 30 Dec 2013)." },
     { key: "age", type: "fact", title: "DNA puts him in his thirties", when: "2025-07-24", beat: "twist", url: FNN_AGE, body: "FNN reported that a specialist analysis of his DNA (methylation) estimated his age at the time as in his thirties, older than the 2018 profile: 50s to 60s today. An investigator said a man in his thirties would not be out of place." },
     { key: "flyers", type: "fact", title: "Flyers at Seijōgakuen-mae", when: "2025-12-13", url: JIJI_FLYERS, body: "The Seijo station chief and about 40 officers handed out 4,200 leaflets and pens. By then the HQ had received about 14,780 tips; 8,000 new posters went up on buses and Keiō stations." },
+    { key: "pPoster", type: "photo", photoPage: "https://www.asahi.com/articles/photo/AS20251209002271.html", title: "The police's new poster, December 2025", body: "The MPD poster designed around the replica clothes (Asahi, 9 Dec 2025)." },
     { key: "pSeijoSta", type: "photo", photo: "OER Seijogakuen-Mae Station North.JPG", title: "Seijōgakuen-mae Station", body: "The north building of the Odakyū Line station, photographed June 2007." },
     { key: "tipsBars", type: "diagram", title: "Tips a year, falling", body: "Information received by the HQ (2025: to end of November).", diagram: { kind: "bars", items: [{ label: "2022", value: 242 }, { label: "2024", value: 184 }, { label: "2025", value: 120 }] } },
     { key: "breakIn", type: "fact", title: "A break-in at the preserved house", when: "2025-12-13", url: "https://www.yomiuri.co.jp/national/20251217-GYT1T00178/", body: "Visiting officers found a ground-floor window by the door smashed, the door unlocked, things moved upstairs and footprints inside. A group of high-school students had entered the grounds in 2023." },
@@ -133,11 +136,13 @@ const spec: DemoSpec = {
     { key: "hanky", type: "fact", title: "Exhibit: two black handkerchiefs", url: MPD, body: "One had a slit of about 3 cm and was pulled over the knife handle as a grip; the other was folded into a triangle, perhaps a mask. The one around the knife carried Drakkar Noir, a French cologne." },
     { key: "pCologne", type: "photo", photo: "Drakar noir.jpg", title: "Drakkar Noir", body: "Drakkar Noir by Guy Laroche: the cologne found on the handkerchief." },
     { key: "hipBag", type: "fact", title: "Exhibit: the hip bag", url: "https://www.nikkei.com/article/DGXMZO30795350S8A520C1CC0000/", body: "Khaki, big enough for three manga magazines; 2,850 made by an Osaka firm and sold 1995–99 in at least 35 prefectures. Long used, with highlighter ink inside: police think he had carried it for years, perhaps as a student." },
+    { key: "pHipBag", type: "photo", photoPage: "https://mainichi.jp/graphs/20251229/mpj/00m/040/049000f/2", title: "A sample of the hip bag", body: "Same-model sample shown at MPD headquarters; dye was found inside his (Mainichi, 9 Dec 2025)." },
     { key: "sand", type: "fact", title: "Exhibit: sand from two places", url: MAINICHI, body: "Sand in the hip bag closely resembles Mojave Desert sand; sand on the jacket matched beaches of the Miura Peninsula. The jacket went on sale two months before, so he may have been on the coast shortly before." },
     { key: "pMojave", type: "photo", photo: "In the Mojave desert, near Kelso, California - a visit to the Kelso dunes - sand ripples (13843366605).jpg", title: "Sand ripples, Mojave Desert", body: "Kelso Dunes in the Mojave Desert, California (2014)." },
     { key: "pMiura", type: "photo", photo: "Miura Beach 01.jpg", title: "Miura Beach, Kanagawa", body: "Miura Beach in early summer (2016): the peninsula matched to the jacket's sand." },
     { key: "shoe", type: "fact", title: "Exhibit: Slazenger shoes, size 27.5", url: MPD_PDF, body: "Known only from footprints: 4,530 pairs made in South Korea, October 1998 to November 2000, sold for about ¥4,000 in Japan, but never in his size (Korean 280)." },
     { key: "clothes", type: "fact", title: "Exhibit: jacket, hat, gloves, scarf", url: MPD_PDF, body: "A black size-L Uniqlo Airtech jacket (82,000 sold from October 2000), a grey crusher hat (3,465 sold), Edwin gloves (10,755 pairs), and a green-check acrylic scarf, 130 × 30 cm, maker unknown." },
+    { key: "pReplicas", type: "photo", photoPage: "https://www.asahi.com/articles/photo/AS20251209002272.html", title: "Replicas of the clothes he wore", body: "Released by the MPD at its headquarters (Asahi, 9 Dec 2025)." },
     { key: "rare", type: "diagram", title: "How many of each were sold", body: "Units made or sold before the killings: the rarer, the stronger the lead.", diagram: { kind: "bars", items: [{ label: "Sweatshirt", value: 130 }, { label: "Knife", value: 1500 }, { label: "Hip bag", value: 2850 }, { label: "Hat", value: 3465 }, { label: "Shoes", value: 4530 }] } },
     { key: "prints", type: "fact", title: "Exhibit: a whorl like a pig's nose", url: MAINICHI, body: "Clear prints of both thumbs: whorls whose pattern detectives nicknamed ぶたっぱな, pig's nose. About 50 million prints compared, with help sought abroad, South Korea included: no match." },
     { key: "blood", type: "fact", title: "Exhibit: his blood and DNA", url: YOMIURI_25, body: "Type A blood from the cut to his hand. Its DNA has been checked against more than 1.3 million profiles; analysis puts his roots as likely East Asian, Japan included, on the father's side and southern European on the mother's." },
@@ -150,6 +155,11 @@ const spec: DemoSpec = {
     { key: "jizoLetters", type: "fact", title: "The Jizo's lettering, matched to a mason?", when: "2025-12-25", approx: true, proposed: true, url: JA_WIKI, body: "After stone-industry sites carried the appeal, 45 tips came in by 25 December 2025; one said the lettering on the base looks like a Jizo on a stonemason's website." },
   ],
   links: [
+    { from: "pAerialHouse", to: "found", relation: "references", reason: "The house that morning" },
+    { from: "pBathWindow", to: "window", relation: "references", reason: "His way in and out" },
+    { from: "pPoster", to: "flyers", relation: "references", reason: "The new appeal" },
+    { from: "pHipBag", to: "hipBag", relation: "references", reason: "The same model" },
+    { from: "pReplicas", to: "clothes", relation: "references", reason: "Replicas of them" },
     { from: "pSeijoPS", to: "tips", relation: "references", reason: "Seat of the special HQ" },
     { from: "pVicinity", to: "move", relation: "references", reason: "Around the house" },
     { from: "areaMap", to: "move", relation: "references", reason: "Where the house stood" },
