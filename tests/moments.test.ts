@@ -123,3 +123,25 @@ describe("shredding a case", async () => {
     expect(s().cases[a]).toBeDefined();
   });
 });
+
+describe("the partner tidying the board", async () => {
+  const { useStore } = await import("../src/store.ts");
+  const s = () => useStore.getState();
+  const byTitle = (title: string) => s().cases[s().activeId!].notes.find((n) => n.title === title)!;
+
+  it("flags cards to take down for the user to confirm or keep, and can lay the wall out", () => {
+    s().newCase("Board");
+    s().applyTurn(s().activeId!, { reply: "ok", update: { notes: [fact("a", "Old claim", "1970"), fact("b", "Better source", "1971")], links: [] } });
+    s().pinNote(byTitle("Old claim").id);
+    s().pinNote(byTitle("Better source").id);
+    const old = byTitle("Old claim").id;
+    s().applyTurn(s().activeId!, { reply: "ok", update: { notes: [], links: [], retire: [{ note: old, reason: "Superseded" }], arrange: true } });
+    expect(byTitle("Old claim").retire).toBe("Superseded");
+    s().keepNote(old);
+    expect(byTitle("Old claim").retire).toBeUndefined();
+    s().undo();
+    expect(byTitle("Old claim").retire).toBe("Superseded");
+    s().removeNote(old);
+    expect(s().cases[s().activeId!].notes.some((n) => n.id === old)).toBe(false);
+  });
+});

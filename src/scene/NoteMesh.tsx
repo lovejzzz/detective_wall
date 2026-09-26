@@ -256,6 +256,11 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
       const t = Math.min(1, (performance.now() - dev) / DEVELOP_MS);
       material.color.setScalar(0.3 + 0.7 * (1 - (1 - t) ** 3));
       if (t >= 1) developing.delete(note.id);
+    } else {
+      // a card proposed for taking down sits a shade darker until the user decides
+      const shade = note.retire ? 0.62 : 1;
+      const r = material.color.r;
+      if (r !== shade) material.color.setScalar(Math.abs(shade - r) < 0.005 ? shade : r + (shade - r) * Math.min(1, dt * 6));
     }
   });
 

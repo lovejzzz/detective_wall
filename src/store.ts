@@ -96,6 +96,8 @@ interface Actions {
   arrangeWall(): void;
   tossNote(noteId: string): void;
   removeNote(noteId: string): void;
+  /** Keep a note the partner proposed taking down. */
+  keepNote(noteId: string): void;
   addLink(from: string, to: string, relation: Relation): void;
   pinLink(linkId: string): void;
   tossLink(linkId: string): void;
@@ -374,6 +376,7 @@ export const useStore = create<Store>()(
           const early = placed ?? new Map<string, string>();
           if (!early.size && (update.notes.length || update.links.length) && caseId === get().activeId) get().checkpoint("Partner's proposals");
           let newCaseQuestion: string | undefined;
+          let arranged = false;
           mutateCase(caseId, (c) => {
             const refToId = new Map<string, string>();
             const resolve = (ref: string) => refToId.get(ref) ?? (c.notes.some((n) => n.id === ref) ? ref : undefined);
@@ -454,7 +457,22 @@ export const useStore = create<Store>()(
             if (update.case_title && !c.messages.some((m) => m.role === "assistant" && m.id !== msgId) && isAutoTitle(c))
               c.title = update.case_title;
             if (update.phases?.length) c.phases = update.phases;
+            // Cards the partner thinks no longer earn their place: flagged for the user to confirm.
+            for (const r of update.retire ?? []) {
+              const n = c.notes.find((x) => x.id === r.note);
+              if (n) n.retire = r.reason || "No longer needed";
+            }
+            // Tidying the board at the end of the turn, in the same undo step as the turn's cards.
+            if (update.arrange) {
+              const at = arrangeWall(c.notes, c.links, c.phases);
+              for (const n of c.notes) {
+                const p = at.get(n.id);
+                if (p) Object.assign(n, p);
+              }
+              arranged = true;
+            }
           });
+          if (arranged && caseId === get().activeId && get().view === "wall") set({ arrangedAt: Date.now() });
           if (newCaseQuestion) get().newCase(newCaseQuestion);
         },
 
@@ -558,6 +576,12 @@ export const useStore = create<Store>()(
         },
         removeNote(noteId) {
           get().tossNote(noteId);
+        },
+        keepNote(noteId) {
+          act(`Kept ${noteTitle(noteId)}`, (c) => {
+            const n = c.notes.find((x) => x.id === noteId);
+            if (n) delete n.retire;
+          });
         },
         addLink(from, to, relation) {
           act("Tied a string", (c) => {

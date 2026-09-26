@@ -3381,3 +3381,43 @@ kbd {
 :lang(zh-Hans) .fold-tab span {
   rotate: 0deg;
 }
+
+/* A card the partner proposes taking down: a torn slip under it in red pencil, the reason, and the
+   choice. The card itself dims a little (see NoteMesh), so the wall shows what may go. */
+.retire-slip {
+  display: grid;
+  gap: 6px;
+  max-width: 260px;
+  padding: 8px 10px 8px;
+  color: #6e1a12;
+  background: #f4ecd8 var(--grain);
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.25),
+    0 10px 16px -8px rgba(0, 0, 0, 0.75);
+  clip-path: polygon(0 4%, 7% 0, 93% 3%, 100% 0, 99% 96%, 91% 100%, 6% 97%, 0 100%);
+  pointer-events: auto;
+  rotate: -1.2deg;
+}
+.retire-why {
+  font: 600 17px/1.15 var(--hand);
+}
+.retire-actions {
+  display: flex;
+  gap: 6px;
+}
+.retire-actions button {
+  padding: 5px 10px 4px;
+  border: 0;
+  border-radius: 2px;
+  font: 12.5px/1 var(--typed);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.retire-down {
+  color: #fdf5e6;
+  background: #8f1d15;
+}
+.retire-keep {
+  color: #3b2d17;
+  background: rgba(59, 45, 23, 0.12);
+}

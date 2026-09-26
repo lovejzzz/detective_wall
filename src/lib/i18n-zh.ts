@@ -1,6 +1,10 @@
 // Simplified Chinese for every line of the page, keyed by the English it translates.
 // Written for the page as a whole: short, plain, the voice of a case file.
 export const ZH: Record<string, string> = {
+  "Take this card down": "把这张卡取下",
+  "Keep it on the wall": "留在墙上",
+  Keep: "保留",
+  "No longer needed": "已不需要",
   // ── the page ──
   "Detective Wall": "侦探墙",
   Wall: "墙面",

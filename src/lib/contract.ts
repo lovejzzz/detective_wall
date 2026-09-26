@@ -67,7 +67,13 @@ export interface WallUpdate {
   moments?: { note: string; beat: Beat | null }[];
   /** Dates for undated notes already on the wall. */
   dates?: { note: string; when: string; approx?: boolean }[];
+  /** Notes on the wall the partner proposes taking down (duplicated, superseded, disproven), each with why. */
+  retire?: { note: string; reason: string }[];
+  /** Tidy the wall into reading order once this turn's cards are up. */
+  arrange?: boolean;
 }
+
+export const MAX_RETIRE = 6;
 
 export interface InvestigateRequest {
   caseTitle: string;
@@ -75,7 +81,7 @@ export interface InvestigateRequest {
   lang?: "en" | "zh";
   /** The timeline's named chapters, if any. */
   phases?: { title: string; from: string }[];
-  notes: { id: string; type: NoteType; status: string; title: string; body: string; url?: string; when?: string; beat?: string; subjectStatus?: string }[];
+  notes: { id: string; type: NoteType; status: string; title: string; body: string; url?: string; when?: string; beat?: string; subjectStatus?: string; retire?: string }[];
   links: { from: string; to: string; relation: Relation; status: string }[];
   messages: { role: "user" | "assistant"; text: string }[];
   /** Photos attached to the latest user message (base64, already downscaled by the browser). */
@@ -212,6 +218,24 @@ export const UPDATE_WALL_SCHEMA = {
       },
     },
     focus: { type: "string", description: "Id or ref of the note the spotlight should move to." },
+    retire: {
+      type: "array",
+      description:
+        "Optional, at most 6: notes already on the wall (by id) you propose taking down because they no longer earn their place: a duplicate of a stronger card, a claim a better source superseded or disproved, a hunch the evidence has answered. Each with a short reason. The user confirms or keeps each one.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["note", "reason"],
+        properties: {
+          note: { type: "string", description: "The id of a note on the wall." },
+          reason: { type: "string", description: "At most 80 characters, e.g. 'Superseded by the 2016 isotope result'." },
+        },
+      },
+    },
+    arrange: {
+      type: "boolean",
+      description: "True to tidy the wall into reading order (question and answer, subjects, events in time, the rest) once this turn's cards are up. Use it on a case's first turn and when a turn adds several cards to a busy wall.",
+    },
     case_title: {
       type: "string",
       description: "First turn of a case only: a short name for its folder, like a label on a case file (at most 40 characters, e.g. 'The Gardner Museum heist').",
@@ -398,6 +422,19 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
     if (isStr(q)) out.new_case = { question: clip(q.trim(), 120) };
   }
   if (isStr(raw.case_title)) out.case_title = clip(raw.case_title.trim().replace(/\s+/g, " "), 48);
+  if (Array.isArray(raw.retire)) {
+    const retire: NonNullable<WallUpdate["retire"]> = [];
+    for (const r of raw.retire) {
+      if (retire.length >= MAX_RETIRE) break;
+      if (!r || typeof r !== "object") continue;
+      const { note, reason } = r as Record<string, unknown>;
+      // only notes already on the wall, and never one this turn also points the spotlight at
+      if (typeof note !== "string" || !knownIds.has(note) || note === out.focus || retire.some((x) => x.note === note)) continue;
+      retire.push({ note, reason: clip(isStr(reason) ? reason.trim() : "", 80) });
+    }
+    if (retire.length) out.retire = retire;
+  }
+  if (raw.arrange === true) out.arrange = true;
   const phases = sanitizePhases(raw.phases);
   if (phases.length) out.phases = phases;
   if (Array.isArray(raw.moments)) {

@@ -839,6 +839,29 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               </div>
             );
           })}
+        {placed
+          .filter((n) => n.retire && n.status !== "proposed")
+          .map(live)
+          .map((n) => {
+            // The partner thinks this card no longer earns its place: a red-pencil slip over it says
+            // why, and the user takes it down or keeps it.
+            const p = toScreen({ x: n.x, y: n.y + NOTE_SIZE[n.type].h / 2 });
+            return (
+              <div key={`retire-${n.id}`} className="proposal-anchor" style={{ left: p.x, top: p.y + 10 * cam.zoom }}>
+                <div className="retire-slip" style={{ transform: `scale(${tabScale})`, transformOrigin: "50% 0" }}>
+                  <span className="retire-why">{n.retire}</span>
+                  <span className="retire-actions">
+                    <button className="retire-down" onClick={() => onToss(n.id)} title={t("Take this card down")}>
+                      {t("Take it down")}
+                    </button>
+                    <button className="retire-keep" onClick={() => store().keepNote(n.id)} title={t("Keep it on the wall")}>
+                      {t("Keep")}
+                    </button>
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         {farOpacity > 0 &&
           placed.map(live).map((n) => {
             // On a photo the label goes on the polaroid's caption strip, so the picture stays visible.

@@ -192,3 +192,29 @@ describe("sketch maps", () => {
     expect(diagram({ kind: "map", items: many })!.items).toHaveLength(10);
   });
 });
+
+describe("keeping the board clean", () => {
+  it("proposes taking down only cards on the wall, at most six, never the one in the spotlight", () => {
+    const known = new Set(["a", "b", "c", "d", "e", "f", "g", "h"]);
+    const u = sanitizeWallUpdate(
+      {
+        notes: [],
+        links: [],
+        focus: "b",
+        arrange: true,
+        retire: [
+          { note: "a", reason: "Superseded by the 2016 isotope result" },
+          { note: "b", reason: "in the spotlight" },
+          { note: "nope", reason: "not on the wall" },
+          { note: "a", reason: "twice" },
+          ...["c", "d", "e", "f", "g", "h"].map((note) => ({ note, reason: "x".repeat(200) })),
+        ],
+      },
+      known,
+    );
+    expect(u.retire!.map((r) => r.note)).toEqual(["a", "c", "d", "e", "f", "g"]);
+    expect(u.retire![1].reason.length).toBeLessThanOrEqual(80);
+    expect(u.arrange).toBe(true);
+    expect(sanitizeWallUpdate({ notes: [], links: [], arrange: "yes" }, known).arrange).toBeUndefined();
+  });
+});

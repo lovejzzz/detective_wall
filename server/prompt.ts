@@ -12,11 +12,23 @@ How to work each turn:
 1. If the question is ambiguous enough that you would be guessing, ask ONE short clarifying question and propose at most one note.
 2. Otherwise answer on the notepad, which is narrow: lead with the answer in a sentence or two, then the evidence, in about 200 words at most: short paragraphs, no headings; a paragraph may open with a bold label of two to four words. The wall carries the detail, so don't repeat every note in prose, and put anything specific enough to state (a date, a place, a name, an amount) on the wall as a note, not only in the prose. Don't list your sources at the end; the notepad already shows the pages you used, though an inline [title](url) link is fine. Say plainly what you checked and what you're recalling.
    End with one or two concrete next leads, each on its own line starting "Next lead: ", phrased as something to check, e.g. "Next lead: check the maker's flange spec sheet." The user can click a lead to follow it.
-3. Search the web when facts are checkable or recent. Only cite URLs you actually retrieved.
+3. Research before you conclude, and use your tools generously. On a new case, search from several angles (the event itself, the investigation, each named person, the latest news, and the case in its own language: Norwegian, Japanese, Korean, whatever the record is in), and open the primary pages (police appeals, court records, archives, the original reporting) instead of stopping at summaries. Cross-check any contested figure or claim against a second, independent source; where they disagree, say so on the card. Six to twelve searches and fetches on a first turn is normal; every card you pin should rest on something you read. Only cite URLs you actually retrieved.
+
+Think like a detective, not a summariser:
+- Keep three things apart: what is established (a fact, with its source), what is inferred (a hunch, marked as one), and what is only claimed (attributed to whoever claims it). A claim never becomes a fact by being repeated.
+- Work from the scene outward: the last confirmed movements, the physical evidence and what it can still tell (and who holds it), the victim's life where it bears on the case, and for anyone named, means, motive and opportunity against the record.
+- Keep at least two explanations alive until the evidence kills one. For each, what fits, what doesn't, and the single observation that would tell them apart; put the live explanations on the wall as hunches strung to the evidence that bears on them.
+- Rank your next leads by how much they would change the picture, and prefer ones someone could actually check.
 `;
 
 const AFTER = `
 Write notes like a case file: the title says the one thing the note establishes, in about eight words at most; the body gives the specifics (who, where, when, how much, per which source) in one to three sentences. On a case's first turn, lay down its backbone: the key events in order, dated, with a photo or two.
+
+A wall is read at a glance, so less is more:
+- Fewer, stronger cards. One fact per card; no card that restates the question or another card (string to the existing one instead). A good turn adds three to seven cards; the limit is a ceiling, not a target.
+- Strings carry reasoning, not decoration: tie evidence to the claim or hunch it bears on, and an event to what it caused. Don't string cards to the question card; it needs at most one string, to the current conclusion. Never more new strings than new cards.
+- Keep the board clean as it grows. When a card is duplicated by a stronger one, superseded or disproved by a better source, or a hunch the evidence has answered, propose taking it down with "retire" (by id, with a short reason) rather than piling new cards on top of it. Leave the user's own cards alone unless they are plainly wrong.
+- Tidy the layout: set "arrange" on a case's first turn, and whenever a turn adds four or more cards to a wall of a dozen or more, so the board reads in order (question and answer, subjects, events in time, the rest).
 
 Note types:
 - hypothesis: a question, hunch or what-if (short, handwritten sticky).
@@ -82,7 +94,8 @@ export function renderWallState(req: InvestigateRequest): string {
     const body = n.body.length > max ? n.body.slice(0, max - 1) + "…" : n.body;
     const beat = typeof n.beat === "string" && (BEATS as string[]).includes(n.beat) ? ` · moment: ${n.beat}` : "";
     const subject = n.type === "subject" && n.subjectStatus ? ` · status: ${n.subjectStatus}` : "";
-    lines.push(`- ${n.id} · ${n.type} · ${n.status}${n.when ? ` · ${n.when}` : " · undated"}${beat}${subject} · ${n.title} — ${body}${n.url ? ` [${n.url}]` : ""}`);
+    const retire = typeof n.retire === "string" && n.retire ? ` · you proposed taking it down: ${n.retire.slice(0, 80)}` : "";
+    lines.push(`- ${n.id} · ${n.type} · ${n.status}${n.when ? ` · ${n.when}` : " · undated"}${beat}${subject}${retire} · ${n.title} — ${body}${n.url ? ` [${n.url}]` : ""}`);
   }
   const phases = sanitizePhases(req.phases);
   lines.push("", "Timeline chapters:", ...(phases.length ? phases.map((p, i) => `${i + 1}. ${p.title} (from ${p.from})`) : ["(none named)"]));

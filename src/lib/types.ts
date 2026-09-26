@@ -96,6 +96,8 @@ export interface Note {
   imageUrl?: string;
   /** What to show when the photo can't be loaded (e.g. offline): a "sketch:<kind>". */
   imageFallback?: string;
+  /** The partner proposes taking this note down, and why; the user confirms or keeps it. */
+  retire?: string;
   /** When the evidence happened: "1971", "1971-11", "1971-11-24" or "1971-11-24T20:00". */
   when?: string;
   /** The date is approximate. */

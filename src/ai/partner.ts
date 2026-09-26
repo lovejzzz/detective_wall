@@ -90,6 +90,7 @@ function toRequest(c: Case): InvestigateRequest {
       ...(n.origin.url ? { url: n.origin.url } : {}),
       ...(n.when ? { when: n.when } : {}),
       ...(n.beat ? { beat: n.beat } : {}),
+      ...(n.retire ? { retire: n.retire } : {}),
       // a subject's file travels as its status and its points, so the partner can keep it current
       ...(n.subject
         ? {
