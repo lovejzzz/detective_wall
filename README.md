@@ -13,7 +13,7 @@ Every question becomes a case. You talk it through with Claude, and the evidence
 
 ![Close-up: typed ink, a rubber stamp, push pins and string throwing shadows](docs/closeup.jpg)
 
-The demo opens on a real, unsolved case: the 1971 Flight 305 hijacking ("D. B. Cooper"), set up with the documented evidence, the case's real photos (the aircraft, the FBI composite sketch, the recovered ransom bills, loaded from Wikimedia Commons with their credits), the open questions and one lead waiting to be pinned. Without an API key the offline partner walks through three fact-checked leads for it. The full product spec is in [SPEC.md](SPEC.md).
+Four real, unsolved cases come with it: the Glico-Morinaga extortions (1984–85), the 300 million yen robbery (1968), the Chicago Tylenol murders (1982) and the Flight 305 hijacking ("D. B. Cooper", 1971). Each is a fact-checked case file: dated and sourced events in chapters, real photos from Wikimedia Commons hung on the events they show, an evidence-based profile of the unknown offender, a subject file for each publicly named person of interest (the evidence for and against, and the one test that would settle it), and an assessment of the most likely explanation, with what cuts against it and where information can go. Without an API key the offline partner walks through three fact-checked leads on the Flight 305 case. The full product spec is in [SPEC.md](SPEC.md).
 
 ## Run it
 
@@ -61,6 +61,8 @@ npm start                 # serves dist/ and the API on $PORT (default 8787)
 | Undo | `⌘Z` / `Ctrl+Z` undoes the last change to the wall (take down, cut, tie, pin, move, edit, the partner's proposals); `⇧⌘Z` / `Ctrl+Y` redoes it. Anything taken down leaves a slip with an Undo button. |
 | Overview | Zoom out and each note gets a masking-tape label with its title, so the whole case stays readable from a distance. |
 | Timeline | The **Timeline** tab (or `T`) turns the wall into a chronology you read top to bottom: the case's name across the top, then one chapter per row, each with its own cord, a manila divider card (number, title, dates, how long since the last chapter) and a strip of masking tape across the wall. Dated notes hang above and below the cord in order, a photo strung to an event hangs with it, long silences are marked ("≈ 8 years"), and anything else undated waits in its own section at the end. The mouse wheel scrolls it like a page (Ctrl to zoom); `[` / `]` or the index on the right jump between chapters. Chapters come from the case (Claude names them as the story takes shape) or, failing that, from its long silences. Key moments (It begins, Breakthrough, Twist, Dead end, Where it stands...) wear a coloured ribbon on the wall, stand in their own pool of light on the timeline, and line up under the heading as the story at a glance; click one to go there. Claude keeps the file in order as a habit: it dates undated events, names chapters and marks turning points each turn, and you can mark or change any of them in a note's file. Give a note a date in its file ("24 Nov 1971", "1971-11-24 20:13", "c. 1972") and it takes its place. **Wall** puts everything back where it was. |
+| Arrange | `A`, or the grid button by the view tabs, tidies the wall into reading order: the question and the current assessment, then who (the offender's profile and each subject file), then the evidence chapter by chapter with its photos, then the rest. Undo puts it back. |
+| Who did it | Ask who did it and Claude builds the file: a profile of the unknown offender from the evidence, a subject file for each person investigators or credible reporting have publicly named (status, the evidence both ways, the test that would settle it), and its assessment on the conclusion card. It never names people the record doesn't, never reads anything into a face, and points to the agency's tip line rather than public accusation. |
 | Photos | Drop photos onto the wall, paste one, or use the paperclip on the typewriter to send photos with your next message so Claude can look at them. Each photo's file has a large print and "Ask the partner about this photo". Photos are downscaled and stored in this browser's IndexedDB. |
 | Sound | The attic is audible: typewriter keys and the carriage bell, pins pressed into cork, paper balled up, string pulled taut, the steel drawer, and a low room tone. As you type, the matching key on the typewriter goes down. It's all synthesised in the browser, starts on your first click or key, and the speaker by the view tabs (or `M`) mutes it. |
 | Cases | The five most recent cases are manila folders on the left; hover one to read it, click to open, "+" starts a new case. The steel pull below them (or `C`) opens the filing cabinet with every case: search titles and the evidence inside them, sort, open or shred. |
@@ -84,7 +86,7 @@ src/
     Room.tsx            camera rig, tungsten light + focus spotlight, cork, dust, post-processing
     NoteMesh.tsx        curled paper sheets, pins, tape, contact shadows, lift-and-settle motion
     Strings3D.tsx       thread tubes along a sagging curve, and relation tags
-    Timeline3D.tsx      the timeline's cords, tacks, threads, chapter bands and tape
+    Timeline3D.tsx      the timeline's cords, tacks, threads, chapter bands, tape, seals and light
     paint.ts            typesets each sheet onto a canvas: typewriter jitter, handwriting, newsprint, stamps, sketches
     objects.ts          sheet curl geometry, lathe-turned pins, binder clip, tape
     textures.ts         procedural cork (albedo / normal / roughness), paper fibre, string twist
@@ -92,6 +94,9 @@ src/
   ai/offline.ts         scripted partner for when there's no key
   lib/contract.ts       update_wall tool schema and validator (shared with the server)
   lib/timeline.ts       timeline layout: chapters, date groups, gaps, hung photos, undated tray
+  lib/arrange.ts        Arrange: the wall in reading order (question, who, chapters, the rest)
+  lib/demo.ts           builds a case file from a plain description, laid out by Arrange
+  lib/*case.ts          the four case files: Glico-Morinaga, Fuchū, Tylenol, Flight 305
   lib/when.ts           partial dates ("1971", "1971-11-24T20:13"): parse, sort, label
   lib/images.ts         photo import (downscale), IndexedDB storage, base64 for Claude
   lib/commons.ts        real photos from Wikimedia Commons: URL + author/licence from file metadata

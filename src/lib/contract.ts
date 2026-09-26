@@ -4,6 +4,9 @@ import { isWhen } from "./when.ts";
 import {
   BEATS,
   NOTE_TYPES,
+  SUBJECT_STATUSES,
+  type SubjectFile,
+  type SubjectStatus,
   RELATIONS,
   STAMPS,
   type Beat,
@@ -31,6 +34,8 @@ export interface ProposedNote {
   approx?: boolean;
   /** Photo notes: a Wikimedia Commons file name (from find_photos), e.g. "DBCooper.jpg". */
   image?: string;
+  /** Subject notes: the person of interest's file, or the unknown offender's profile. */
+  subject?: SubjectFile;
 }
 
 export interface ProposedLink {
@@ -65,7 +70,7 @@ export interface InvestigateRequest {
   caseTitle: string;
   /** The timeline's named chapters, if any. */
   phases?: { title: string; from: string }[];
-  notes: { id: string; type: NoteType; status: string; title: string; body: string; url?: string; when?: string; beat?: string }[];
+  notes: { id: string; type: NoteType; status: string; title: string; body: string; url?: string; when?: string; beat?: string; subjectStatus?: string }[];
   links: { from: string; to: string; relation: Relation; status: string }[];
   messages: { role: "user" | "assistant"; text: string }[];
   /** Photos attached to the latest user message (base64, already downscaled by the browser). */
@@ -126,6 +131,20 @@ export const UPDATE_WALL_SCHEMA = {
           url: { type: "string", description: "Source URL. Required for type 'web'; only use URLs you actually retrieved." },
           confidence: { type: "string", enum: ["high", "medium", "low"] },
           stamp: { type: "string", enum: STAMPS, description: "Conclusion cards only." },
+          subject: {
+            type: "object",
+            additionalProperties: false,
+            required: ["status"],
+            description:
+              "Subject cards only. A person of interest as the record has them (status, up to four short points for and four against, each with its source in mind, and the one test that would settle it), or, with profile instead of for/against, the unknown offender as the evidence describes them.",
+            properties: {
+              status: { type: "array", items: { type: "string", enum: SUBJECT_STATUSES }, description: "Most telling first, e.g. ['never charged', 'deceased']." },
+              for: { type: "array", items: { type: "string" }, description: "Up to 4 points, each at most 140 characters." },
+              against: { type: "array", items: { type: "string" }, description: "Up to 4 points, each at most 140 characters." },
+              profile: { type: "array", items: { type: "string" }, description: "Unknown-offender profiles only: up to 6 inferences, each tied to the evidence it rests on." },
+              settle: { type: "string", description: "The one test that would confirm or rule them out. At most 140 characters." },
+            },
+          },
           diagram: {
             type: "object",
             additionalProperties: false,
@@ -302,6 +321,11 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
       if (diagram) note.diagram = diagram;
     }
     if (image) note.image = image;
+    if (type === "subject") {
+      const subject = sanitizeSubject(r.subject);
+      if (!subject) continue; // a subject card is its evidence
+      note.subject = subject;
+    }
     if (isStr(r.near)) note.near = r.near;
     if (isWhen(r.when)) {
       note.when = r.when;
@@ -357,6 +381,27 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
     }
     if (dates.length) out.dates = dates.slice(0, MAX_DATES);
   }
+  return out;
+}
+
+/** A subject file: a status, and short points on each side (or a profile), trimmed to fit the card. */
+export function sanitizeSubject(raw: unknown): SubjectFile | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const points = (v: unknown, max: number) =>
+    Array.isArray(v) ? v.filter(isStr).map((x) => clip(x.trim().replace(/\s+/g, " "), 140)).filter(Boolean).slice(0, max) : [];
+  const status = [...new Set((Array.isArray(r.status) ? r.status : []).map((x) => oneOf(x, SUBJECT_STATUSES)).filter((x): x is SubjectStatus => !!x))].slice(0, 3);
+  const out: SubjectFile = { status: status.length ? status : ["person of interest"] };
+  const pro = points(r.for, 4);
+  const con = points(r.against, 4);
+  const profile = points(r.profile, 6);
+  if (profile.length) out.profile = profile;
+  else {
+    if (!pro.length && !con.length) return null;
+    if (pro.length) out.for = pro;
+    if (con.length) out.against = con;
+  }
+  if (isStr(r.settle) && r.settle.trim()) out.settle = clip(r.settle.trim(), 140);
   return out;
 }
 

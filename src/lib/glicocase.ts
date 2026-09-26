@@ -11,6 +11,8 @@ import type { Case, Phase } from "./types.ts";
 import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const GLICO_DEMO = "glico-morinaga-1984";
+/** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
+export const GLICO_VERSION = 2;
 
 export const GLICO_PHASES: Phase[] = [
   { title: "Kidnap and the Glico siege", from: "1984-03-18" },
@@ -35,7 +37,15 @@ const spec: DemoSpec = {
   phases: GLICO_PHASES,
   notes: [
     { key: "q", type: "hypothesis", title: "Who was the Monster with 21 Faces, and how did they never get caught?" },
-    { key: "verdict", type: "conclusion", title: "Unsolved: every count expired in 2000", body: "No arrest in 28 linked crimes, after about 1.3 million officer-days, 28,300 tips and 125,000 people checked. The fox-eyed man and the Video Man were never identified.", url: JAPAN_TIMES_2000 },
+    { key: "verdict", type: "conclusion", title: "Most likely: a Kansai group of six or seven, after money", url: "https://bunshun.jp/articles/-/41039", body: "Extortion above all, with an older grudge against Glico mixed in; no stock trading has ever been shown. The task force's last big lead, an ex-yakuza circle questioned in 1992, had alibis and left no evidence. What would change it: one of the children on the tapes saying whose voice it was." },
+    { key: "tips", type: "fact", title: "Where information goes", url: "https://www.nhk.jp/g/ts/57615R8KYY/blog/bl/pB78PQRjnA/bp/pv1prAe27M/", body: "No police channel: every count expired in 2000. NHK's 未解決事件 series collects information through its form, which is the best route for anything new." },
+
+    // ── Who: the gang's profile, then the people and groups the record takes seriously ──
+    { key: "unsub", type: "subject", title: "UNSUB: the Monster with 21 Faces", body: "A group, not one man.", url: JA_WIKI, subject: { status: ["unidentified"], profile: ["About six or seven, including a woman and children's voices.", "Kansai-based: every drop ran through Osaka, Hyōgo, Kyoto, Shiga.", "Listened to police radio on modified sets and a scanner.", "Typed on a Pan-writer; knew police and press procedure.", "Knew Ezaki's household, partly from public records.", "Could steal cars, get sodium cyanide, and use force."] } },
+    { key: "sFox", type: "subject", title: "The fox-eyed man", body: "Seen on the Kyoto train in June and at the Otsu drop in November 1984.", url: SHINCHO, subject: { status: ["unidentified"], for: ["Watched the courier, shadowed him to Kyoto and rode back.", "Turned up again at Otsu, checking for tails."], against: ["Never questioned: officers were told not to approach.", "The sketch was drawn a day later; the eyes may be exaggerated."], settle: "A gang member, one of the children, or a print naming him." } },
+    { key: "sVideo", type: "subject", title: "The Video Man", body: "Filmed at FamilyMart Kōshienguchi on 7 October 1984.", url: KOBE_2020, subject: { status: ["unidentified"], for: ["Acting oddly where poisoned drops turned up.", "The store is beside Ezaki's home."], against: ["No published frame shows him placing anything.", "Low-resolution tape; no comparison has held up."], settle: "Modern enhancement of the original tape against a candidate." } },
+    { key: "sCircle", type: "subject", title: "An ex-yakuza boss's circle", body: "The task force's last big lead, questioned in March 1992. Not named.", url: JA_WIKI, subject: { status: ["never charged"], for: ["The boss reportedly tried to extort Glico in 1979.", "Relatives reportedly had a typewriter of the same type."], against: ["Alibis; no confession; no physical evidence.", "The case rests on books and magazines, not officials."], settle: "A typeface match to one specific Pan-writer." } },
+    { key: "suspectM", type: "subject", title: "“Suspect M”: Manabu Miyazaki", body: "A writer questioned in 1984, who wrote openly about it.", url: "https://ja.wikipedia.org/wiki/宮崎学", subject: { status: ["cleared", "deceased"], for: ["Looked at for past disputes with Glico and Kansai ties.", "A former stock writer who argued greenmail could pay."], against: ["At a union meeting in Tokyo the night of the train sighting.", "The detective who saw the fox-eyed man twice: out of the question."], settle: "Already settled by his alibi for 28 June 1984." } },
 
     // ── Kidnap and the Glico siege ──
     { key: "kidnap", type: "fact", title: "Glico's president taken from his bath", when: "1984-03-18T21:00", approx: true, beat: "origin", url: SANKEI, body: "Three men broke into Katsuhisa Ezaki's home in Nishinomiya, Hyōgo, tied up his family and took the Ezaki Glico president, 42, naked from the bath at gunpoint. A note left for a Glico director demanded ¥1 billion and 100 kg of gold." },
@@ -81,7 +91,7 @@ const spec: DemoSpec = {
 
     // ── The clock runs out ──
     { key: "kidnapExpires", type: "fact", title: "The kidnapping count expires", when: "1994-03", approx: true, url: "https://www.japantimes.co.jp/news/1999/02/24/national/clock-ticking-on-glico-morinaga-cases/", body: "The statute of limitations on Ezaki's abduction ran out and the task force was scaled back. A 1992 questioning of an ex-yakuza boss's circle had produced no confession and no evidence." },
-    { key: "expiry", type: "fact", title: "All 28 cases expire at midnight", when: "2000-02-13T00:00", beat: "latest", url: JAPAN_TIMES_2000, body: "The last attempted-murder counts, from the February 1985 poisonings, expired. Case 114 became the first designated case never to produce an arrest; officers took down the task-force sign at Nishinomiya police station." },
+    { key: "expiry", type: "fact", title: "All 28 cases expire at midnight", when: "2000-02-13T00:00", beat: "latest", url: JAPAN_TIMES_2000, body: "The last counts, from the February 1985 poisonings, expired after some 1.3 million officer-days, 28,300 tips and 125,000 people checked. Case 114 became the first designated case never to produce an arrest." },
     { key: "pNishinomiya", type: "photo", photo: "Nishinomiya Police Station.JPG", title: "Nishinomiya police station", body: "Home of the task force whose sign came down at midnight on 13 February 2000 (photographed 2012)." },
     { key: "film", type: "web", title: "罪の声: the children's voices, in fiction", when: "2020-10-30", url: "https://ja.wikipedia.org/wiki/罪の声", body: "Toho's film of Takeshi Shiota's 2016 novel follows a man who finds a tape of his own childhood voice used in a fictionalised version of the case. Shiota began with the real children on the tapes." },
 
@@ -89,7 +99,6 @@ const spec: DemoSpec = {
     { key: "letters", type: "fact", title: "144 letters on a Pan-writer", url: KOBE_2024, body: "Some 144 letters in hiragana-heavy Kansai dialect taunted police and press. They were typed on a Japanese Pan-writer typewriter; police traced thousands of units and most of their owners, without result." },
     { key: "tapes", type: "fact", title: "Three voices on tape", url: JA_WIKI, body: "A woman's voice and a boy's voice gave orders over the phone, and a tape of Ezaki's own voice from captivity was mailed to targets as proof. Who the children were has never been established." },
     { key: "chain", type: "diagram", title: "Six companies, no money collected", diagram: { kind: "flow", items: [{ label: "Glico" }, { label: "Marudai" }, { label: "Morinaga" }, { label: "House" }, { label: "Fujiya" }, { label: "Surugaya" }] } },
-    { key: "suspectM", type: "fact", title: "\"Suspect M\": cleared by an alibi", url: "https://ja.wikipedia.org/wiki/宮崎学", body: "Writer Manabu Miyazaki, questioned for resembling the sketch and for past disputes with Glico, was cleared: he was at a union meeting in Tokyo on 28 June 1984. He died in 2022." },
 
     // ── Open questions ──
     { key: "stock", type: "hypothesis", title: "Was it about the stock, not the ransom?", color: "pink", body: "Glico shares fell from ¥745 in January to ¥598 in May 1984, and the gang never collected a yen." },
@@ -121,6 +130,11 @@ const spec: DemoSpec = {
     { from: "otsu", to: "yamamoto", relation: "causes", reason: "Blamed for the escape" },
     { from: "yamamoto", to: "last", relation: "references", reason: "The letter mocks him" },
     { from: "expiry", to: "verdict", relation: "supports", reason: "No one can be charged" },
+    { from: "unsub", to: "q", relation: "references", reason: "Who we're looking for" },
+    { from: "sFox", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "sVideo", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "sCircle", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "suspectM", to: "unsub", relation: "references", reason: "Held against the profile" },
     { from: "stock", to: "q", relation: "references", reason: "An angle on motive" },
     { from: "insider", to: "q", relation: "references", reason: "An angle on who" },
     { from: "radio", to: "otsu", relation: "supports", reason: "The van had a police-band radio" },
@@ -144,5 +158,5 @@ const spec: DemoSpec = {
 };
 
 export function glicoCase(now = Date.now()): Case {
-  return buildDemo(spec, now);
+  return { ...buildDemo(spec, now), demoVersion: GLICO_VERSION };
 }

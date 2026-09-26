@@ -1,6 +1,6 @@
 // Paints each note's paper onto a canvas: stock, ink, typesetting, stamps, sketches.
 // The imperfections are deliberate and seeded by the note id, so a note always looks the same.
-import type { Note, Relation } from "../lib/types.ts";
+import type { Note, Relation, SubjectStatus } from "../lib/types.ts";
 import { NOTE_SIZE } from "../lib/geometry.ts";
 import { hashString, mulberry32, paperGrain } from "./textures.ts";
 
@@ -404,11 +404,82 @@ function paintConclusion(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
   const m = 20 * u;
   typewrite(g, "CONCLUSION", m, 26 * u, { size: 10.5 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#5a5245", letterSpacing: 2.6 * u });
   const tl = typewrite(g, n.title, m, top + rule - 5 * u, { size: 16.5 * u, lineH: rule, maxW: w - m * 2, maxLines: 2, rand });
-  typewrite(g, n.body, m, top + rule * (tl + 1) - 5 * u, { size: 12.6 * u, lineH: rule, maxW: w - m * 2, maxLines: 5 - tl + 1, rand, color: "#24201a" });
+  // as many ruled lines as the card has room for
+  const rows = Math.floor((h - top - 8 * u) / rule);
+  typewrite(g, n.body, m, top + rule * (tl + 1) - 5 * u, { size: 12.6 * u, lineH: rule, maxW: w - m * 2, maxLines: Math.max(1, rows - tl), rand, color: "#24201a" });
   if (n.stamp) {
     const col = { "RULED OUT": "#b3261e", CONFIRMED: "#2e7d32", LIKELY: "#1f5aa0", OPEN: "#80601c" }[n.stamp];
     // Stamped in the header band, clear of the typed title.
     stamp(g, n.stamp, w - 62 * u, 21 * u, 10.5 * u, col, -0.08 + gauss(rand) * 0.03, rand);
+  }
+}
+
+const SUBJECT_INK: Record<SubjectStatus, string> = {
+  unidentified: "#33408a",
+  "person of interest": "#8f1d15",
+  cleared: "#2e6b3a",
+  "never charged": "#80601c",
+  "convicted (related)": "#9b2a1e",
+  deceased: "#4b4540",
+};
+
+/** A subject file: manila card, status stamped in the corner, the evidence on both sides, and what would settle it. */
+function paintSubject(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
+  paintStock(g, w, h, { base: "#e4cd98", edge: "rgba(120,84,30,0.3)", mottle: 0.07 }, rand);
+  const u = w / 300;
+  const m = 18 * u;
+  const file = n.subject;
+  const unsub = !!file?.profile?.length;
+  typewrite(g, unsub ? "UNSUB PROFILE" : "SUBJECT FILE", m, 26 * u, { size: 10 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#4a3b22", letterSpacing: 1.6 * u });
+  g.fillStyle = "rgba(60,40,16,0.5)";
+  g.fillRect(m, 34 * u, w - m * 2, 1.2 * u);
+  const status = file?.status?.[0];
+  if (status) {
+    const label = status.toUpperCase();
+    const size = (label.length > 14 ? 7.4 : 9) * u;
+    stamp(g, label, w - m - label.length * size * 0.38 - 10 * u, 24 * u, size, SUBJECT_INK[status], -0.07 + gauss(rand) * 0.02, rand);
+  }
+
+  let y = 58 * u;
+  const tl = typewrite(g, n.title, m, y, { size: 17 * u, lineH: 20 * u, maxW: w - m * 2, maxLines: 2, rand });
+  y += tl * 20 * u;
+  if (n.body) {
+    const bl = typewrite(g, n.body, m, y + 2 * u, { size: 11 * u, lineH: 14 * u, maxW: w - m * 2, maxLines: 2, rand, color: "#3b3226" });
+    y += bl * 14 * u + 4 * u;
+  }
+
+  const settleH = file?.settle ? 50 * u : 0;
+  const bottom = h - 14 * u - settleH;
+  const lineH = 14.5 * u;
+  /** A labelled list of short points, each wrapped under its dash, clipped to the room left. */
+  const list = (label: string, color: string, items: string[], maxLines: number) => {
+    if (!items.length || maxLines < 2) return;
+    y += 18 * u;
+    typewrite(g, label, m, y, { size: 9.5 * u, lineH: 12 * u, maxW: w, maxLines: 1, rand, color, letterSpacing: 2 * u });
+    y += 6 * u;
+    let left = maxLines - 1;
+    g.font = `${11.6 * u}px "Special Elite"`;
+    for (const item of items) {
+      if (left <= 0) break;
+      const lines = Math.min(left, clampLines(g, wrapLines(g, item, w - m * 2 - 12 * u), 3, w - m * 2 - 12 * u).length);
+      y += lineH;
+      typewrite(g, "–", m, y, { size: 11.6 * u, lineH, maxW: 10 * u, maxLines: 1, rand, color });
+      typewrite(g, item, m + 12 * u, y, { size: 11.6 * u, lineH, maxW: w - m * 2 - 12 * u, maxLines: lines, rand, color: "#211c16" });
+      y += (lines - 1) * lineH;
+      left -= lines;
+    }
+  };
+  const room = Math.floor((bottom - y) / lineH);
+  if (unsub) list("WHAT THE EVIDENCE SAYS", "#33408a", file!.profile!, room);
+  else {
+    const forN = file?.for?.length ? Math.max(3, Math.ceil(room / 2)) : 0;
+    list("FOR", "#8f1d15", file?.for ?? [], forN);
+    list("AGAINST", "#2a4f8f", file?.against ?? [], Math.floor((bottom - y) / lineH));
+  }
+  if (file?.settle) {
+    const sy = h - 14 * u - settleH + 8 * u;
+    penLine(g, [[m, sy], [w - m, sy - 1 * u]], { color: "rgba(140,30,20,0.55)", width: 1.1 * u, rand, wobble: 0.6 });
+    handwrite(g, `Settle it: ${file.settle}`, m, sy + 18 * u, { size: 15 * u, weight: 700, lineH: 16 * u, maxW: w - m * 2, maxLines: 2, color: "#8f1d15", rand });
   }
 }
 
@@ -901,13 +972,16 @@ export function paintNote(n: Note, texel = TEXEL, photo?: HTMLImageElement): HTM
     case "photo":
       paintPhoto(g, n, W, H, rand, photo);
       break;
+    case "subject":
+      paintSubject(g, n, W, H, rand);
+      break;
   }
   return c;
 }
 
 /** The content that affects how a note looks; used as a cache key. */
 export function paintKey(n: Note) {
-  return [n.type, n.title, n.body, n.color, n.stamp, n.confidence, n.origin.url, JSON.stringify(n.diagram ?? null), n.imageUrl, n.imageFallback].join("|");
+  return [n.type, n.title, n.body, n.color, n.stamp, n.confidence, n.origin.url, JSON.stringify(n.diagram ?? null), JSON.stringify(n.subject ?? null), n.imageUrl, n.imageFallback].join("|");
 }
 
 export const RELATION_STYLE: Record<Relation, { glyph: string; color: string; name: string }> = {

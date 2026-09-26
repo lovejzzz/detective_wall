@@ -1,5 +1,6 @@
 // Tidies a wall so it reads like a case file, top to bottom: the question and the current answer
-// on the first row; then the evidence in time order, each chapter starting a new row and each
+// on the first row; then the subjects (the unknown offender's profile, then each person of
+// interest); then the evidence in time order, each chapter starting a new row and each
 // event followed by the photos strung to it; then the undated evidence, and the hunches last.
 import type { Link, Note, Phase } from "./types.ts";
 import { NOTE_SIZE } from "./geometry.ts";
@@ -21,11 +22,16 @@ export function arrangeWall(notes: Note[], links: Link[], phases?: Phase[]): Arr
   const hung = hangers(dated, undated, links);
   const hungIds = new Set([...hung.values()].flat().map((n) => n.id));
   const answers = undated.filter((n) => n.type === "conclusion");
-  const loose = undated.filter((n) => n.type !== "conclusion" && !hungIds.has(n.id));
+  const subjects = undated.filter((n) => n.type === "subject");
+  const loose = undated.filter((n) => n.type !== "conclusion" && n.type !== "subject" && !hungIds.has(n.id));
 
   const sections: Note[][] = [];
   const top = [...(question ? [question] : []), ...answers];
   if (top.length) sections.push(top);
+  // Then who: the unknown offender's profile first, then each person of interest.
+  const profiles = subjects.filter((n) => n.subject?.profile?.length);
+  const people = subjects.filter((n) => !n.subject?.profile?.length);
+  if (subjects.length) sections.push([...profiles, ...people]);
   for (const ch of chapters(groupByDay(dated), phases)) sections.push(ch.groups.flat().flatMap((n) => [n, ...(hung.get(n.id) ?? [])]));
   const evidence = loose.filter((n) => n.type !== "hypothesis");
   const hunches = loose.filter((n) => n.type === "hypothesis");

@@ -24,6 +24,7 @@ Note types:
 - web: a source you retrieved. url is required; body summarises what it says in your own words.
 - diagram: a mechanism or comparison. Provide diagram.kind ("circles" or "bars" with positive numeric values, or "flow" for an ordered chain) and up to 6 items.
 - conclusion: the current best answer to the case question, with a stamp: LIKELY, CONFIRMED, RULED OUT, or OPEN. Propose one only when the evidence supports it.
+- subject: a subject file. Either a person of interest (subject.status, up to four points for and four against, and subject.settle: the one test that would confirm or rule them out), or the unknown offender's profile (subject.profile instead of for/against, status "unidentified"). See "Who did it" below.
 - photo: a real photo from Wikimedia Commons. Set image to a file name find_photos returned this turn, exactly. The title says what the photo shows according to its source (who or what, and when); the body gives one line of context. Never invent a file name.
 
 Dates: set "when" on any note about an event that happened at a known time, as precisely as the record allows (YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM), and "approx" when it is approximate. The user can lay the wall out as a timeline, so dates matter. Leave undated ideas and hunches undated.
@@ -34,6 +35,12 @@ Keeping the file in order: make this a habit on every turn, the way a good detec
 - Key moments: mark the turning points with "moments" so the shape of the story reads at a glance: origin (where it all began), escalation (it grew or spread), breakthrough (what cracked it open), twist (what changed the picture), dead_end (a lead or suspect that went nowhere), resolved (the case was closed: a conviction, a verdict, a confession that held), latest (where a case that is still open stands now; move it when something newer arrives). A closed case gets resolved, not latest, unless it was later reopened. origin, resolved and latest mark one note each. Be sparing: three to seven in a whole case and never more than about one in three of its dated events, only real turning points, only on notes about events. New notes can be marked by ref in the same update; beat "none" takes a mark off. Leave the user's own marks alone unless they are plainly wrong.
 - Pictures: a good wall is illustrated. On a case's first turn, and whenever a person, place, object or document becomes central, call find_photos for it and pin the best real photo, with a string to the event or fact it illustrates (a photo strung to a dated event hangs beside it on the timeline). Aim for roughly one photo for every two or three events, never two of the same thing.
 Don't narrate the tidying; at most one short clause if it changes the story ("the 2009 search is the twist").
+
+Who did it: the point of the wall is to get as close to the truth as the evidence allows, so reason the way a careful cold-case review does. When the user asks who did it, or a case turns on who, build the file over one or more turns:
+- First the unknown offender's profile: a subject note with profile, three to six inferences, each tied to the evidence it rests on (what they had to know, have, reach or do; where and when they could act).
+- Then a subject note for each person of interest who matters, and only people publicly named in connection with the case by investigators, courts or credible mainstream reporting; describe anyone else by role. Give their status exactly as the record has it, the strongest points on each side from sources you read, and the one test that would settle it (a DNA comparison, a handwriting match, an alibi record). Hold each person against the profile. Never infer anything from appearance, ethnicity, nationality or a face, and never present speculation as fact.
+- Then weigh it: the conclusion card states the most likely explanation, stamped LIKELY only when the evidence clearly leans that way and OPEN otherwise, with what cuts against it and the single new fact that would change it. Point toward a named person only by attributing the view to the investigators who hold it.
+- Where information could help, say where it can go (the agency's tip line), never that the user should accuse anyone publicly.
 
 Finding photos: when the user asks for photos, pictures or images of people, places, objects or documents in the case, call find_photos and pin the best matches as photo notes (with pin_lead as you find them), one per subject unless they ask for more. Search each subject a few ways (full name, name with a year, the event or place). Only pin files find_photos returned, and caption them from the file's own description: never decide who someone is from their face, and never compare faces. If Commons has nothing for a subject, say so plainly; if you found a page elsewhere that shows a photo, you may pin it as a web note whose title says "photo (not free to reuse)". Never pass off news articles as photos.
 
@@ -67,9 +74,11 @@ export function renderWallState(req: InvestigateRequest): string {
   const lines = [`Case: ${req.caseTitle}`, "", "Notes on the wall (id · type · status · title — body):"];
   if (req.notes.length === 0) lines.push("(none yet)");
   for (const n of req.notes) {
-    const body = n.body.length > 220 ? n.body.slice(0, 219) + "…" : n.body;
+    const max = n.type === "subject" ? 700 : 220; // a subject's file is its points
+    const body = n.body.length > max ? n.body.slice(0, max - 1) + "…" : n.body;
     const beat = typeof n.beat === "string" && (BEATS as string[]).includes(n.beat) ? ` · moment: ${n.beat}` : "";
-    lines.push(`- ${n.id} · ${n.type} · ${n.status}${n.when ? ` · ${n.when}` : " · undated"}${beat} · ${n.title} — ${body}${n.url ? ` [${n.url}]` : ""}`);
+    const subject = n.type === "subject" && n.subjectStatus ? ` · status: ${n.subjectStatus}` : "";
+    lines.push(`- ${n.id} · ${n.type} · ${n.status}${n.when ? ` · ${n.when}` : " · undated"}${beat}${subject} · ${n.title} — ${body}${n.url ? ` [${n.url}]` : ""}`);
   }
   const phases = sanitizePhases(req.phases);
   lines.push("", "Timeline chapters:", ...(phases.length ? phases.map((p, i) => `${i + 1}. ${p.title} (from ${p.from})`) : ["(none named)"]));

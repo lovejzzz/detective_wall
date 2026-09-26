@@ -203,6 +203,7 @@ const THUMB_FILL: Record<NoteType, string> = {
   diagram: "#dfe6de",
   photo: "#fbfaf6",
   conclusion: "#f1dcc2",
+  subject: "#e3c994",
 };
 
 /** A snapshot of the case's wall, the size of a photo clipped to the folder. */

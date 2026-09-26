@@ -7,7 +7,8 @@ export const NOTE_SIZE: Record<NoteType, { w: number; h: number }> = {
   diagram: { w: 272, h: 236 },
   web: { w: 268, h: 262 },
   photo: { w: 208, h: 244 },
-  conclusion: { w: 288, h: 184 },
+  conclusion: { w: 288, h: 236 },
+  subject: { w: 300, h: 392 },
 };
 
 /** Where a string attaches: the pin (or tape) near the top-center, rotated with the note. */

@@ -1128,6 +1128,64 @@ kbd {
 .d-section h4 {
   margin: 0 0 10px;
 }
+.d-subject h4 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.d-subject-status {
+  padding: 3px 7px 2px;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  font: 10.5px/1 var(--typed);
+  letter-spacing: 0.1em;
+  color: #8f1d15;
+}
+.d-subject-status.st-unidentified {
+  color: #33408a;
+}
+.d-subject-status.st-cleared {
+  color: #2e6b3a;
+}
+.d-subject-status.st-never-charged {
+  color: #80601c;
+}
+.d-subject-status.st-deceased {
+  color: #4b4540;
+}
+.d-subject-list h5 {
+  margin: 12px 0 6px;
+  font: 11px/1 var(--typed);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.d-subject-list.is-for h5 {
+  color: #8f1d15;
+}
+.d-subject-list.is-against h5 {
+  color: #2a4f8f;
+}
+.d-subject-list.is-profile h5 {
+  color: #33408a;
+}
+.d-subject-list ul {
+  margin: 0;
+  padding-left: 18px;
+  font: 13px/1.45 var(--typed);
+  color: #2b261e;
+}
+.d-subject-list li + li {
+  margin-top: 4px;
+}
+.d-subject-settle {
+  margin: 14px 0 0;
+  font: 700 19px/1.2 var(--hand);
+  color: #8f1d15;
+}
+.d-subject-settle b {
+  font-weight: 700;
+}
 .d-origin {
   margin: 0 0 8px;
   font: 13px/1.4 var(--typed);

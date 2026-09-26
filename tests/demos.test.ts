@@ -5,7 +5,7 @@ import { glicoCase } from "../src/lib/glicocase.ts";
 import { fuchuCase } from "../src/lib/fuchucase.ts";
 import { layoutTimeline } from "../src/lib/timeline.ts";
 import { NOTE_SIZE } from "../src/lib/geometry.ts";
-import { commonsFile } from "../src/lib/contract.ts";
+import { commonsFile, sanitizeSubject } from "../src/lib/contract.ts";
 import { SINGLE_BEATS, type Case, type Note } from "../src/lib/types.ts";
 
 const overlapping = (boxes: { id: string; x: number; y: number; w: number; h: number }[]) => {
@@ -45,6 +45,20 @@ describe.each([
       else expect(p.imageUrl).toMatch(/^sketch:/);
       expect(c.links.some((l) => l.from === p.id || l.to === p.id), title(p)).toBe(true);
     }
+  });
+
+  it("asks who: an offender profile, subject files that fit their cards, and where information can go", () => {
+    const subjects = c.notes.filter((n) => n.type === "subject");
+    expect(subjects.filter((n) => n.subject?.profile?.length)).toHaveLength(1);
+    expect(subjects.length).toBeGreaterThanOrEqual(4);
+    for (const n of subjects) {
+      expect(sanitizeSubject(n.subject), title(n)).toEqual(n.subject);
+      // every point short enough for two lines on the card, and the file has a source
+      for (const p of [...(n.subject!.for ?? []), ...(n.subject!.against ?? []), ...(n.subject!.profile ?? [])]) expect(p.length, p).toBeLessThanOrEqual(72);
+      expect(n.origin.url, title(n)).toMatch(/^https:\/\//);
+    }
+    expect(c.notes.some((n) => n.title === "Where information goes" && n.origin.url)).toBe(true);
+    expect(c.notes.find((n) => n.type === "conclusion")!.title).toMatch(/^Most likely/);
   });
 
   it("reads cleanly: chapters of two or more events, sparing key moments, nothing overlapping", () => {

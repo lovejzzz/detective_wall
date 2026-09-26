@@ -6,8 +6,8 @@ import { findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
 import { arrangeWall } from "./lib/arrange.ts";
 import { COOPER_DEMO, COOPER_VERSION, coldCase } from "./lib/coldcase.ts";
 import { TYLENOL_DEMO, TYLENOL_VERSION, tylenolCase } from "./lib/tylenolcase.ts";
-import { GLICO_DEMO, glicoCase } from "./lib/glicocase.ts";
-import { FUCHU_DEMO, fuchuCase } from "./lib/fuchucase.ts";
+import { GLICO_DEMO, GLICO_VERSION, glicoCase } from "./lib/glicocase.ts";
+import { FUCHU_DEMO, FUCHU_VERSION, fuchuCase } from "./lib/fuchucase.ts";
 
 export type PartnerMode = "unknown" | "live" | "offline";
 
@@ -172,6 +172,7 @@ function proposeNote(c: Case, p: ProposedNote, nearId: string | undefined, messa
     ...(p.confidence ? { confidence: p.confidence } : {}),
     ...(p.stamp ? { stamp: p.stamp } : {}),
     ...(p.diagram ? { diagram: p.diagram } : {}),
+    ...(p.subject ? { subject: p.subject } : {}),
     ...(p.when ? { when: p.when, ...(p.approx ? { approx: true } : {}) } : {}),
     // A photo the partner found on Wikimedia Commons: loaded and credited from the file itself.
     ...(p.image ? { imageUrl: `commons:${p.image}` } : {}),
@@ -694,8 +695,8 @@ function claimBeat(c: Case, n: Note) {
 
 /** The built-in cases: each arrives once on every wall, and a saved copy of an older edition is brought up to date. */
 const DEMOS: { demo: string; version: number; flag: string; make: () => Case }[] = [
-  { demo: GLICO_DEMO, version: 1, flag: "detective-wall/demo-glico", make: () => glicoCase() },
-  { demo: FUCHU_DEMO, version: 1, flag: "detective-wall/demo-fuchu", make: () => fuchuCase() },
+  { demo: GLICO_DEMO, version: GLICO_VERSION, flag: "detective-wall/demo-glico", make: () => glicoCase() },
+  { demo: FUCHU_DEMO, version: FUCHU_VERSION, flag: "detective-wall/demo-fuchu", make: () => fuchuCase() },
   { demo: TYLENOL_DEMO, version: TYLENOL_VERSION, flag: "detective-wall/demo-tylenol", make: () => tylenolCase() },
   { demo: COOPER_DEMO, version: COOPER_VERSION, flag: "detective-wall/demo-cooper", make: () => coldCase() },
 ];
@@ -755,5 +756,5 @@ export function ensureCases() {
 export const useActiveCase = () => useStore((s) => (s.activeId ? s.cases[s.activeId] : undefined));
 
 export function typeLabel(t: NoteType): string {
-  return { hypothesis: "Hunch", fact: "Fact", diagram: "Sketch", web: "Clipping", photo: "Photo", conclusion: "Conclusion" }[t];
+  return { hypothesis: "Hunch", fact: "Fact", diagram: "Sketch", web: "Clipping", photo: "Photo", conclusion: "Conclusion", subject: "Subject file" }[t];
 }

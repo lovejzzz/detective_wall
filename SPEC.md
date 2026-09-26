@@ -90,6 +90,7 @@ These decide trade-offs whenever the rest of this document doesn't.
 | `web` | Clipping with torn edges, two strips of masking tape | Serif headline, sans body, URL footer | Tape (no pin) | Articles, docs, forum threads |
 | `photo` | Polaroid, glossy highlight, slight bend | Handwritten caption | Clip | Reference images |
 | `conclusion` | Index card with a red rubber stamp (`LIKELY`, `CONFIRMED`, `RULED OUT`, `OPEN`) | Typewriter, stamp | Push-pin | The current answer to the case question |
+| `subject` | Manila subject file, status stamped in the corner (`UNIDENTIFIED`, `PERSON OF INTEREST`, `CLEARED`, `NEVER CHARGED`, `CONVICTED (RELATED)`, `DECEASED`) | Typewriter, red and blue ink, red pencil | Push-pin | A person of interest: the evidence for and against, and the one test that would settle it. Or the unknown offender's profile: what the evidence says they had to know, have or do |
 
 Every note shows:
 - a title of 60 characters or fewer
@@ -361,6 +362,8 @@ interface Message {
 - **Timeline.** Notes carry an optional partial date (`when`, plus an `approx` flag). The Timeline view hangs dated notes from a cord in order: same-day notes pair above and below it, times of day are tagged, gaps of more than about 5 months are marked ("≈ 8 years"), and undated notes wait in a tray below. Switching views animates every sheet to its new place and back, and the camera starts at the beginning of the line. Claude is asked to date the evidence it proposes (`when` in `update_wall`), and people can date a note in its file.
 - **Chapters (added in v1.1).** The timeline reads like a case file, top to bottom: a typed heading (the case's name, its span, how many chapters and dated notes), then one row per chapter, each with its own cord, a manila divider card (roman numeral, title, date range, number of events, and how long after the previous chapter it begins) and a strip of masking tape across the wall above it. A case's chapters are named phases (`Case.phases`: a title and the date it starts from); an event belongs to the last phase that has begun by the latest moment its date could mean, so "October 1982" joins a phase starting 5 October. Without named phases, silences longer than 1.5 years split the history, thin chapters fold into a neighbour, and there are at most five. A chapter too long for one row carries on in the next. An undated photo strung to a dated event hangs with that event, outward from the cord, on a short thread (two per event at most); other undated notes wait in an "Undated evidence" section at the end. The camera opens on the heading and the whole first chapter; the mouse wheel scrolls the page (Ctrl zooms) and stops at either end; `[`/`]` (or PageUp/PageDown) and a thumb index on the right edge jump between chapters. Claude may name or rename chapters with `phases` in `update_wall` (2 to 6, each title at most 40 characters, with a real start date; the full list replaces the old one), and sees the current ones in the wall state. Both demo cases have named chapters.
 - **Key moments (added in v1.2).** A note can mark a turning point in the case's story (`Note.beat`): *It begins*, *It escalates*, *Breakthrough*, *Twist*, *Dead end*, *Resolved* or *Where it stands*; the first, the sixth and the last mark one note each, so marking another moves them. Each has its own ink. On both views a cloth ribbon of that ink is pinned over the note's top corner; on the timeline the note stands in a pool of warm light and its tack on the cord becomes a red wax seal, and the heading carries the story line: every dated key moment in order on one rule (kind, date, what happened), each a jump to that note. People mark moments in a note's file; both demo cases have theirs.
+- **Arrange (added in v1.3).** `A`, or the grid button by the view tabs, tidies the whole wall into reading order in rows of six: the question and the assessment; the subjects (profile first); each chapter's events in time, each followed by the photos strung to it; then undated exhibits and hunches. It is undoable, and the camera opens a page too tall for the screen at its full width from the top (as new case files do).
+- **Who did it (added in v1.3).** The partner builds the who-file the way a careful cold-case review does: first the unknown offender's profile, then a subject file for each publicly named person of interest, each held against the profile, then an assessment on the conclusion card with a calibrated stamp, what cuts against it and the fact that would change it, and where information can go. The naming rules are those of §14. Subject files travel to the partner with their status and points, so it can keep them current.
 - **The partner keeps the file in order.** Every turn, before its wall update, the partner looks over the whole wall (the state it's sent lists each note's date or "undated", its key moment, and the named chapters) and tidies what needs it: `dates` for undated events already on the wall (never overwriting a date), `phases` when the stages of the case are clear or a new one opens, and `moments` (by a new note's ref or an existing id; `null` unmarks), sparingly, three to seven in a case. It doesn't narrate the tidying. The server keeps at most 12 moments and 20 dates a turn, only on real notes, with real dates.
 - **Photos.** Photos can be dropped on the wall, pasted, or attached to a message with the typewriter's paperclip. Attached photos go to Claude as image blocks (at most 3 per turn), and it is told never to identify real people from their faces. Offline, the partner says it can't look at photos and sets up the questions to ask of one.
 
@@ -377,59 +380,25 @@ interface Message {
 
 ---
 
-## 14. Seed cases
+## 14. Case files
 
-### 14.1 Demo case: the Flight 305 hijacker ("D. B. Cooper"), opened first
+Four real, unsolved cases ship with the wall. Each was researched from primary and mainstream sources, fact-checked line by line, and built by one builder (`lib/demo.ts`), so they read the same way: the question and the current assessment first, then **who** (the offender's profile and a subject file for each person of interest), then the evidence chapter by chapter with each event's photos beside it, then undated exhibits and open questions. Each has 25–45 dated, sourced events in four or five chapters, four to seven key moments, 11–18 real Wikimedia Commons photos (credited from each file's own metadata) and one lead left to pin or toss.
 
-A real, unsolved case makes the best demo: it has hard facts, open questions, contradictions, and nobody was hurt. On 24 November 1971 a passenger who bought his ticket as "Dan Cooper" hijacked Northwest Orient Flight 305 (Portland → Seattle), collected $200,000 and four parachutes, and jumped from the Boeing 727's rear airstair over southwest Washington. It is the only unsolved hijacking of a US commercial airliner.
+| Case | Opens with |
+|---|---|
+| **The Glico-Morinaga case** (Osaka–Kobe, 1984–85) | "Most likely: a Kansai group of six or seven, after money" |
+| **The 300 million yen robbery** (Fuchū, 1968) | "Most likely: one local man, about 30, alone" |
+| **The Chicago Tylenol murders** (1982) | "Most likely: one local tamperer, never identified" |
+| **The Flight 305 hijacker ("D. B. Cooper")** (1971) | "Most likely: he didn't live to spend it" |
 
 **Rules for real cases:**
-- Only widely documented facts.
-- Web notes cite their source.
-- Uncertain points are marked `confidence: medium`.
-- Suspects and private individuals are never named. The wall is about evidence, not accusing people.
-
-**The wall** (16 notes, 14 strings):
-
-| Thread | Notes |
-|---|---|
-| The flight | Flight 305 fact, the demands, how he wanted it flown (flaps 15°, gear down, below 10,000 ft), a flow sketch of the night, and a press-print photo of a 727 with its rear airstair lowered |
-| The man | The clip-on tie left on seat 18E (photo), the 2017 particle analysis (cerium, strontium sulfide, unalloyed titanium) as a web clipping, and two hunches: "He knew this aircraft?" and "Worked around aerospace metals?" |
-| The money | The 1980 Tena Bar find (about $5,800, serials matched), a bar sketch of $200,000 paid against $5,800 found, and "The wrong place?" (about 18–20 miles from the suspected drop zone), which **contradicts** the easy explanation |
-| The verdict | "Did he survive?" and the conclusion card, stamped **OPEN**: the FBI suspended its active investigation in 2016 |
-
-- One proposed note ("Serial numbers on record") and its proposed string are left waiting, so the pin/toss flow is visible on first run.
-- The notepad opens with a short onboarding line instead of a resume line.
-- With no API key, the offline partner runs three scripted, fact-checked leads for this case (the missing parachutes, the "Cooper vane", the 1972 copycat wave), then falls back to the generic partner.
-- **Real case photos** come from Wikimedia Commons: the aircraft (N467US), the FBI composite sketch, and the recovered Tena Bar bills. The browser loads them at runtime; the Commons API and media server allow cross-origin use, so the photos can be painted into WebGL textures. Each photo's author and licence are read from the file's own Commons metadata and shown in its file. Commons photos are sent to Claude by URL (only `upload.wikimedia.org` URLs are accepted). When a photo can't load (offline), the aircraft falls back to a drawn illustration and the others say "print loads online". No freely licensed photo of the tie was found, so it stays a drawing and its file says so.
-
-### 14.2 Demo case: the Chicago Tylenol murders (1982)
-
-Seven people died between 29 September and 1 October 1982 after taking Extra-Strength Tylenol capsules laced with potassium cyanide; no one has ever been charged. The wall reads like a book, row by row: the question and the deaths; the places and things, as real photos from Wikimedia Commons (credited from each file); the response (the recall, triple-seal packaging, the extortion letter); the investigation (Lewis's extortion conviction, the 1986 Yonkers death, the 2009 search, Lewis's death in 2023); and the newest turn, the September 2026 identification of Boise's "Unknown Wanderer", reported as a possible tie, not a named suspect. Seventeen dated items put the case's development on the timeline, 1982 to 2026. It arrives once on every wall, opens framed to the whole wall on any screen, and stays gone if shredded.
-
-### 14.3 Second case: "Vazen M43 lens → Panasonic S9?"
-
-The question: *can a Vazen 1.8× anamorphic lens made for Micro Four Thirds be used on a Panasonic Lumix S9 (full-frame, L-mount)?*
-
-| Note | Type | Content |
-|---|---|---|
-| Q | `hypothesis` | "Vazen M43 anamorphic → Panasonic S9?" |
-| Flange distances | `fact` | Micro Four Thirds flange distance is 19.25 mm. L-mount is 20.0 mm. The M43 lens has to sit *closer* to the sensor than the L-mount's own flange allows. |
-| Adapter reality | `fact` | An adapter can only add distance. Mounting a shorter-flange lens on a longer-flange body needs corrective glass (which usually loses infinity focus and quality) or doesn't work at all. |
-| Speed Booster direction | `web` | Focal reducers (e.g. Metabones Speed Booster) shrink a *large* image circle onto a *smaller* sensor. M43 → full-frame needs the opposite, and no mainstream product does that. |
-| Image circle | `diagram` | Circles: M43 image-circle diagonal ≈ 21.6 mm, APS-C crop ≈ 28.4 mm, full frame ≈ 43.3 mm |
-| Crop mode? | `hypothesis` | "Would the S9's APS-C crop mode help?" → it doesn't fix the flange problem, and APS-C is still larger than the M43 circle. |
-| Verdict | `conclusion`, stamp `RULED OUT` | Not practical: the flange geometry blocks a simple adapter and the image circle can't cover the sensor. Options: shoot on an M43 body, or look at full-frame anamorphic lenses in L-mount. |
-
-**Strings:**
-- Flange distances **supports** Adapter reality
-- Adapter reality **supports** Verdict
-- Speed Booster direction **supports** Verdict
-- Image circle **supports** Verdict
-- Crop mode? **contradicts** Q (it undercuts the hope that crop mode rescues the plan)
-- Image circle **references** Crop mode?
-
----
+- Every fact card and clipping cites the page it comes from; approximate times are marked approximate; where sources disagree the file says so or uses the standard figure.
+- **Who.** A person appears only if investigators, a court or credible mainstream reporting has publicly named them in connection with the case; everyone else is described by role ("Boy S", "an ex-yakuza boss's circle"). The man wrongly arrested in 1969 in the Fuchū case is never named. Each subject file gives their status exactly as the record has it, the strongest evidence **for and against** from sources, and the one test that would settle it. Nothing is inferred from appearance, ethnicity, nationality or a face; a DNA non-match is reported as a non-match, not an exoneration, where investigators haven't tied the DNA to the offender.
+- **The assessment** states the most likely explanation with what cuts against it and what single new fact would change it, and is stamped OPEN: in all four cases the evidence supports a view of *how*, not a name. A view toward a named person is always attributed to the investigators who held it.
+- **Where information goes.** Each case says where a tip can go (the FBI, the lead local agency, the Ada County sheriff), or, for the Japanese cases whose statutes have run, that there is no police channel and NHK's 未解決事件 series collects information.
+- Saved walls get newer editions of the case files (`demoVersion`); the retired lens-adapter sample case is removed from saved walls.
+- With no API key, the offline partner runs three scripted, fact-checked leads on the Flight 305 case, then falls back to the generic partner.
+- Photos load from Wikimedia Commons at runtime (the Commons API and media server allow cross-origin use). When a photo can't load, the aircraft falls back to a drawn illustration and the others say "print loads online"; the Flight 305 tie has no free photo, so it is drawn.
 
 ## 15. Audience for this document
 Product managers, AI engineers, frontend and graphics developers, and UX designers. Each section above is written to be handed to one of those roles on its own.

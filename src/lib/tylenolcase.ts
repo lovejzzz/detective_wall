@@ -13,7 +13,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const TYLENOL_DEMO = "tylenol-1982";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const TYLENOL_VERSION = 2;
+export const TYLENOL_VERSION = 3;
 
 export const TYLENOL_PHASES: Phase[] = [
   { title: "Seven deaths", from: "1982-09-29" },
@@ -65,7 +65,16 @@ const spec: DemoSpec = {
   phases: TYLENOL_PHASES,
   notes: [
     { key: "q", type: "hypothesis", title: "Who poisoned the Tylenol, and why was no one ever charged?" },
-    { key: "verdict", type: "conclusion", title: "Unsolved: seven dead, no murder charge", url: "https://www.cbsnews.com/chicago/news/unknown-wanderer-identified-boise-idaho-chicago-tylenol-murders-link/", body: "Eight poisoned bottles, seven dead, no one ever charged with the murders. DNA from three bottles matched neither James Lewis nor Roger Arnold, and the Idaho lead is unproven and disputed." },
+    { key: "verdict", type: "conclusion", title: "Most likely: one local tamperer, never identified", url: "https://www.inkl.com/news/movement-in-the-tylenol-murders-law-enforcement-seeks-to-persuade-prosecutors-to-act-on-chargeable-case-cb6e59ff-3e20-4d01-abb8-972f88437bf0", body: "One person with potassium cyanide laced bottles by hand and put them back in at least five stores within a day or two. Investigators most suspected James Lewis, but nothing places him in Chicago then and the bottle DNA isn't his. What would change it: bottle DNA proven to be the tamperer's, traced by genetic genealogy." },
+    { key: "tips", type: "fact", title: "Where information goes", url: "https://tips.fbi.gov", body: "FBI: tips.fbi.gov, or FBI Chicago at (312) 421-6700. Arlington Heights police, the lead local agency: (847) 368-5000. The Boise angle: ACSOtips@adacounty.id.gov." },
+
+    // ── Who: the offender's profile, then each person of interest as the record has them ──
+    { key: "unsub", type: "subject", title: "UNSUB: the Tylenol poisoner", body: "What the evidence says the poisoner had to be.", url: "https://en.wikipedia.org/wiki/Chicago_Tylenol_murders", subject: { status: ["unidentified"], profile: ["Had potassium cyanide and knew a lethal dose.", "Laced bottles by hand after they left the factory.", "Reached stores from Old Town to Wheaton in a day or two.", "Was around Chicago just before 28 September 1982.", "Worked in small batches: the dose varied bottle to bottle.", "Left no verified demand: money was probably not the point."] } },
+    { key: "sLewis", type: "subject", title: "James W. Lewis", body: "Wrote the $1 million letter; convicted of extortion in 1983.", url: "https://www.cbsnews.com/chicago/news/tylenol-murders-40-years-later-who-have-investigators-identified-as-suspects-or-persons-of-interest/", subject: { status: ["never charged", "deceased"], for: ["Parole board, 1989: \"responsible\" on the balance of evidence.", "Task forces took a circumstantial case to prosecutors, 2012 and 2022.", "His letter's 1 October postmark suggests an early start."], against: ["No one has placed him in Chicago in the tampering window.", "His 2010 DNA matched none of the bottle profiles.", "Prosecutors declined to charge him, twice."], settle: "A dated record placing him in Chicago on 24–28 September 1982." } },
+    { key: "sArnold", type: "subject", title: "Roger Arnold", body: "Jewel dockhand and home chemist, questioned in October 1982.", url: "https://www.cbsnews.com/chicago/news/tylenol-murders-40-years-later-who-have-investigators-identified-as-suspects-or-persons-of-interest/", subject: { status: ["never charged", "deceased"], for: ["Admitted he had once had cyanide.", "Worked for Jewel; two fatal bottles came from Jewel stores.", "Owned a manual on making potassium cyanide."], against: ["No cyanide was found in his home.", "His exhumed DNA matched none of the bottle profiles.", "Neither task force moved to charge him."], settle: "Already tested: excluded if the bottle DNA is the tamperer's." } },
+    { key: "sKaczynski", type: "subject", title: "Ted Kaczynski", body: "The Unabomber; the FBI sought his DNA in 2011.", url: "https://abcnews.com/Blotter/fbi-probes-unabomber-connection-tylenol-killings/story?id=13638602", subject: { status: ["never charged", "deceased"], for: ["His first bombs were set around Chicago, 1978–80.", "His parents' home was in Lombard, Ill., in 1982."], against: ["Said in court he never possessed potassium cyanide.", "Nothing public puts him in Chicago in late September 1982.", "The FBI never announced a result."], settle: "Compare his DNA with the three bottle profiles, and publish it." } },
+    { key: "sBetkouski", type: "subject", title: "Mathew Betkouski", body: "The Boise \"Unknown Wanderer\". Ada County: a possible link, not a suspect.", url: "https://www.cbsnews.com/chicago/news/unknown-wanderer-identified-boise-idaho-chicago-tylenol-murders-link/", subject: { status: ["deceased"], for: ["Ex-colleagues recall talk of poisoning capsules.", "His effects held a hand-drawn map of Chicago.", "Died of cyanide under an alias ten weeks later."], against: ["His cyanide was homemade sodium cyanide, not potassium.", "No one can place him in Chicago in late September 1982.", "State police: no evidentiary link. FBI: unsubstantiated."], settle: "Compare his wallet DNA with the three bottle profiles." } },
+    { key: "sFilm", type: "subject", title: "The man in the Walgreens film", body: "Stood behind Paula Prince at the register, 29 September 1982.", url: "https://www.upi.com/Archives/1982/10/18/Police-Monday-released-film-from-a-drugstore-security-camera/3756403761600/", subject: { status: ["unidentified"], for: ["Police thought him important enough to release the frame."], against: ["The frame is poorly focused; resemblance isn't identity.", "Under the shelf theory her bottle was poisoned before she bought it."], settle: "Identify him from the original film, then check his alibi." } },
 
     // ── Seven deaths ──
     { key: "kellerman", type: "fact", title: "Mary Kellerman, 12", when: "1982-09-29T09:56", beat: "origin", url: CBS, body: "Mary Ann Kellerman of Elk Grove Village took Extra-Strength Tylenol for a cold. Her father found her collapsed at about 6:30 a.m.; she was pronounced dead at Alexian Brothers Medical Center at 9:56 a.m. The bottle, lot MC2880, came from the local Jewel." },
@@ -165,6 +174,12 @@ const spec: DemoSpec = {
     { from: "lewis", to: "search", relation: "references", reason: "Back in focus in 2009" },
     { from: "search", to: "dna", relation: "references", reason: "The forensic push" },
     { from: "dna", to: "verdict", relation: "supports", reason: "No match, no charge" },
+    { from: "unsub", to: "q", relation: "references", reason: "Who we're looking for" },
+    { from: "sLewis", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "sArnold", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "sKaczynski", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "sBetkouski", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "sFilm", to: "unsub", relation: "references", reason: "Held against the profile" },
     { from: "died", to: "verdict", relation: "supports", reason: "Never charged" },
     { from: "boise", to: "idaho", relation: "references", reason: "Identified in 2026" },
     { from: "idaho", to: "disputed", relation: "contradicts", reason: "The pushback" },

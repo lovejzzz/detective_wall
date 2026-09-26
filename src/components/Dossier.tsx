@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Case, Note, NoteType, Relation } from "../lib/types.ts";
+import type { Case, Note, NoteType, Relation, SubjectFile } from "../lib/types.ts";
 import { parseWhenInput, whenLabel } from "../lib/when.ts";
 import { photoIdOf, photoURL } from "../lib/images.ts";
 import { commonsFileOf, resolveCommons, type CommonsPhoto } from "../lib/commons.ts";
@@ -10,6 +10,41 @@ import { RELATION_INFO } from "../lib/relations.ts";
 
 function when(ts: number) {
   return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+/** A subject's file, as the record has it: status, the evidence each way, and what would settle it. */
+function SubjectSections({ file }: { file: SubjectFile }) {
+  const list = (label: string, cls: string, items?: string[]) =>
+    items?.length ? (
+      <div className={`d-subject-list ${cls}`}>
+        <h5>{label}</h5>
+        <ul>
+          {items.map((x, i) => (
+            <li key={i}>{x}</li>
+          ))}
+        </ul>
+      </div>
+    ) : null;
+  return (
+    <section className="d-section d-subject">
+      <h4>
+        Subject file
+        {file.status.map((st) => (
+          <span key={st} className={`d-subject-status st-${st.replace(/[^a-z]+/g, "-")}`}>
+            {st}
+          </span>
+        ))}
+      </h4>
+      {list("What the evidence says about the offender", "is-profile", file.profile)}
+      {list("For", "is-for", file.for)}
+      {list("Against", "is-against", file.against)}
+      {file.settle && (
+        <p className="d-subject-settle">
+          <b>Settle it:</b> {file.settle}
+        </p>
+      )}
+    </section>
+  );
 }
 
 /** "When" for a note: typed loosely, stored precisely. Blank means undated. */
@@ -222,6 +257,8 @@ export function Dossier({ c }: { c: Case }) {
               ))}
             </div>
           )}
+
+          {note.subject && <SubjectSections file={note.subject} />}
 
           <WhenField note={note} />
 

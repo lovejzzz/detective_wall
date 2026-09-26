@@ -2,7 +2,7 @@
 // the chapters and the conversation. Every card is laid out by the same arrangement people get
 // from "Arrange", so each demo reads like a case file: the question and the current answer first,
 // then the evidence chapter by chapter, each event followed by its photos.
-import type { Beat, Case, Confidence, DiagramSpec, Link, Message, Note, NoteType, Phase, Relation, Stamp, StickyColor } from "./types.ts";
+import type { Beat, Case, Confidence, DiagramSpec, Link, Message, Note, NoteType, Phase, Relation, Stamp, StickyColor, SubjectFile } from "./types.ts";
 import { uid } from "./geometry.ts";
 import { arrangeWall } from "./arrange.ts";
 
@@ -28,6 +28,7 @@ export interface DemoNote {
   stamp?: Stamp;
   color?: StickyColor;
   diagram?: DiagramSpec;
+  subject?: SubjectFile;
   /** Left for the viewer to pin or toss. */
   proposed?: boolean;
 }
@@ -83,6 +84,7 @@ export function buildDemo(spec: DemoSpec, now = Date.now()): Case {
       ...(d.stamp ? { stamp: d.stamp } : d.type === "conclusion" ? { stamp: "OPEN" as const } : {}),
       ...(d.color ? { color: d.color } : d.type === "hypothesis" ? { color: "yellow" as const } : {}),
       ...(d.diagram ? { diagram: d.diagram } : {}),
+      ...(d.subject ? { subject: d.subject } : {}),
     };
   });
   const id = (key: string) => {

@@ -1,14 +1,32 @@
-export type NoteType = "hypothesis" | "fact" | "diagram" | "web" | "photo" | "conclusion";
+export type NoteType = "hypothesis" | "fact" | "diagram" | "web" | "photo" | "conclusion" | "subject";
 export type Relation = "supports" | "causes" | "contradicts" | "references";
 export type Status = "proposed" | "pinned";
 export type Confidence = "high" | "medium" | "low";
 export type Stamp = "LIKELY" | "CONFIRMED" | "RULED OUT" | "OPEN";
 export type StickyColor = "yellow" | "pink" | "blue" | "green";
 
-export const NOTE_TYPES: NoteType[] = ["hypothesis", "fact", "diagram", "web", "photo", "conclusion"];
+export const NOTE_TYPES: NoteType[] = ["hypothesis", "fact", "diagram", "web", "photo", "conclusion", "subject"];
 export const RELATIONS: Relation[] = ["supports", "causes", "contradicts", "references"];
 export const STAMPS: Stamp[] = ["LIKELY", "CONFIRMED", "RULED OUT", "OPEN"];
 export const STICKY_COLORS: StickyColor[] = ["yellow", "pink", "blue", "green"];
+
+/** Where a person of interest stands on the record. */
+export type SubjectStatus = "unidentified" | "person of interest" | "cleared" | "never charged" | "convicted (related)" | "deceased";
+export const SUBJECT_STATUSES: SubjectStatus[] = ["unidentified", "person of interest", "cleared", "never charged", "convicted (related)", "deceased"];
+
+/**
+ * A subject file: a person of interest as the record has them, with the evidence on both sides
+ * and the test that would settle it. Or, with `profile`, the unknown offender as the evidence
+ * describes them (what they must have known, had, or been able to do).
+ */
+export interface SubjectFile {
+  status: SubjectStatus[];
+  for?: string[];
+  against?: string[];
+  profile?: string[];
+  /** The one test that would confirm or rule them out. */
+  settle?: string;
+}
 
 /** A key moment in the story of a case, marked on its note: the shape of the case at a glance. */
 export type Beat = "origin" | "escalation" | "breakthrough" | "twist" | "dead_end" | "resolved" | "latest";
@@ -64,6 +82,8 @@ export interface Note {
   approx?: boolean;
   /** A key moment in the case's story (where it began, a breakthrough, a twist...). */
   beat?: Beat;
+  /** Subject notes: the person of interest's file (or the unknown offender's profile). */
+  subject?: SubjectFile;
   origin: NoteOrigin;
   createdAt: number;
 }

@@ -30,6 +30,9 @@ function lift(type: NoteType, u: number, v: number, r: () => number, k: number[]
       return 2.2 * (1 - (2 * v - 1) ** 2) + 4 * Math.max(0, v - 0.7) ** 2 * cx;
     case "diagram":
       return 1.2 * Math.sin(v * Math.PI) + 5 * Math.max(0, u + v - 1.4) ** 1.5;
+    case "subject":
+      // heavy manila card: a gentle bow and one dog-eared corner
+      return 1.6 * (1 - (2 * u - 1) ** 2) * v + 7 * Math.max(0, (k[1] > 0.5 ? u : 1 - u) + v - 1.55) ** 1.8;
   }
   void r;
   return 0;

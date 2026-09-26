@@ -69,7 +69,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   const caseIdRef = useRef(c.id);
   useEffect(() => {
     caseIdRef.current = c.id;
-    setCam(c.camera);
+    // A case that asks to be framed has just been framed (the layout effect below): keep that view.
+    if (!c.frameOnOpen) setCam(c.camera);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.id]);
   useEffect(() => {
@@ -162,9 +163,13 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const f = framing(notes, 0.9);
       const top = Math.min(...notes.map((n) => n.y - NOTE_SIZE[n.type].h / 2));
       const bottom = Math.max(...notes.map((n) => n.y + NOTE_SIZE[n.type].h / 2));
-      return bottom - top <= (stage.h - 160) / f.zoom ? f : { ...f, y: top + (stage.cy - 100) / f.zoom };
+      if (bottom - top <= (stage.h - 160) / f.zoom) return f;
+      const left = Math.min(...notes.map((n) => n.x - NOTE_SIZE[n.type].w / 2));
+      const right = Math.max(...notes.map((n) => n.x + NOTE_SIZE[n.type].w / 2));
+      const zoom = clampZ(Math.min(0.9, (stage.w - TRAY_W - 80) / (right - left)));
+      return { zoom, x: (left + right) / 2 - TRAY_W / 2 / zoom, y: top + (stage.cy - 100) / zoom };
     },
-    [framing, stage.h, stage.cy],
+    [framing, stage.w, stage.h, stage.cy],
   );
   // A case that asks to be framed (a new demo) opens on its whole wall, for whatever screen this is.
   // A layout effect, so the camera is set before the first paint and before the focus check below.
@@ -731,12 +736,14 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             .filter((n) => n.beat)
             .map((n) => {
               const { w, h } = NOTE_SIZE[n.type];
-              const p = toScreen({ x: n.x - w / 2 + 10, y: n.y - h / 2 + 6 });
+              // Hanging below the timeline's cord, the ribbon goes on the bottom edge, clear of the date and time tags.
+              const low = timeline?.slots.get(n.id)?.row === "below";
+              const p = toScreen({ x: n.x - w / 2 + 10, y: low ? n.y + h / 2 - 6 : n.y - h / 2 + 6 });
               return (
                 <div
                   key={`beat-${n.id}`}
                   className={`beat-tag beat-${n.beat} ${n.status === "proposed" ? "is-proposed" : ""}`}
-                  style={{ left: p.x, top: p.y, transform: `rotate(${n.rotation - 4}deg) scale(${tagScale}) translate(-14px, -62%)` }}
+                  style={{ left: p.x, top: p.y, transform: `rotate(${n.rotation - 4}deg) scale(${tagScale}) translate(-14px, ${low ? "-38%" : "-62%"})` }}
                   aria-hidden
                 >
                   {BEAT_LABEL[n.beat!]}

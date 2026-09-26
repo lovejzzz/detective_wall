@@ -142,3 +142,20 @@ describe("the tool schemas stay within strict tool use", () => {
     expect(walk(UPDATE_WALL_SCHEMA, "update_wall", [])).toEqual([]);
   });
 });
+
+describe("subject files", () => {
+  const subject = (s: unknown) => sanitizeWallUpdate({ notes: [{ ref: "s1", type: "subject", title: "A person of interest", body: "", subject: s }], links: [] }, new Set()).notes[0];
+
+  it("keeps a status, up to four points a side, and the test that would settle it", () => {
+    const n = subject({ status: ["never charged", "deceased", "bogus"], for: ["a", "b", "c", "d", "e"], against: ["x".repeat(200)], settle: "Compare DNA." });
+    expect(n.subject).toEqual({ status: ["never charged", "deceased"], for: ["a", "b", "c", "d"], against: ["x".repeat(139) + "…"], settle: "Compare DNA." });
+  });
+
+  it("takes a profile instead of sides for the unknown offender, and drops a file with no evidence", () => {
+    expect(subject({ status: ["unidentified"], profile: ["Knew the stores", "Had cyanide"], for: ["ignored"] })!.subject).toEqual({ status: ["unidentified"], profile: ["Knew the stores", "Had cyanide"] });
+    expect(subject({ status: ["cleared"] })).toBeUndefined();
+    expect(subject(undefined)).toBeUndefined();
+    // a status is always there
+    expect(subject({ for: ["one point"] })!.subject!.status).toEqual(["person of interest"]);
+  });
+});

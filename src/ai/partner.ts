@@ -88,6 +88,15 @@ function toRequest(c: Case): InvestigateRequest {
       ...(n.origin.url ? { url: n.origin.url } : {}),
       ...(n.when ? { when: n.when } : {}),
       ...(n.beat ? { beat: n.beat } : {}),
+      // a subject's file travels as its status and its points, so the partner can keep it current
+      ...(n.subject
+        ? {
+            subjectStatus: n.subject.status.join(", "),
+            body: [n.body, ...(n.subject.profile ?? []).map((p) => `profile: ${p}`), ...(n.subject.for ?? []).map((p) => `for: ${p}`), ...(n.subject.against ?? []).map((p) => `against: ${p}`), n.subject.settle ? `settle: ${n.subject.settle}` : ""]
+              .filter(Boolean)
+              .join(" | "),
+          }
+        : {}),
     })),
     links: c.links.map((l) => ({ from: l.from, to: l.to, relation: l.relation, status: l.status })),
     messages: c.messages.map((m) => ({ role: m.role, text: m.text })),

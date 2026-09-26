@@ -12,6 +12,8 @@ import type { Case, Phase } from "./types.ts";
 import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const FUCHU_DEMO = "fuchu-300m-1968";
+/** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
+export const FUCHU_VERSION = 2;
 
 export const FUCHU_PHASES: Phase[] = [
   { title: "Threats in the Tama hills", from: "1968-04-25" },
@@ -36,7 +38,14 @@ const spec: DemoSpec = {
   phases: FUCHU_PHASES,
   notes: [
     { key: "q", type: "hypothesis", title: "Who took ¥294 million in three minutes, and how did it stay unsolved?" },
-    { key: "verdict", type: "conclusion", title: "Unsolved: the clock ran out in 1975", url: TAMA, body: "171,346 officer-days, 117,950 people investigated, 27,783 tips and ¥972 million spent, with no charge. The money was never found." },
+    { key: "verdict", type: "conclusion", title: "Most likely: one local man, about 30, alone", url: "https://www.dailyshincho.jp/article/2024/12081104/?all=1", body: "Hiratsuka's view and the mainstream one: a handy local thief who had threatened the farm co-op since April 1968 and handled every vehicle himself. Against it: two different knots, \"we\" in the letters, an earring in a linked car. What would change it: DNA from the stamp, or one serial-numbered ¥500 note." },
+    { key: "tips", type: "fact", title: "Where information goes", url: "https://www.nhk.jp/g/ts/57615R8KYY/blog/bl/pB78PQRjnA/bp/pv1prAe27M/", body: "No police channel: the statute ran out in 1975. NHK's 未解決事件 series, which reopened the file in January, collects information through its form." },
+
+    // ── Who: the robber's profile, then the people the record takes seriously (by role) ──
+    { key: "unsub", type: "subject", title: "UNSUB: the motorcycle policeman", body: "Local, about 30, alone on the day.", url: "https://www.dailyshincho.jp/article/2024/12081103/?all=1", subject: { status: ["unidentified"], profile: ["Alone on the day: car to bike to cash car to car.", "Knew the Tama area's back lanes, ruins and car parks.", "A skilled thief of cars and motorbikes (four in a month).", "Knew the bank car, its route and its timing.", "Handy with tools and simple electrics.", "Probably close to 30; the letter-writer's blood type was B."] } },
+    { key: "sBoyS", type: "subject", title: "“Boy S”, 19", body: "Of a Tachikawa car-theft gang; died of cyanide on 15 December 1968.", url: YOMIURI, subject: { status: ["cleared", "deceased"], for: ["A local car and bike thief who knew police motorcycles.", "A senior detective believed in the lead to the end."], against: ["Blood type A (the stamp: B); handwriting didn't match.", "In detention during some threats; the robber was near 30."], settle: "DNA from the stamp's saliva, if the letter survives." } },
+    { key: "sBoyZ", type: "subject", title: "“Boy Z”, 18", body: "A friend of S who grew conspicuously rich after 1968.", url: JA_WIKI, subject: { status: ["cleared"], for: ["Sudden wealth after the robbery, property in Hawaii included."], against: ["Blood type AB, not B.", "Too young for the investigators' profile; the 1975 arrest found nothing."], settle: "A documented source for his money." } },
+    { key: "sShirata", type: "subject", title: "“Shirata”: a 2018 confession", body: "An anonymous online author; the book it became says it's fiction.", url: "https://www.j-cast.com/2018/10/02340064.html?p=all", subject: { status: ["unidentified"], for: ["Gets some obscure details right, readers noted."], against: ["Produced none of the ¥500 notes with published serials.", "A reporter who knew S's circle says key details are wrong."], settle: "One ¥500 note from XF227001A–XF229000A." } },
 
     // ── Threats in the Tama hills ──
     { key: "coop", type: "fact", title: "Threats against the Tama farm co-op", when: "1968-04-25", url: JA_WIKI, body: "From 25 April to 22 August the Tama Agricultural Cooperative in Fuchū got nine threats of arson and bombing, falling on Toshiba pay days. Handwriting later tied them to the December letter to the bank." },
@@ -79,7 +88,7 @@ const spec: DemoSpec = {
 
     // ── The clock runs out ──
     { key: "boyZ", type: "fact", title: "A last suspect, weeks before the deadline", when: "1975-11-15", url: JA_WIKI, body: "A friend of Boy S who had spent lavishly since 1968 was arrested on an unrelated charge and released on 4 December; his blood type didn't match and police ruled him out." },
-    { key: "statute", type: "fact", title: "The statute of limitations runs out", when: "1975-12-10T00:00", beat: "dead_end", url: TAMA, body: "The seven-year limit for theft expired at midnight with no one charged. The head of the Tokyo police said it was \"regrettable, that is all one can say.\"" },
+    { key: "statute", type: "fact", title: "The statute of limitations runs out", when: "1975-12-10T00:00", beat: "dead_end", url: TAMA, body: "The seven-year limit for theft expired at midnight after 171,346 officer-days and 117,950 people investigated, with no one charged. The head of the Tokyo police called it \"regrettable, that is all one can say.\"" },
     { key: "exposed", type: "fact", title: "The montage's origin exposed", when: "1980-08", url: JA_WIKI, body: "A Bungei Shunjū article revealed the montage was an unaltered photo of a man who had died in an accident before the robbery. His family was never told how it came to be used." },
     { key: "civil", type: "fact", title: "Civil liability expires", when: "1988-12-10", url: JA_WIKI, body: "The 20-year period to sue ran out. No credible culprit has come forward." },
     { key: "nhk", type: "web", title: "NHK: overlooked sightings of the bike", when: "2026-01-10T22:00", beat: "latest", url: NHK, body: "NHK's Unsolved Cases File.10 drew on investigation records and 170-plus interviews, including a first account from a woman who saw the robbery as a schoolgirl, and reported overlooked sightings of the fake bike about 20 km away." },
@@ -123,6 +132,10 @@ const spec: DemoSpec = {
     { from: "boyS", to: "montage", relation: "causes", reason: "Chosen for resembling him" },
     { from: "montageDoubt", to: "montage", relation: "contradicts", reason: "The witnesses were vague" },
     { from: "statute", to: "verdict", relation: "supports", reason: "No one can be charged" },
+    { from: "unsub", to: "q", relation: "references", reason: "Who we're looking for" },
+    { from: "sBoyS", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "sBoyZ", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "sShirata", to: "unsub", relation: "references", reason: "Held against the profile" },
     { from: "bike", to: "stop", relation: "references", reason: "Left at the scene" },
     { from: "scrap", to: "bike", relation: "references", reason: "Under the megaphone's paint" },
     { from: "soil", to: "corollaFound", relation: "references", reason: "Found in a case" },
@@ -147,5 +160,5 @@ const spec: DemoSpec = {
 };
 
 export function fuchuCase(now = Date.now()): Case {
-  return buildDemo(spec, now);
+  return { ...buildDemo(spec, now), demoVersion: FUCHU_VERSION };
 }

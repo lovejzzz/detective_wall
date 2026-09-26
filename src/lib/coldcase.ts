@@ -3,15 +3,15 @@
 //
 // Every fact was checked against the FBI's own history page and 2016 release, Wikipedia (citing
 // the FBI files and air-traffic transcripts), HistoryLink, Aviation Safety Network, Citizen
-// Sleuths, and the 2020 diatom study. Times are Pacific. Suspects are deliberately never named
-// as Cooper: this wall is about evidence, not accusing people. A 1972 copycat appears only for
-// his own, documented hijacking.
+// Sleuths, and the 2020 diatom study. Times are Pacific. People appear as subjects only where the
+// FBI or credible reporting has publicly named them, each with the evidence both ways and the
+// FBI's own position; no one is presented as Cooper.
 import type { Case, Phase } from "./types.ts";
 import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const COOPER_DEMO = "cooper-1971";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const COOPER_VERSION = 2;
+export const COOPER_VERSION = 3;
 
 /** Real photos of the case on Wikimedia Commons (credit is read from each file's metadata at runtime). */
 export const COMMONS = {
@@ -50,7 +50,15 @@ const spec: DemoSpec = {
   phases: COOPER_PHASES,
   notes: [
     { key: "q", type: "hypothesis", title: "Who was “Dan Cooper”, and did he survive the jump?" },
-    { key: "verdict", type: "conclusion", title: "Unsolved", url: FBI_2016, body: "No one was ever identified or charged, after more than 800 suspects were weighed in the first five years alone. The FBI still asks for physical evidence tied to the parachutes or the money." },
+    { key: "verdict", type: "conclusion", title: "Most likely: he didn't live to spend it", url: "https://www.fbi.gov/history/famous-cases/db-cooper-hijacking", body: "A planner in his 40s who knew the 727 jumped at about 8:13 p.m., probably south or east of the area searched. The FBI never named a prime suspect, and every named candidate fails on description, whereabouts or DNA. What would change it: genealogy on the tie's DNA, or a ransom bill with a traceable chain." },
+    { key: "tips", type: "fact", title: "Where information goes", url: "https://tips.fbi.gov", body: "FBI: tips.fbi.gov, or FBI Seattle at (206) 622-0460. Since 2016 the FBI only wants physical evidence tied to the parachutes or the money." },
+
+    // ── Who: the hijacker's profile, then the people the FBI has publicly looked at ──
+    { key: "unsub", type: "subject", title: "UNSUB: “Dan Cooper”", body: "Mid-40s, 5'10\"–6'0\", 170–180 lb, brown eyes; smoked, ordered bourbon.", url: "https://en.wikipedia.org/wiki/D._B._Cooper", subject: { status: ["unidentified"], profile: ["Knew the 727's stairs, flaps and speeds well enough to plan the jump.", "Knew Puget Sound: recognised Tacoma, knew McChord was near.", "Evidence-aware: took back his notes; four chutes to deter sabotage.", "Some parachute sense, not expert: jumped with the dummy reserve.", "Possibly worked around specialty metals (the tie particles)."] } },
+    { key: "sMcCoy", type: "subject", title: "Richard McCoy", body: "Hijacked United 855 in April 1972; the FBI ruled him out for Flight 305.", url: "https://www.fbi.gov/history/famous-cases/db-cooper-hijacking", subject: { status: ["cleared", "deceased"], for: ["His 1972 hijacking was nearly identical.", "An experienced military and sport parachutist.", "His children said in 2024 he was Cooper."], against: ["29 with blue eyes, not mid-40s with brown.", "Crew who saw his photo said he wasn't the man.", "FBI files place him in Las Vegas that day."], settle: "An FBI kinship test of his children's DNA against the tie." } },
+    { key: "sChristiansen", type: "subject", title: "Kenneth Christiansen", body: "Northwest Orient purser and ex-paratrooper, named by his brother.", url: "https://www.spokesman.com/stories/2007/nov/25/tales-of-db-cooper-still-swirl/", subject: { status: ["never charged", "deceased"], for: ["Paratrooper training and an airline insider.", "Bought land with cash soon after, his brother says."], against: ["5'8\" and 150 lb, short of the description.", "FBI, 2007: \"not a viable suspect\"."], settle: "A kinship DNA comparison with the tie." } },
+    { key: "sRackstraw", type: "subject", title: "Robert Rackstraw", body: "Army helicopter pilot with parachute training, questioned in 1978.", url: "https://www.pressherald.com/2016/07/12/d-b-coopers-mystery-stays-up-in-the-air/", subject: { status: ["cleared", "deceased"], for: ["Military parachute training.", "A 2016 private team claimed 93 circumstantial points."], against: ["He was 28, not in his mid-40s.", "FBI, 1979: no longer a suspect.", "A Flight 305 attendant saw no likeness."], settle: "A kinship DNA comparison with the tie." } },
+    { key: "sPeterson", type: "subject", title: "Sheridan Peterson", body: "Boeing technical editor and ex-smokejumper, 44 in 1971.", url: "https://www.spokesman.com/stories/2021/jan/30/charming-db-cooper-suspect-sheridan-peterson-dies-/", subject: { status: ["never charged", "deceased"], for: ["The right age, a jumper, and at Boeing.", "Wrote that the FBI \"had good reason to suspect me\"."], against: ["Said he was in Nepal at the time.", "A TV kinship test found no link to the tie."], settle: "Passport or Nepal records for November 1971." } },
 
     // ── The hijacking ──
     { key: "flight", type: "fact", title: "Flight 305 · 24 Nov 1971", when: "1971-11-24T14:50", beat: "origin", url: FBI, body: "Northwest Orient Flight 305, a Boeing 727 (N467US), left Portland for Seattle at 2:50 p.m. on Thanksgiving Eve with 36 passengers and six crew. The man in 18E, ticketed as \"Dan Cooper\", handed flight attendant Florence Schaffner a note: he had a bomb in his briefcase." },
@@ -134,6 +142,13 @@ const spec: DemoSpec = {
     { from: "survived", to: "verdict", relation: "supports", reason: "Fate unknown" },
     { from: "standDown", to: "verdict", relation: "supports", reason: "No one identified" },
     { from: "verdict", to: "q", relation: "references", reason: "Still open" },
+    { from: "unsub", to: "q", relation: "references", reason: "Who we're looking for" },
+    { from: "sMcCoy", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "sChristiansen", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "sRackstraw", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "sPeterson", to: "unsub", relation: "references", reason: "Held against the profile" },
+    { from: "sketchB", to: "unsub", relation: "references", reason: "The witnesses' description" },
+    { from: "tieFindings", to: "unsub", relation: "supports", reason: "Specialty metals" },
     { from: "serials", to: "tena", relation: "supports", reason: "How the bills were matched", proposed: true },
   ],
   messages: [
