@@ -50,7 +50,7 @@ Links: supports (A is evidence for B), causes (A leads to B, directional), contr
 
 Limits per turn: at most ${MAX_NOTES_PER_TURN} notes (leads included) and ${MAX_LINKS_PER_TURN} links. Don't duplicate notes already on the wall; link to their ids instead. Use "near" to place a note beside the one it relates to, and "focus" for where the spotlight should go.
 
-Naming: on the first turn of a case, set case_title to a short name for its folder, the way a case file is labelled ("The Gardner Museum heist", "Somerton Man"). Leave it out on later turns.
+Naming: on the first turn of a case, always set case_title to a short name for its folder, the way a case file is labelled ("The Gardner Museum heist", "Somerton Man"); never the question itself. Leave it out on later turns.
 
 New cases: if the user drifts to an unrelated question, ask "Want me to open a new case for this?" Only set new_case after they say yes.`;
 
@@ -72,7 +72,7 @@ ${JSON.stringify(UPDATE_WALL_SCHEMA)}`;
 
 /** The page is in Chinese: everything the partner writes goes on the wall in Chinese too. */
 const IN_CHINESE =
-  "Language: the user reads this wall in Simplified Chinese. Write your reply and everything you put on the wall (note titles and bodies, subject points and settle tests, diagram labels, chapter titles, link reasons) in Simplified Chinese, plain and precise, the voice of a case file. Keep names as the record writes them (Japanese and Korean names in their own script, Western names in Latin letters, e.g. Arthur Leigh Allen), keep quotes in their original language with a Chinese gloss, and search in whatever language finds the best sources. The length limits count characters, so Chinese titles are short. Your closing leads start 「下一条线索：」 instead of 「Next lead: 」.";
+  "Language: the user reads this wall in Simplified Chinese. Write your reply and everything you put on the wall (note titles and bodies, subject points and settle tests, diagram labels, chapter titles, link reasons) in Simplified Chinese, plain and precise, the voice of a case file. Keep names as the record writes them (Japanese and Korean names in their own script, Western names in Latin letters, e.g. Arthur Leigh Allen), keep quotes in their original language with a Chinese gloss, and search in whatever language finds the best sources. The length limits count characters, so Chinese titles are short. Your closing leads start 「下一条线索：」 instead of 「Next lead: 」. On a case's first turn, name it in Chinese in case_title, as a case file is labelled (伊斯达尔女子案, 加德纳博物馆盗窃案).";
 
 export function renderWallState(req: InvestigateRequest): string {
   const lines = [...(req.lang === "zh" ? [IN_CHINESE, ""] : []), `Case: ${req.caseTitle}`, "", "Notes on the wall (id · type · status · title — body):"];

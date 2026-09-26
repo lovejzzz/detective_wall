@@ -18,8 +18,8 @@ import {
   type Stamp,
 } from "./types.ts";
 
-export const MAX_NOTES_PER_TURN = 6;
-export const MAX_LINKS_PER_TURN = 6;
+export const MAX_NOTES_PER_TURN = 9;
+export const MAX_LINKS_PER_TURN = 9;
 
 export interface ProposedNote {
   ref: string;

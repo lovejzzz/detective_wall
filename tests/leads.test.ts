@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ReplyStream, duplicateOf, mergeTurn, sanitizeLead, type Seen } from "../server/leads.ts";
 import { searchCommonsPhotos } from "../server/commons-search.mjs";
 import { sanitizeWallUpdate } from "../src/lib/contract.ts";
+import { MAX_NOTES_PER_TURN } from "../src/lib/contract.ts";
 
 const nothing = (): Seen => ({ pages: null, photos: new Set() });
 
@@ -63,11 +64,13 @@ describe("leads", () => {
 
   it("validates each lead, rejects repeats, and caps the turn", () => {
     const sent = [];
-    for (const ref of ["n1", "n1", "n2", "n3", "n4", "n5", "n6", "n7"]) {
+    const refs = ["n1", "n1", ...Array.from({ length: MAX_NOTES_PER_TURN + 1 }, (_, i) => `n${i + 2}`)];
+    for (const ref of refs) {
       const n = sanitizeLead(fact(ref), new Set(), sent, nothing());
       if (n) sent.push(n);
     }
-    expect(sent.map((n) => n.ref)).toEqual(["n1", "n2", "n3", "n4", "n5", "n6"]);
+    // the repeat is refused, and the turn stops at the cap
+    expect(sent.map((n) => n.ref)).toEqual(["n1", ...Array.from({ length: MAX_NOTES_PER_TURN - 1 }, (_, i) => `n${i + 2}`)]);
     expect(sanitizeLead("not json", new Set(), [], nothing())).toBeNull();
   });
 

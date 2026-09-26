@@ -99,6 +99,15 @@ function Tag({ link, from, to, onOpen }: { link: Link; from: THREE.Vector3; to: 
 }
 
 /** Where a string's midpoint sits, in world px (for DOM overlays). */
+/** A point along the string from a to b (t = 0 at a's pin, 1 at b's), in wall coordinates. */
+export function stringPoint(a: Note, b: Note, t: number) {
+  const [from, to] = endpoints(a, b);
+  // endpoints may put b first; measure t from a either way
+  const flip = Math.hypot(from.x - a.x, -from.y - a.y) > Math.hypot(to.x - a.x, -to.y - a.y);
+  const m = stringCurve(from, to).getPoint(flip ? 1 - t : t);
+  return { x: m.x, y: -m.y };
+}
+
 export function stringMid(a: Note, b: Note) {
   const [from, to] = endpoints(a, b);
   const m = stringCurve(from, to).getPoint(0.5);

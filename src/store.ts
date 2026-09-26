@@ -201,7 +201,11 @@ function proposeNote(c: Case, p: ProposedNote, nearId: string | undefined, messa
   };
 }
 
-const titleFrom = (text: string) => (text.length > 90 ? text.slice(0, 89).trimEnd() + "…" : text);
+/** Until the partner names it, a case goes by its question's first sentence (short, like a label). */
+const titleFrom = (text: string) => {
+  const first = text.trim().match(/^[^?？!！。\n]*[?？!！。]?/)?.[0].trim() || text.trim();
+  return first.length > 40 ? first.slice(0, 39).trimEnd() + "…" : first;
+};
 /** True while a case is still named after its opening question (nobody has renamed it). */
 function isAutoTitle(c: Case): boolean {
   const q = c.messages.find((m) => m.role === "user")?.text.trim();

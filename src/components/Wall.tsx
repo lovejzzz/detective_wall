@@ -9,7 +9,7 @@ import { NOTE_SIZE } from "../lib/geometry.ts";
 import { useStore } from "../store.ts";
 import { tween, reducedMotion } from "../lib/motion.ts";
 import { NoteMesh } from "../scene/NoteMesh.tsx";
-import { Strings3D, stringMid } from "../scene/Strings3D.tsx";
+import { Strings3D, stringMid, stringPoint } from "../scene/Strings3D.tsx";
 import { RELATION_INFO } from "../lib/relations.ts";
 import { CameraRig, Cork, Dust, LITE, Lens, Lights, type LightRig, type View } from "../scene/Room.tsx";
 import { rustle } from "../lib/sound.ts";
@@ -690,18 +690,42 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   // A short cross-fade, so a resting camera never shows both the label and the paper's own type.
   const farOpacity = Math.max(0, Math.min(1, (0.58 - cam.zoom) / 0.04));
   // Proposed-string tags: nudge apart so they never stack on top of each other.
+  // Proposed strings carry a small "supports? ✓ ✕" tag. When several strings meet at one note, their
+  // midpoints crowd onto it; each tag slides along its own string to a clear spot instead, away
+  // from the busy end, and never over a card or another tag.
   const tagSpots = (() => {
     const spots = new Map<string, { x: number; y: number }>();
     const taken: { x: number; y: number }[] = [];
-    const tw = 118 * tagScale;
-    const th = 30 * tagScale;
-    const byId = new Map(c.notes.map((n) => [n.id, n]));
+    const tw = 122 * Math.max(0.85, tagScale);
+    const th = 32 * Math.max(0.85, tagScale);
+    const byId = new Map(placed.map((n) => [n.id, live(n)]));
     const proposed = c.links.filter((l) => l.status === "proposed");
+    const degree = new Map<string, number>();
+    for (const l of proposed) for (const id of [l.from, l.to]) degree.set(id, (degree.get(id) ?? 0) + 1);
+    const cards = [...byId.values()].map((n) => {
+      const q = toScreen(n);
+      return { x: q.x, y: q.y, hw: (NOTE_SIZE[n.type].w * cam.zoom) / 2, hh: (NOTE_SIZE[n.type].h * cam.zoom) / 2 };
+    });
+    const hits = (p: { x: number; y: number }) =>
+      taken.filter((q) => Math.abs(q.x - p.x) < tw && Math.abs(q.y - p.y) < th).length * 3 +
+      cards.filter((r) => Math.abs(r.x - p.x) < r.hw + tw / 2 - 6 && Math.abs(r.y - p.y) < r.hh + th / 2 - 6).length;
     for (const l of proposed) {
       const a = byId.get(l.from);
       const b = byId.get(l.to);
       if (!a || !b) continue;
-      const p = toScreen(stringMid(a, b));
+      // lean toward the quieter end: t runs from a (0) to b (1)
+      const lean = (degree.get(l.from) ?? 0) > (degree.get(l.to) ?? 0) ? 1 : (degree.get(l.to) ?? 0) > (degree.get(l.from) ?? 0) ? -1 : 0;
+      const ts = lean ? [0.62, 0.72, 0.52, 0.8, 0.42, 0.86].map((t) => (lean > 0 ? t : 1 - t)) : [0.5, 0.6, 0.4, 0.7, 0.3, 0.78, 0.22];
+      let best: { x: number; y: number } | null = null;
+      let bestHits = Infinity;
+      for (const t of ts) {
+        const p = toScreen(stringPoint(a, b, t));
+        const h = hits(p);
+        if (h < bestHits) [best, bestHits] = [p, h];
+        if (h === 0) break;
+      }
+      const p = best ?? toScreen(stringMid(a, b));
+      // still crowded: step down past the tags already there
       for (let i = 0; i < 8 && taken.some((q) => Math.abs(q.x - p.x) < tw && Math.abs(q.y - p.y) < th); i++) p.y += th;
       taken.push(p);
       spots.set(l.id, p);
