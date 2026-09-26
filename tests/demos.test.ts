@@ -88,6 +88,12 @@ describe.each([
     expect(marked.length).toBeLessThanOrEqual(Math.ceil(dated.length / 3));
     for (const b of SINGLE_BEATS) expect(marked.filter((n) => n.beat === b).length).toBeLessThanOrEqual(1);
     expect(marked.every((n) => n.when)).toBe(true);
+    // date tags hang left of their point on the cord: none may cover the tag before it
+    const span = (label: string) => (label.length * 8.9 + 36) * 1.25;
+    for (let i = 1; i < t.stops.length; i++) {
+      const [a, b] = [t.stops[i - 1], t.stops[i]];
+      if (a.y === b.y) expect(b.x - span(b.label), `${a.label} / ${b.label}`).toBeGreaterThanOrEqual(a.x);
+    }
     // on the wall, and on the timeline
     expect(overlapping(c.notes.map((n) => ({ id: n.title, x: n.x, y: n.y, ...NOTE_SIZE[n.type] })))).toEqual([]);
     expect(overlapping(c.notes.map((n) => ({ id: n.title, ...t.slots.get(n.id)!, ...NOTE_SIZE[n.type] })))).toEqual([]);

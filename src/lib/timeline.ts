@@ -77,6 +77,12 @@ const GAP_YEARS = 0.4;
 const CHAPTER_YEARS = 1.5;
 const MAX_AUTO_CHAPTERS = 5;
 
+/**
+ * About how much of the cord a paper tag covers, in wall units, at the farthest zoom it is read at
+ * (the tags shrink more slowly than the wall, so far out they cover more of it).
+ */
+const tagSpan = (label: string) => (label.length * 8.9 + 36) * 1.25;
+
 function gapLabel(years: number): string {
   if (years >= 1.5) return `≈ ${Math.round(years)} years`;
   if (years >= 0.9) return "≈ 1 year";
@@ -133,14 +139,29 @@ export function chapters(groups: Group[], phases: Phase[] | undefined): Chapter[
   const named = (phases ?? []).filter((p) => p.title && isWhen(p.from)).sort((a, b) => whenKey(a.from).localeCompare(whenKey(b.from)));
   if (named.length) {
     const out: Chapter[] = named.map((p) => ({ title: p.title, groups: [] }));
-    for (const g of groups) {
-      // A group belongs to the last phase that has begun by the time it could have happened.
-      const end = whenEndKey(g[0].when!);
+    // Each event belongs to the last phase that has begun by the time it could have happened, so a
+    // chapter that starts at an hour ("the night of…", from 20:00) splits the day it starts on.
+    const phaseOf = (n: Note) => {
+      const end = whenEndKey(n.when!);
       let i = 0;
       named.forEach((p, j) => {
         if (whenKey(p.from) <= end) i = j;
       });
-      out[i].groups.push(g);
+      return i;
+    };
+    for (const g of groups) {
+      let part: Note[] = [];
+      let at = phaseOf(g[0]);
+      for (const n of g) {
+        const i = phaseOf(n);
+        if (i !== at && part.length) {
+          out[at].groups.push(part);
+          part = [];
+        }
+        at = i;
+        part.push(n);
+      }
+      out[at].groups.push(part);
     }
     return out.filter((c) => c.groups.length);
   }
@@ -237,6 +258,9 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
         times: [] as TimelineLayout["times"],
         gaps: [] as TimelineLayout["gaps"],
         threads: [] as TimelineLayout["threads"],
+        /** Where the last date tag's point is, and the year it names, so the next can make room. */
+        tagEnd: -Infinity,
+        tagYear: "",
       };
     }
 
@@ -343,9 +367,21 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
         gap = null;
       }
       if (gap) row.gaps.push({ ...gap, y: 0 });
+      // A date in the same year as the tag before it drops the year; either way, its tag (which
+      // hangs to the left of its point) must clear the previous tag and any gap chip.
+      const day = whenDay(group[0].when!);
+      const year = day.slice(0, 4);
+      let label = whenLabel(day, group.every((g) => g.approx));
+      if (year === row.tagYear && day.length > 4) label = label.replace(new RegExp(` ${year}$`), "");
+      const clear = Math.max(row.tagEnd, gap ? gap.x + tagSpan(gap.label) / 2 : -Infinity) + tagSpan(label) + 16;
+      if (row.ids.length || gap) minAnchor = Math.max(minAnchor, clear);
       group.forEach((n, i) => {
         const { cx, side } = place(n, i === 0 ? minAnchor : row.maxAnchor);
-        if (i === 0) row.stops.push({ x: cx, y: 0, label: whenLabel(whenDay(n.when!), group.every((g) => g.approx)) });
+        if (i === 0) {
+          row.stops.push({ x: cx, y: 0, label });
+          row.tagEnd = cx;
+          row.tagYear = year;
+        }
         if (precisionOf(n.when!) === "time") row.times.push({ x: cx, y: 0, label: `${n.approx ? "c. " : ""}${n.when!.split("T")[1]}`, above: side === "above" });
       });
       rowPrev = years;

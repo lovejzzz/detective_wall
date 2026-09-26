@@ -35,7 +35,8 @@ describe("Tylenol demo case", () => {
     expect(dated.length).toBeGreaterThanOrEqual(15);
     for (const n of dated) expect(t.slots.get(n.id)!.row).not.toBe("aside");
     expect(t.stops[0].label).toContain("1982");
-    expect(t.stops.at(-1)!.label).toContain("2026");
+    // a date in the same year as the tag before it drops the year, so look at the last one that names it
+    expect(t.stops.filter((s) => /\d{4}/.test(s.label)).at(-1)!.label).toContain("2026");
   });
 
   it("lays notes out without overlapping", () => {

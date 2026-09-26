@@ -49,6 +49,15 @@ describe("timeline layout", () => {
     ...(when ? { when } : {}),
   });
 
+  it("splits a day between chapters when a chapter starts at an hour", () => {
+    const notes = [note("a", "2000-12-29"), note("b", "2000-12-30T17:00"), note("c", "2000-12-30T23:30"), note("d", "2000-12-31T01:18")];
+    const t = layoutTimeline(notes, [], { phases: [{ title: "Before", from: "2000" }, { title: "The night", from: "2000-12-30T20:00" }] });
+    expect(t.chapters.map((ch) => [ch.title, ch.count])).toEqual([
+      ["Before", 2],
+      ["The night", 2],
+    ]);
+  });
+
   it("orders dated notes left to right, alternating above and below the cord", () => {
     const t = layoutTimeline([note("c", "1980-02-10"), note("a", "1971-11-24"), note("b", "1971-11-24T22:15"), note("u")]);
     const xs = ["a", "b", "c"].map((id) => t.slots.get(id)!.x);
