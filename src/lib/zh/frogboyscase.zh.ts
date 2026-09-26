@@ -7,6 +7,7 @@ export const FROGBOYS_ZH: DemoTranslation = {
   title: "卧龙山青蛙少年案",
   phases: ["选举日去捡蝾螈卵", "举国寻找", "一种推论挖开了一家人的地板", "세방골（Sebang-gol）的遗骨", "时效届满", "华城案后重启调查"],
   notes: {
+    grid: { title: "两种说法逐项对照", body: "把不良少年说和射击场说与伤痕和埋尸处对照。射击场说解释不了伤痕；少年说大致吻合，但从未有人被点名。", diagram: ["当地少年", "军队射击场"], columns: ["当天在山上", "符合伤痕", "未被排除", "有物证"] },
     q: { title: "五个男孩在卧龙山上遭遇了什么？是谁杀了他们？" },
     verdict: {
       title: "最可能：当天在山上遇害",
@@ -256,6 +257,7 @@ export const FROGBOYS_ZH: DemoTranslation = {
     },
   },
   links: {
+    "grid>verdict": "伤痕是分辨两者的关键",
     "pWaryong>setOff": "他们攀登的那座山",
     "pSalamander>setOff": "他们要去找的东西",
     "pDalseo>lastSeen": "所在的区",

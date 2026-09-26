@@ -5,6 +5,7 @@ export const COOPER_ZH: DemoTranslation = {
   title: "305航班劫机者（D·B·库珀）",
   phases: ["劫机", "追捕与模仿者", "赎金现身", "撤下资源，未结案"],
   notes: {
+    grid: { title: "四个具名者逐项对照", body: "把每个具名者与劫机者侧写逐项对照，依据墙上的档案。打勾表示指向此人；FBI从未确认其中任何一人。", diagram: ["Peterson", "McCoy", "Christiansen", "Rackstraw"], columns: ["年龄相符", "会跳伞", "熟悉当地", "无不在场证明"] },
     q: { title: "“Dan Cooper”是谁？他跳机后活下来了吗？" },
     verdict: {
       title: "最可能：他没能活着花掉这笔钱",
@@ -218,6 +219,7 @@ export const COOPER_ZH: DemoTranslation = {
     },
   },
   links: {
+    "grid>verdict": "没有一个具名者项项吻合",
     "pTicket>flight": "他的机票",
     "pPlane>flight": "涉案飞机",
     "pSeafirst>demands": "筹集现金的银行",

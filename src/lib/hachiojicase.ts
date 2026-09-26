@@ -18,7 +18,7 @@ import { HACHIOJI_ZH } from "./zh/hachiojicase.zh.ts";
 
 export const HACHIOJI_DEMO = "hachioji-1995";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const HACHIOJI_VERSION = 5;
+export const HACHIOJI_VERSION = 6;
 
 export const HACHIOJI_PHASES: Phase[] = [
   { title: "The last night of the summer sale", from: "1995-07-30" },
@@ -57,6 +57,7 @@ export const HACHIOJI_SPEC: DemoSpec = {
     { key: "sCanada", type: "subject", title: "A Fujian man extradited from Canada", body: "Brought to Japan in 2013 on a passport charge; never charged over the killings.", url: MAINICHI, subject: { status: ["never charged"], rank: 3, verdict: "My inference: close to the gang if not to the gun; worth questioning again.", for: ["Named by the Dalian informant as knowing who the gunman was.", "A trial witness called him an informant for a robbery gang.", "Said to have lived in the Tokyo area in 1995."], against: ["Denied any role and said he knew no gunman.", "Police got nothing linking him to the case.", "Convicted only of passport fraud; back in Canada since 2014."], settle: "A named gunman from his circle whose prints or DNA match the office evidence." } },
     { key: "sPrint", type: "subject", title: "A Tama man with a similar print", body: "Died in the 2000s; his print shared 8 points with one on the tape.", url: "https://www.nikkei.com/article/DGXLASDG18H2X_Y5A210C1CC0000/", subject: { status: ["cleared", "deceased"], for: ["8 ridge points matched a partial print on the tape's sticky side.", "Lived in the Tama area and knew Hachiōji."], against: ["Japanese police need 12 points to call two prints the same.", "Probably elsewhere at the time: a work timecard, reports say.", "DNA from relatives did not match; police judged the lead weak."], settle: "Who else handled that roll of tape before it reached the office." } },
     { key: "sGun", type: "subject", title: "A gang member with a matching-type gun", body: "His revolver, seized in August 2009, left similar rifling marks.", url: MAINICHI, subject: { status: ["never charged"], for: ["Rifling on 3 of the 5 case bullets resembled his revolver's.", "The same type: a Colt copy made in the Philippines."], against: ["Said he got it in 2008–09 and denied any link to the case.", "Police judge his involvement unlikely.", "A 2012 trip to the Philippines found no trail of owners."], settle: "The revolver's chain of owners back to July 1995." } },
+    { key: "grid", type: "diagram", title: "The two named leads, test by test", body: "Both held against the same tests. Everything against either man is second-hand; nothing physical ties either one to the office.", diagram: {kind: "matrix", columns: ["Named by others", "Gun-and-tape gang", "In Tokyo, 1995", "Physical link"], items: [{label: "“Motomura”", marks: ["yes", "yes", "unknown", "no"]}, {label: "Fujian man", marks: ["yes", "partly", "partly", "no"]}]} },
 
     // ── The last night of the summer sale ──
     { key: "shift", type: "fact", title: "Two women on the evening shift", when: "1995-07-30T17:00", url: JA_WIKI, body: "Last day of a four-day sale at the Nanpei Ōwada store. Part-timer Inagaki (稲垣則子), 47, the acting night manager, and high-school student Yabuki (矢吹恵), 17, started the 17:00–21:00 shift; Inagaki kept the takings in the office safe." },
@@ -154,6 +155,7 @@ export const HACHIOJI_SPEC: DemoSpec = {
     { key: "gunTrail", type: "hypothesis", title: "Where was the revolver from 1995 to 2008?", color: "green", body: "If the 2009 gun is the murder weapon, whoever held it in between may know who fired it." },
   ],
   links: [
+    { from: "grid", to: "verdict", relation: "references", reason: "Both rest on informants" },
     { from: "pStoreModel", to: "close", relation: "references", reason: "The store as it was" },
     { from: "pScene", to: "found", relation: "references", reason: "That night" },
     { from: "pOfficeModel", to: "officeMap", relation: "references", reason: "The room itself" },

@@ -15,7 +15,7 @@ import { TYLENOL_ZH } from "./zh/tylenolcase.zh.ts";
 
 export const TYLENOL_DEMO = "tylenol-1982";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const TYLENOL_VERSION = 11;
+export const TYLENOL_VERSION = 12;
 
 export const TYLENOL_PHASES: Phase[] = [
   { title: "Seven deaths", from: "1982-09-29" },
@@ -78,6 +78,7 @@ export const TYLENOL_SPEC: DemoSpec = {
     { key: "sKaczynski", type: "subject", title: "Ted Kaczynski", body: "The Unabomber; the FBI sought his DNA in 2011.", url: "https://abcnews.com/Blotter/fbi-probes-unabomber-connection-tylenol-killings/story?id=13638602", subject: { status: ["never charged", "deceased"], for: ["His first bombs were set around Chicago, 1978–80.", "His parents' home was in Lombard, Ill., in 1982."], against: ["Said in a 2011 court filing he never had potassium cyanide.", "Nothing public puts him in Chicago in late September 1982.", "The FBI never announced a result."], settle: "Compare his DNA with the three bottle profiles, and publish it." } },
     { key: "sBetkouski", type: "subject", title: "Mathew Betkouski", body: "The Boise \"Unknown Wanderer\". Ada County: a possible link, not a suspect.", url: "https://www.cbsnews.com/chicago/news/unknown-wanderer-identified-boise-idaho-chicago-tylenol-murders-link/", subject: { status: ["deceased"], for: ["A former colleague recalled talk of poison in OTC capsules.", "His effects held a hand-drawn map of Chicago.", "Died of cyanide under an alias ten weeks later."], against: ["His cyanide was homemade sodium cyanide, not potassium.", "No one can place him in Chicago in late September 1982.", "Tribune sources: his DNA did not match the bottle profiles."], settle: "A record placing him in Chicago in the last week of September 1982." } },
     { key: "sFilm", type: "subject", title: "The man in the Walgreens film", body: "Stood behind Paula Prince at the register, 29 September 1982.", url: "https://www.upi.com/Archives/1982/10/18/Police-Monday-released-film-from-a-drugstore-security-camera/3756403761600/", subject: { status: ["unidentified"], for: ["Police thought him important enough to release the frame."], against: ["The frame is poorly focused; resemblance isn't identity.", "Under the shelf theory her bottle was poisoned before she bought it."], settle: "Identify him from the original film, then check his alibi." } },
+    { key: "grid", type: "diagram", title: "Lewis and Arnold, test by test", body: "The two named men held against the same tests. Lewis rests on the letter and the task forces, Arnold on the cyanide and the Jewel job; neither man's DNA matched the bottles.", diagram: {kind: "matrix", columns: ["Money motive", "Had cyanide", "Tied to stores", "DNA not excluded"], items: [{label: "Lewis", marks: ["yes", "unknown", "unknown", "no"]}, {label: "Arnold", marks: ["unknown", "yes", "yes", "no"]}]} },
 
     // ── Seven deaths ──
     { key: "kellerman", type: "fact", title: "Mary Kellerman, 12", when: "1982-09-29T09:56", beat: "origin", url: CBS, body: "Mary Ann Kellerman of Elk Grove Village took Extra-Strength Tylenol for a cold. Her father found her collapsed at about 6:30 a.m.; she was pronounced dead at Alexian Brothers Medical Center at 9:56 a.m. The bottle, lot MC2880, came from the local Jewel." },
@@ -160,6 +161,7 @@ export const TYLENOL_SPEC: DemoSpec = {
     { key: "compare", type: "hypothesis", title: "Where was Betkouski in late September 1982?", color: "green", proposed: true, body: "Photos put him near Chicago in December 1981, not in the week of the poisonings. Tribune sources say Illinois already compared his DNA with the bottles: no match." },
   ],
   links: [
+    { from: "grid", to: "verdict", relation: "references", reason: "What each name rests on" },
     { from: "pElk", to: "kellerman", relation: "references", reason: "Where she lived" },
     { from: "pArl", to: "janus", relation: "references", reason: "Where it happened" },
     { from: "pHospital", to: "janus", relation: "references", reason: "Where they were taken" },

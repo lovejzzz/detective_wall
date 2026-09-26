@@ -14,7 +14,7 @@ import { GLICO_ZH } from "./zh/glicocase.zh.ts";
 
 export const GLICO_DEMO = "glico-morinaga-1984";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const GLICO_VERSION = 10;
+export const GLICO_VERSION = 11;
 
 export const GLICO_PHASES: Phase[] = [
   { title: "Kidnap and the Glico siege", from: "1984-03-18" },
@@ -49,6 +49,7 @@ export const GLICO_SPEC: DemoSpec = {
     { key: "sVideo", type: "subject", title: "The Video Man", body: "Filmed at FamilyMart Kōshienguchi on 7 October 1984.", url: KOBE_2020, subject: { status: ["unidentified"], for: ["Acting oddly where poisoned drops turned up.", "The store is near Ezaki's home."], against: ["No published frame shows him placing anything.", "Low-resolution tape; no comparison has held up."], settle: "Modern enhancement of the original tape against a candidate." } },
     { key: "sCircle", type: "subject", title: "An ex-yakuza boss's circle", body: "The task force's last big lead, questioned in March 1992. Not named.", url: JA_WIKI, subject: { status: ["never charged"], rank: 2, verdict: "My inference: the only named group with a Glico grudge and the same typewriter.", for: ["The boss reportedly tried to extort Glico in 1979.", "Relatives reportedly had a typewriter of the same type."], against: ["Alibis; no confession; no physical evidence.", "The case rests on books and magazines, not officials."], settle: "A typeface match to one specific Pan-writer." } },
     { key: "suspectM", type: "subject", title: "“Suspect M”: Manabu Miyazaki", body: "A writer questioned once, in February 1985, who wrote openly about it.", url: "https://ja.wikipedia.org/wiki/宮崎学", subject: { status: ["cleared", "deceased"], for: ["Resembled the sketch; had been in a Glico labour dispute.", "A former stock writer who argued greenmail could pay."], against: ["Alibis for both sightings: Tokyo on 28 June, a meeting on 14 Nov.", "The detective who saw the fox-eyed man twice: out of the question."], settle: "Already settled by his alibi for 28 June 1984." } },
+    { key: "grid", type: "diagram", title: "The two leads, test by test", body: "The named circle and the man seen at the drops, held against the same tests. They may be one lead: the fox-eyed man could belong to any gang.", diagram: {kind: "matrix", columns: ["Glico grudge", "Same typewriter", "Seen at a drop", "Physical link"], items: [{label: "Ex-boss's circle", marks: ["yes", "partly", "unknown", "no"]}, {label: "Fox-eyed man", marks: ["unknown", "unknown", "yes", "no"]}]} },
 
     // ── Kidnap and the Glico siege ──
     { key: "kidnap", type: "fact", title: "Glico's president taken from his bath", when: "1984-03-18T21:00", approx: true, beat: "origin", url: SANKEI, body: "Two armed men, with a third waiting in a car, broke into the Ezaki homes in Nishinomiya, Hyōgo, tied up his mother, wife and daughter and took the Ezaki Glico president, 42, naked from the bath. A note found by a Glico director demanded ¥1 billion and 100 kg of gold." },
@@ -131,6 +132,7 @@ export const GLICO_SPEC: DemoSpec = {
     { key: "tape1978", type: "fact", title: "A 1978 tape foretold it", when: "1978-08-17", proposed: true, url: JA_WIKI, body: "An hour-long tape sent to a Glico director had an older man forecasting a kidnapping, arson and poisoned candy. Investigators linked it to the gang and released a one-minute edit in 1993." },
   ],
   links: [
+    { from: "grid", to: "verdict", relation: "references", reason: "Neither lead has physical evidence" },
     { from: "pStorehouse", to: "escape", relation: "references", reason: "Where he was held" },
     { from: "pVideoMan", to: "video", relation: "references", reason: "The still itself" },
     { from: "pSketch", to: "sketch", relation: "references", reason: "The sketch itself" },

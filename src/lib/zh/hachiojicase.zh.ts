@@ -5,6 +5,7 @@ export const HACHIOJI_ZH: DemoTranslation = {
   title: "八王子超市枪杀案",
   phases: ["夏季特卖的最后一晚", "未被打开的保险柜", "来自大连的声音", "指纹、鞋印与膛线", "三十年后"],
   notes: {
+    grid: { title: "两条具名线索逐项对照", body: "两人按同样的标准对照。不利于他们的说法全是转述；没有任何物证把其中一人与办公室联系起来。", diagram: ["“Motomura”", "福建籍男子"], columns: ["被他人指认", "持枪用胶带", "1995年在东京", "有物证"] },
     q: { title: "谁在ナンペイ超市办公室枪杀了三名女子？为何什么都没拿？" },
     verdict: {
       title: "最可能：一个抢劫团伙失手的抢劫",
@@ -272,6 +273,7 @@ export const HACHIOJI_ZH: DemoTranslation = {
     gunTrail: { title: "1995年至2008年那把转轮手枪在哪里？", body: "如果2009年那把枪就是凶器，那么期间持有它的人可能知道是谁开的枪。" },
   },
   links: {
+    "grid>verdict": "两条线索都靠线人",
     "pStoreModel>close": "当年的超市",
     "pScene>found": "那天夜里",
     "pOfficeModel>officeMap": "那个房间本身",

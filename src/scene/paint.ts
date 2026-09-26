@@ -601,11 +601,12 @@ function paintDiagram(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
   const m = 16 * u;
   // a long title writes smaller rather than losing its end
   const ts = fitHand(g, n.title, w - m * 2 - 4 * u, 22 * u, 15 * u, 1, 700);
-  handwrite(g, n.title, m, 36 * u, { size: ts, weight: 700, lineH: ts, maxW: w - m * 2, maxLines: 1, color: BALLPOINT, rand });
+  // (the title sits below the pin, so the pin never covers a word)
+  handwrite(g, n.title, m, 50 * u, { size: ts, weight: 700, lineH: ts, maxW: w - m * 2, maxLines: 1, color: BALLPOINT, rand });
   const d = n.diagram;
   const ink = "#243552";
   const red = "#8a2a1f";
-  const area = { x: m, y: 52 * u, w: w - m * 2, h: h - 66 * u };
+  const area = { x: m, y: 62 * u, w: w - m * 2, h: h - 74 * u };
   if (!d) {
     handwrite(g, n.body, m, area.y + 24 * u, { size: 18 * u, lineH: 20 * u, maxW: area.w, maxLines: 6, color: GRAPHITE, rand });
     return;
@@ -724,8 +725,8 @@ function paintDiagram(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
 /**
  * A comparison grid, the way a detective rules one up on a pad: the suspects (or explanations) down
  * the side, the same tests across the top, and in each box a tick where they fit, a cross where they
- * don't, a wavy line for partly, a pencilled "?" where nobody knows. The row that fits best is
- * ringed in red.
+ * don't, a wavy line for partly, a pencilled "?" where nobody knows. No row is ringed: who ranks
+ * where is the partner's call, on the suspects card; the grid only shows the tests.
  */
 function paintMatrix(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: number; h: number }, u: number, rand: Rand) {
   const ink = "#243552";
@@ -755,25 +756,12 @@ function paintMatrix(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: nu
   penLine(g, [[x0 - 3 * u, area.y + 4 * u], [x0 - 2 * u, y0 + rowH * rows.length]], { color: ink, width: 1.2 * u, rand, wobble: 0.5 });
   for (let r = 1; r < rows.length; r++) penLine(g, [[area.x, y0 + r * rowH], [area.x + area.w, y0 + r * rowH]], { color: "rgba(36,53,82,0.25)", width: 0.8 * u, rand, wobble: 0.4 });
   for (let c = 1; c < cols.length; c++) penLine(g, [[x0 + c * cellW, area.y + 8 * u], [x0 + c * cellW, y0 + rowH * rows.length]], { color: "rgba(36,53,82,0.2)", width: 0.8 * u, rand, wobble: 0.4 });
-  // the best fit: most ticks (a partly counts half), ringed if it stands out
-  const score = (it: DiagramItem) => (it.marks ?? []).reduce((a, m) => a + (m === "yes" ? 1 : m === "partly" ? 0.5 : 0), 0);
-  const scores = rows.map(score);
-  const top = Math.max(...scores);
-  const best = scores.filter((x) => x === top).length === 1 && top > 0 ? scores.indexOf(top) : -1;
   rows.forEach((it, r) => {
     const cy = y0 + r * rowH + rowH / 2;
     const ls = fitHand(g, it.label, nameW - 10 * u, 15 * u, 10.5 * u, 2);
     g.font = `600 ${ls}px ${HAND}`;
     const two = wrapLines(g, it.label, nameW - 10 * u).length > 1;
-    handwrite(g, it.label, area.x, cy + ls * 0.34 - (two ? ls * 0.5 : 0), { size: ls, weight: 600, lineH: ls, maxW: nameW - 10 * u, maxLines: 2, color: r === best ? red : ink, rand });
-    if (r === best) {
-      // a loose red ring round the name
-      g.save();
-      g.translate(area.x + nameW / 2 - 4 * u, cy);
-      g.scale(1, Math.min(0.55, rowH / nameW));
-      handCircle(g, 0, 0, nameW / 2, red, 1.3 * u / 0.55, rand);
-      g.restore();
-    }
+    handwrite(g, it.label, area.x, cy + ls * 0.34 - (two ? ls * 0.5 : 0), { size: ls, weight: 600, lineH: ls, maxW: nameW - 10 * u, maxLines: 2, color: ink, rand });
     (it.marks ?? []).slice(0, cols.length).forEach((m, c) => {
       const cx = x0 + c * cellW + cellW / 2;
       const k = Math.min(cellW, rowH) * 0.26;

@@ -7,6 +7,7 @@ export const LEEHYUNGHO_ZH: DemoTranslation = {
   title: "李亨浩（이형호）绑架案",
   phases: ["游乐场与车载电话", "字条、账户与一座桥", "蚕室的排水沟", "电波里的声音", "没有时效，只剩声音"],
   notes: {
+    grid: { title: "亲属与银行男子逐项对照", body: "两人按同样的标准对照。亲属除一项外全部吻合，而那一项不在场证明恰恰最关键；银行里的男子也可能只是跑腿的。", diagram: ["母系亲属", "银行男子"], columns: ["声纹相符", "熟悉这家人", "图财动机", "无不在场证明"] },
     q: { title: "谁带走了亨浩？电话里是谁的声音？" },
     verdict: {
       title: "最可能：一个图财的小团伙",
@@ -249,6 +250,7 @@ export const LEEHYUNGHO_ZH: DemoTranslation = {
     },
   },
   links: {
+    "grid>verdict": "声纹对不在场证明",
     "pPoster>film": "电影如何宣传",
     "pApt>kidnap": "他住的地方",
     "pGrandeur>gimpo": "装有车载电话的车",

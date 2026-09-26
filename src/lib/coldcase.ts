@@ -13,7 +13,7 @@ import { COOPER_ZH } from "./zh/coldcase.zh.ts";
 
 export const COOPER_DEMO = "cooper-1971";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const COOPER_VERSION = 11;
+export const COOPER_VERSION = 12;
 
 /** Real photos of the case on Wikimedia Commons (credit is read from each file's metadata at runtime). */
 export const COMMONS = {
@@ -64,6 +64,7 @@ export const COOPER_SPEC: DemoSpec = {
     { key: "sChristiansen", type: "subject", title: "Kenneth Christiansen", body: "Northwest Orient purser and ex-paratrooper, named by his brother.", url: "https://www.spokesman.com/stories/2007/nov/25/tales-of-db-cooper-still-swirl/", subject: { status: ["never charged", "deceased"], for: ["Paratrooper training and an airline insider.", "Bought land with cash soon after, his brother says."], against: ["5'8\" and 150 lb, short of the description.", "FBI, 2007: \"not a viable suspect\"."], settle: "A kinship DNA comparison with the tie." } },
     { key: "sRackstraw", type: "subject", title: "Robert Rackstraw", body: "Army helicopter pilot with parachute training, questioned in 1978.", url: "https://www.pressherald.com/2016/07/12/d-b-coopers-mystery-stays-up-in-the-air/", subject: { status: ["cleared", "deceased"], for: ["Military parachute training.", "A 2016 private team built a circumstantial case."], against: ["He was 28, not in his mid-40s.", "FBI, 1979: no longer a suspect.", "A Flight 305 attendant saw no likeness."], settle: "A kinship DNA comparison with the tie." } },
     { key: "sPeterson", type: "subject", title: "Sheridan Peterson", body: "Former Boeing technical editor and ex-smokejumper, 45 in November 1971.", url: "https://www.spokesman.com/stories/2021/jan/30/charming-db-cooper-suspect-sheridan-peterson-dies-/", subject: { status: ["never charged", "deceased"], rank: 2, verdict: "My inference: the one named man with the right age, jump skill and Boeing past.", for: ["The right age, a skydiver, and once at Boeing.", "Wrote that the FBI \"had good reason to suspect me\"."], against: ["Said he was in Nepal at the time.", "The FBI took his DNA but never announced a result."], settle: "Passport or Nepal records for November 1971." } },
+    { key: "grid", type: "diagram", title: "Four named men, test by test", body: "Each named man held against the hijacker's profile, from the files on the wall. A tick points toward the man; the FBI matched none of them.", diagram: {kind: "matrix", columns: ["Right age", "Jump skill", "Knew the area", "No alibi"], items: [{label: "Peterson", marks: ["yes", "yes", "partly", "partly"]}, {label: "McCoy", marks: ["no", "yes", "unknown", "no"]}, {label: "Christiansen", marks: ["yes", "yes", "partly", "unknown"]}, {label: "Rackstraw", marks: ["no", "yes", "unknown", "unknown"]}]} },
 
     // ── The hijacking ──
     { key: "flight", type: "fact", title: "Flight 305 · 24 Nov 1971", when: "1971-11-24T14:50", beat: "origin", url: FBI, body: "Northwest Orient Flight 305, a Boeing 727 (N467US), left Portland for Seattle at 2:50 p.m. on Thanksgiving Eve with 36 passengers, him included, and six crew. The man in 18E, ticketed as \"Dan Cooper\", handed flight attendant Florence Schaffner a note: he had a bomb in his briefcase." },
@@ -136,6 +137,7 @@ export const COOPER_SPEC: DemoSpec = {
     { key: "serials", type: "fact", title: "Serial numbers on record", proposed: true, url: HISTORYLINK, body: "All 10,000 ransom bills were photographed on microfilm before delivery, and the list was published in 1972. Apart from Tena Bar, not one has turned up." },
   ],
   links: [
+    { from: "grid", to: "verdict", relation: "references", reason: "No named man passes every test" },
     { from: "pTicket", to: "flight", relation: "references", reason: "His ticket" },
     { from: "pPlane", to: "flight", relation: "references", reason: "The aircraft" },
     { from: "pSeafirst", to: "demands", relation: "references", reason: "The bank that raised the cash" },

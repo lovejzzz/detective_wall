@@ -5,6 +5,7 @@ export const FUCHU_ZH: DemoTranslation = {
   title: "三亿日元抢劫案",
   phases: ["多摩丘陵的恐吓", "监狱墙边的三分钟", "借来的面孔", "平塚的复查", "时效届满"],
   notes: {
+    grid: { title: "少年S与自白者逐项对照", body: "两人都与劫匪侧写和物证对照。打勾表示指向此人；真正有分量的几项，两人都不符合。", diagram: ["少年S", "“白田”"], columns: ["偷车技能", "约30岁", "血型或笔迹相符", "持有赃款"] },
     q: { title: "是谁在三分钟内劫走2.94亿日元？此案为何至今未破？" },
     verdict: {
       title: "最可能：一名约30岁的本地男子，单独作案",
@@ -240,6 +241,7 @@ export const FUCHU_ZH: DemoTranslation = {
     },
   },
   links: {
+    "grid>verdict": "两人都与物证不符",
     "pBikeScene>stop": "留在他拦车的地方",
     "pCedricFound>cedricFound": "被发现时的车",
     "pBikes>bike": "真假并排",

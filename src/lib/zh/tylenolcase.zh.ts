@@ -5,6 +5,7 @@ export const TYLENOL_ZH: DemoTranslation = {
   title: "芝加哥泰诺投毒谋杀案",
   phases: ["七人死亡", "召回、一封信、一次逮捕", "多年未能起诉", "案件重启", "来自爱达荷的线索"],
   notes: {
+    grid: { title: "Lewis与Arnold逐项对照", body: "两名具名者按同样的标准对照。Lewis靠的是勒索信和两次专案组的判断，Arnold靠的是氰化物和Jewel的工作；两人的DNA都与药瓶不符。", diagram: ["Lewis", "Arnold"], columns: ["图财动机", "有氰化物", "与门店有关", "DNA未被排除"] },
     q: { title: "谁在泰诺里投了毒？为何始终无人被起诉？" },
     verdict: {
       title: "最可能：James W. Lewis，单独作案",
@@ -266,6 +267,7 @@ export const TYLENOL_ZH: DemoTranslation = {
     },
   },
   links: {
+    "grid>verdict": "每个名字靠的是什么",
     "pElk>kellerman": "她住的地方",
     "pArl>janus": "事发地",
     "pHospital>janus": "他们被送往的医院",

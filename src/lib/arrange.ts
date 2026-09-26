@@ -21,18 +21,20 @@ export function arrangeWall(notes: Note[], links: Link[], phases?: Phase[]): Arr
   const question = byAge[0]?.type === "hypothesis" && !byAge[0].when ? byAge[0] : null;
   const dated = notes.filter((n) => n.when).sort(byTime);
   const undated = byAge.filter((n) => !n.when && n !== question);
-  const hung = hangers(dated, undated, links);
+  // a comparison grid of the suspects stands with their files, not at the bottom with the rest
+  const grids = undated.filter((n) => n.diagram?.kind === "matrix");
+  const hung = hangers(dated, undated.filter((n) => !grids.includes(n)), links);
   const hungIds = new Set([...hung.values()].flat().map((n) => n.id));
   const answers = undated.filter((n) => n.type === "conclusion");
   const subjects = undated.filter((n) => n.type === "subject");
-  const loose = undated.filter((n) => n.type !== "conclusion" && n.type !== "subject" && !hungIds.has(n.id));
+  const loose = undated.filter((n) => n.type !== "conclusion" && n.type !== "subject" && !grids.includes(n) && !hungIds.has(n.id));
 
   const sections: Note[][] = [];
   const top = [...(question ? [question] : []), ...answers];
   if (top.length) sections.push(top);
   // Then who: the most likely suspects in their order (under the card that lists them), then the
   // unknown offender's profile if it isn't ranked, then everyone else on file.
-  if (subjects.length) sections.push(bySuspicion(subjects));
+  if (subjects.length || grids.length) sections.push([...bySuspicion(subjects), ...grids]);
   const suspects = rankedSuspects(subjects).length;
   for (const ch of chapters(groupByDay(dated), phases)) sections.push(ch.groups.flat().flatMap((n) => [n, ...(hung.get(n.id) ?? [])]));
   const evidence = loose.filter((n) => n.type !== "hypothesis");

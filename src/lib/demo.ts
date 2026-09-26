@@ -67,6 +67,8 @@ export interface DemoTranslation {
       subject?: { for?: string[]; against?: string[]; profile?: string[]; settle?: string; verdict?: string };
       /** The diagram's labels, in the order of its items. */
       diagram?: string[];
+      /** A comparison grid's tests, in order. */
+      columns?: string[];
     }
   >;
   links?: Record<string, string>;
@@ -99,7 +101,15 @@ export function localize(spec: DemoSpec, tr?: DemoTranslation): DemoSpec {
               },
             }
           : {}),
-        ...(n.diagram && t.diagram ? { diagram: { ...n.diagram, items: n.diagram.items.map((it, i) => ({ ...it, label: t.diagram![i] ?? it.label })) } } : {}),
+        ...(n.diagram && (t.diagram || t.columns)
+          ? {
+              diagram: {
+                ...n.diagram,
+                items: n.diagram.items.map((it, i) => ({ ...it, label: t.diagram?.[i] ?? it.label })),
+                ...(n.diagram.columns ? { columns: n.diagram.columns.map((c, i) => t.columns?.[i] ?? c) } : {}),
+              },
+            }
+          : {}),
       };
     }),
     links: spec.links.map((l) => ({ ...l, reason: tr.links?.[`${l.from}>${l.to}`] ?? l.reason })),

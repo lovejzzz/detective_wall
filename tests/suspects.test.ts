@@ -66,6 +66,19 @@ describe.each(CASES)("%s: its most likely suspects", (_name, spec, zh) => {
     for (const n of ranked) expect(n.subject!.verdict, n.key).toMatch(/^My (read|inference):/);
   });
 
+  it("holds its candidates side by side in a comparison grid, in both languages", () => {
+    const grids = spec.notes.filter((n) => n.diagram?.kind === "matrix");
+    expect(grids).toHaveLength(1);
+    const g = grids[0].diagram!;
+    expect(g.columns!.length).toBeGreaterThanOrEqual(2);
+    expect(g.columns!.length).toBeLessThanOrEqual(4);
+    expect(g.items.length).toBeGreaterThanOrEqual(2);
+    for (const it of g.items) expect(it.marks).toHaveLength(g.columns!.length);
+    const zhGrid = localize(spec, zh).notes.find((n) => n.diagram?.kind === "matrix")!;
+    expect(zhGrid.diagram!.columns!.every((c) => /[\u4e00-\u9fff]/.test(c))).toBe(true);
+    expect(zhGrid.diagram!.items.map((i) => i.marks)).toEqual(g.items.map((i) => i.marks));
+  });
+
   it("gives every verdict in Chinese too", () => {
     const local = localize(spec, zh);
     for (const n of local.notes.filter((x) => x.subject?.rank)) expect(n.subject!.verdict, n.key).toMatch(/^我的(判断|推断)：/);

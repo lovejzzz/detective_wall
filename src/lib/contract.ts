@@ -198,7 +198,7 @@ export const UPDATE_WALL_SCHEMA = {
             properties: {
               kind: { type: "string", enum: ["bars", "circles", "flow", "map", "matrix"] },
               north: { type: "boolean", description: "Maps only: false for a floor plan or cross-section (no north arrow)." },
-              columns: { type: "array", items: { type: "string" }, description: "Matrix only: 2 to 4 tests, at most 14 characters each, phrased so yes points toward the row (Motive, No alibi, Had a key)." },
+              columns: { type: "array", items: { type: "string" }, description: "Matrix only: 2 to 4 tests, at most 18 characters each, phrased so yes points toward the row (Motive, No alibi, Had a key)." },
               items: {
                 type: "array",
                 items: {
@@ -378,7 +378,7 @@ export function sanitizeDiagram(v: unknown): DiagramSpec | undefined {
   const raw = d.items.filter((i): i is Record<string, unknown> => !!i && typeof i === "object" && isStr((i as Record<string, unknown>).label));
   if (kind === "matrix") {
     // a grid needs at least two tests and two rows to compare; a missing mark is "unknown"
-    const columns = (Array.isArray(d.columns) ? d.columns : []).filter(isStr).map((c) => clip(String(c), 14)).slice(0, 4);
+    const columns = (Array.isArray(d.columns) ? d.columns : []).filter(isStr).map((c) => clip(String(c), 18)).slice(0, 4);
     if (columns.length < 2) return undefined;
     const items = raw.slice(0, 4).map((i) => ({
       label: clip(String(i.label), 24),

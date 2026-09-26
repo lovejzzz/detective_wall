@@ -15,7 +15,7 @@ import { FUCHU_ZH } from "./zh/fuchucase.zh.ts";
 
 export const FUCHU_DEMO = "fuchu-300m-1968";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const FUCHU_VERSION = 10;
+export const FUCHU_VERSION = 11;
 
 export const FUCHU_PHASES: Phase[] = [
   { title: "Threats in the Tama hills", from: "1968-04-25" },
@@ -49,6 +49,7 @@ export const FUCHU_SPEC: DemoSpec = {
     { key: "sBoyS", type: "subject", title: "“Boy S”, 19", body: "Of a Tachikawa car-theft gang; died of cyanide on 15 December 1968.", url: YOMIURI, subject: { status: ["cleared", "deceased"], rank: 2, verdict: "My inference: cleared on a stamp's blood type, which proves little; his skills fit.", for: ["A local car and bike thief who knew police motorcycles.", "A senior detective believed in the lead to the end."], against: ["Blood type A (the stamp: B); handwriting didn't match.", "Hiratsuka put the robber near 30, not 19."], settle: "DNA from the stamp's saliva, if the letter survives." } },
     { key: "sBoyZ", type: "subject", title: "“Boy Z”, 18", body: "A friend of S who grew conspicuously rich after 1968.", url: JA_WIKI, subject: { status: ["cleared"], for: ["Sudden wealth after the robbery, property in Hawaii included."], against: ["Blood type AB, not B.", "Too young for the investigators' profile; the 1975 arrest found nothing."], settle: "A documented source for his money." } },
     { key: "sShirata", type: "subject", title: "“Shirata”: a 2018 confession", body: "An anonymous online author; the book it became says it's fiction.", url: "https://www.j-cast.com/2018/10/02340064.html?p=all", subject: { status: ["unidentified"], rank: 3, verdict: "My inference: an anonymous confession with no numbered note to back it.", for: ["Gets some obscure details right, readers noted."], against: ["Produced none of the ¥500 notes with published serials.", "A reporter who knew S's circle says key details are wrong."], settle: "One ¥500 note from XF227001A–XF229000A." } },
+    { key: "grid", type: "diagram", title: "Boy S and the confessor, test by test", body: "Both held against the robber's profile and the physical traces. A tick points toward the man; neither passes the tests that would count.", diagram: {kind: "matrix", columns: ["Thief's skills", "About 30", "Blood or writing", "Has the notes"], items: [{label: "Boy S", marks: ["yes", "no", "no", "unknown"]}, {label: "“Shirata”", marks: ["unknown", "unknown", "unknown", "no"]}]} },
 
     // ── Threats in the Tama hills ──
     { key: "coop", type: "fact", title: "Threats against the Tama farm co-op", when: "1968-04-25", url: JA_WIKI, body: "From 25 April to 22 August the Tama Agricultural Cooperative in Fuchū got nine threats of arson and bombing by letter, phone and poster, falling on Toshiba pay days. Handwriting later tied them to the December letter to the bank." },
@@ -136,6 +137,7 @@ export const FUCHU_SPEC: DemoSpec = {
     { key: "knots", type: "fact", title: "Two car covers, two different knots", when: "1971", proposed: true, url: JA_WIKI, body: "An engineer examining the evidence for police found the covers on two stolen cars tied with different knots: if one thief took both cars, the knots suggest a second person." },
   ],
   links: [
+    { from: "grid", to: "verdict", relation: "references", reason: "Neither matches the traces" },
     { from: "pBikeScene", to: "stop", relation: "references", reason: "Left where he stopped them" },
     { from: "pCedricFound", to: "cedricFound", relation: "references", reason: "The car as found" },
     { from: "pBikes", to: "bike", relation: "references", reason: "Fake beside real" },

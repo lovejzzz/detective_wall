@@ -17,7 +17,7 @@ import { SETAGAYA_ZH } from "./zh/setagayacase.zh.ts";
 
 export const SETAGAYA_DEMO = "setagaya-2000";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const SETAGAYA_VERSION = 5;
+export const SETAGAYA_VERSION = 6;
 
 export const SETAGAYA_PHASES: Phase[] = [
   { title: "A house in the park's path", from: "1990" },
@@ -58,6 +58,7 @@ export const SETAGAYA_SPEC: DemoSpec = {
     { key: "sBloodHand", type: "subject", title: "A man with blood on his left hand", body: "Reported by a driver; made public in March 2015.", url: JA_WIKI, subject: { status: ["unidentified"], for: ["Blood from his left cuff to the back of the hand.", "The killer cut a hand; he ran into a road near the scene."], against: ["The time of the sighting is not known.", "The woman who reported it gave no name and was never traced."], settle: "The driver coming forward with the time and place, then a DNA comparison with the man she saw." } },
     { key: "sVisitor", type: "subject", title: "Line of inquiry: someone who had been inside", body: "Why the dye and the slippers matter.", url: JA_WIKI, subject: { status: ["unidentified"], rank: 2, verdict: "My inference: the garage dye says he knew the house; look among past visitors.", for: ["Same fluorescent dye on his clothes and in a garage drawer.", "His DNA reportedly found on the family's slippers (2011).", "Knew the split-level layout, a former Seijo chief believes."], against: ["No trouble in the family's life that explains four deaths.", "Police officially favour a climb through the bath window."], settle: "A DNA match among the people who had visited the house: work contacts, cram-school families, tradespeople." } },
     { key: "sAbroad", type: "subject", title: "Line of inquiry: time spent abroad", body: "Objects that point outside Japan, not a nationality.", url: MAINICHI, subject: { status: ["unidentified"], rank: 3, verdict: "My inference: shoes, sand and a knife wrap all point to time spent abroad.", for: ["Shoes made in Korea, in a size not sold in Japan.", "Hip-bag sand closely resembling Mojave Desert sand.", "A knife-grip wrap like one used in northern Philippines."], against: ["Objects travel by import and gift; they place things, not people.", "DNA lineage is not nationality; prints unmatched abroad too."], settle: "A match for his fingerprints or DNA in a foreign police database." } },
+    { key: "grid", type: "diagram", title: "The two lines of inquiry, test by test", body: "What each line explains among the traces he left. They can both be true: a man who had been in the house and had lived abroad.", diagram: {kind: "matrix", columns: ["Explains the dye", "Shoes and sand", "No match in Japan", "Physical proof"], items: [{label: "Past visitor", marks: ["yes", "unknown", "unknown", "partly"]}, {label: "Time abroad", marks: ["unknown", "yes", "yes", "no"]}]} },
 
     // ── A house in the park's path ──
     { key: "move", type: "fact", title: "A family at the edge of Soshigaya Park", when: "1990", url: MPD_PDF, body: "When the Miyazawas moved in, in 1990, about 200 households stood in this corner of Tokyo's Soshigaya Park. Evictions for the park's expansion had left four by December 2000." },
@@ -158,6 +159,7 @@ export const SETAGAYA_SPEC: DemoSpec = {
     { key: "jizoLetters", type: "fact", title: "The Jizo's lettering, matched to a mason?", when: "2025-12-25", approx: true, proposed: true, url: JA_WIKI, body: "After stone-industry sites carried the appeal, 45 tips came in by 25 December 2025; one said the lettering on the base looks like a Jizo on a stonemason's website." },
   ],
   links: [
+    { from: "grid", to: "verdict", relation: "references", reason: "What each line explains" },
     { from: "pAerialHouse", to: "found", relation: "references", reason: "The house that morning" },
     { from: "pBathWindow", to: "window", relation: "references", reason: "His way in and out" },
     { from: "pPoster", to: "flyers", relation: "references", reason: "The new appeal" },

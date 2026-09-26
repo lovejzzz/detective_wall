@@ -229,7 +229,7 @@ describe("comparison grids", () => {
         { label: "Suspect B", marks: ["unknown", "yes", "maybe", "no"] },
       ],
     });
-    expect(d?.columns).toEqual(["Motive", "Means", "No alibi", "Tied to the s…"]);
+    expect(d?.columns).toEqual(["Motive", "Means", "No alibi", "Tied to the scene"]);
     expect(d?.items.map((i) => i.marks)).toEqual([
       ["yes", "no", "partly", "unknown"],
       ["unknown", "yes", "unknown", "no"],

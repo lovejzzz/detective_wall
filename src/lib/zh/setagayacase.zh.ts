@@ -5,6 +5,7 @@ export const SETAGAYA_ZH: DemoTranslation = {
   title: "世田谷一家灭门案",
   phases: ["公园扩建路上的一户人家", "12月30日之夜", "一个人，诸多线索", "解读物证", "房屋与DNA"],
   notes: {
+    grid: { title: "两条调查方向逐项对照", body: "两条方向各能解释他留下的哪些痕迹。两者可以同时成立：一个进过这户人家、又在海外生活过的人。", diagram: ["进过这户人家", "在海外生活过"], columns: ["解释染料", "解释鞋与沙", "日本无记录", "有实证"] },
     q: { title: "谁杀害了宫泽一家？为何至今查不出他是谁？" },
     verdict: {
       title: "最可能：一名熟悉这栋房子、日本档案中无记录的男子",
@@ -283,6 +284,7 @@ export const SETAGAYA_ZH: DemoTranslation = {
     },
   },
   links: {
+    "grid>verdict": "每条方向能解释什么",
     "pAerialHouse>found": "那天上午的房子",
     "pBathWindow>window": "他进出的路线",
     "pPoster>flyers": "新的呼吁",

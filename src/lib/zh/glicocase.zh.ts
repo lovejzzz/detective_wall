@@ -5,6 +5,7 @@ export const GLICO_ZH: DemoTranslation = {
   title: "格力高·森永事件",
   phases: ["绑架与格力高之围", "狐眼男", "货架上的毒", "大津失手与最后一封信", "时效届满"],
   notes: {
+    grid: { title: "两条线索逐项对照", body: "具名的圈子与在交款现场出现的男子，按同样的标准对照。两者可能是同一条线：狐眼男可以属于任何团伙。", diagram: ["前黑帮头目圈子", "狐眼男"], columns: ["与格力高有仇", "同型打字机", "在交款点露面", "有物证"] },
     q: { title: "怪人21面相是谁？他们为何始终没有落网？" },
     verdict: {
       title: "最可能：关西一个六七人的团伙，为钱",
@@ -235,6 +236,7 @@ export const GLICO_ZH: DemoTranslation = {
     },
   },
   links: {
+    "grid>verdict": "两条线索都没有物证",
     "pStorehouse>escape": "他被关押的地方",
     "pVideoMan>video": "截图本身",
     "pSketch>sketch": "画像本身",

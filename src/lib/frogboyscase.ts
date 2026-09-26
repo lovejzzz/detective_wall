@@ -18,7 +18,7 @@ import { FROGBOYS_ZH } from "./zh/frogboyscase.zh.ts";
 
 export const FROGBOYS_DEMO = "frogboys-1991";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const FROGBOYS_VERSION = 5;
+export const FROGBOYS_VERSION = 6;
 
 export const FROGBOYS_PHASES: Phase[] = [
   { title: "Salamander eggs on election day", from: "1991-03-26" },
@@ -81,6 +81,7 @@ export const FROGBOYS_SPEC: DemoSpec = {
     { key: "sBoast", type: "subject", title: "A customer's army boast (2002)", body: "A shoeshiner said a man of about 35 claimed he had shot five children.", url: HANI_2018, subject: { status: ["unidentified"], for: ["Heard on 30 July 2002, before the remains were found.", "Reported to police on 30 September, days after the find."], against: ["No bullet marks were found on any bone or garment.", "Second-hand; the customer was never identified."], settle: "Finding the customer and checking his service record against 26 March 1991." } },
     { key: "sRange", type: "subject", title: "The army firing range line", body: "A range stood 250 m from the grave until 1994. No unit or soldier accused.", url: PD_2022, subject: { status: ["unidentified"], rank: 3, verdict: "My inference: the bullets were there already; no bone or garment bears a mark.", for: ["138 bullet heads were found at the grave, some in a milk carton.", "A former recruit told MBC of a bag, a belt and bones in a bin."], against: ["No bullet marks on the bones or clothes (NFS, 2002).", "The unit said it had no record of activity or firing that day."], settle: "The unit's 1991–93 range logs, set against the former recruit's account." } },
     { key: "sYouths", type: "subject", title: "Delinquent youths on the mountain", body: "Glue-sniffing teenagers used the slopes in 1991, witnesses say.", url: KMIB_2022, subject: { status: ["unidentified"], rank: 1, verdict: "My read: older local boys with tools, on the mountain that day, fit the blows best.", for: ["A witness told MBC a knife-wielding youth threatened kids 3 days before.", "A 2022 online theory: X-shaped marks fit vernier-caliper jaws."], against: ["Police say calipers were tested in 2002 and didn't match.", "About 900 delinquent students were checked in 2002; no lead."], settle: "A tool whose edge matches the skull marks, or a witness who can place someone at the gully." } },
+    { key: "grid", type: "diagram", title: "The two theories, test by test", body: "The youths and the firing range held against the wounds and the grave. The range fails the wounds; the youths fit loosely and were never named.", diagram: {kind: "matrix", columns: ["On the mountain", "Fits the wounds", "Not ruled out", "Physical link"], items: [{label: "Local youths", marks: ["partly", "partly", "partly", "no"]}, {label: "Army range", marks: ["yes", "no", "partly", "no"]}]} },
 
     // ── Salamander eggs on election day ──
     { key: "setOff", type: "fact", title: "Five boys set off for salamander eggs", when: "1991-03-26T08:00", approx: true, beat: "origin", url: SEDAILY_2026, body: "On a holiday for the first local elections in 30 years, Woo Cheol-won (13), Jo Ho-yeon (12), Kim Yeong-gyu (11), Park Chan-in (10) and Kim Jong-sik (9) took milk-powder tins and sticks and headed up Waryongsan (와룡산) for salamander eggs. A sixth boy turned back. Reports say about 8 a.m.; a court record, about 9." },
@@ -165,6 +166,7 @@ export const FROGBOYS_SPEC: DemoSpec = {
     { key: "hBullets", type: "hypothesis", title: "Were they collecting spent bullets?", color: "green", body: "Bullet heads turned up at the grave inside a milk carton, and the 1991 police violent-crimes chief says the five carried milk cartons and bottles. He believes they went for bullets." },
   ],
   links: [
+    { from: "grid", to: "verdict", relation: "references", reason: "The wounds decide between them" },
     { from: "pWaryong", to: "setOff", relation: "references", reason: "The mountain they climbed" },
     { from: "pSalamander", to: "setOff", relation: "references", reason: "What they went for" },
     { from: "pDalseo", to: "lastSeen", relation: "references", reason: "The district" },

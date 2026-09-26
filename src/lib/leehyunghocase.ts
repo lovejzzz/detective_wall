@@ -18,7 +18,7 @@ import { LEEHYUNGHO_ZH } from "./zh/leehyunghocase.zh.ts";
 
 export const LEEHYUNGHO_DEMO = "leehyungho-1991";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const LEEHYUNGHO_VERSION = 5;
+export const LEEHYUNGHO_VERSION = 6;
 
 export const LEEHYUNGHO_PHASES: Phase[] = [
   { title: "The playground and the car phone", from: "1991-01-29" },
@@ -56,6 +56,7 @@ export const LEEHYUNGHO_SPEC: DemoSpec = {
     { key: "sKyobo", type: "subject", title: "The young man at Kyobo", body: "A man in his 20s who neared the cash car at about 02:30 on 1 February 1991 and hid by a news kiosk.", url: HANKOOK_1991, subject: { status: ["unidentified"], for: ["Came to the kidnapper's spot at the kidnapper's hour.", "That night the caller complained that police had been posted."], against: ["Never stopped or questioned; no description was published.", "A busy Gwanghwamun corner: he may have been a passer-by."], settle: "Whether the stepmother's and detectives' account of him matches the bank visitor's montage." } },
     { key: "sBank", type: "subject", title: "The man at the Sanggye-dong bank", body: "Tried to withdraw ₩7 million on 19 February 1991 and fled with the passbook. The montage came from bank staff.", url: HANKOOK_1991, subject: { status: ["unidentified"], rank: 3, verdict: "My inference: knew the account and fled at the counter: one of the team.", for: ["Knew the account and phoned first to check the deposit.", "Fled the moment the clerk refused, taking the passbook."], against: ["Could have been a courier, not the caller himself.", "280,000 montage leaflets never produced a name."], settle: "DNA from the account forms and memos, if police still hold them, against a candidate." } },
     { key: "sJamsil", type: "subject", title: "Jamsil sightings: a youth and a boy", body: "After the body was found, witnesses reported the boy with a young man near the Jamsil riverside.", url: KO_WIKI, subject: { status: ["cleared"], for: ["Snack-bar owners and residents near the drain came forward."], against: ["The pair seen at Jamsil Jugong 1 were unrelated local residents.", "The autopsy put death at or soon after the day he was taken."], settle: "Already settled: police traced the pair and found no link to the case." } },
+    { key: "grid", type: "diagram", title: "The relative and the bank man, test by test", body: "Both held against the same tests. The relative fits every test but one, and the alibi is the one that counts most; the bank man may be a courier.", diagram: {kind: "matrix", columns: ["Voice match", "Knew the family", "Money motive", "No alibi"], items: [{label: "The relative", marks: ["yes", "yes", "yes", "no"]}, {label: "Bank man", marks: ["unknown", "partly", "yes", "unknown"]}]} },
 
     // ── The playground and the car phone ──
     { key: "kidnap", type: "fact", title: "Last seen on the playground swings", when: "1991-01-29T17:20", approx: true, beat: "origin", url: SISA, body: "Lee Hyung-ho, 9, a third-grader at Apgujeong Elementary, had lunch at a friend's and played by Building 205 of the Hyundai Apartments, Apgujeong-dong. The friend went home at about 17:20; Hyung-ho stayed on the swing and was not seen again." },
@@ -157,6 +158,7 @@ export const LEEHYUNGHO_SPEC: DemoSpec = {
     { key: "weekdays", type: "fact", title: "No calls at weekends", proposed: true, url: "https://www.goodmorningcc.com/news/articleView.html?idxno=297425", body: "Voice scientist Cho Dong-wook notes the caller avoided Saturdays and Sundays and spoke of getting home: in his view, a man with a family and a routine." },
   ],
   links: [
+    { from: "grid", to: "verdict", relation: "references", reason: "Voice against alibi" },
     { from: "pPoster", to: "film", relation: "references", reason: "How the film was sold" },
     { from: "pApt", to: "kidnap", relation: "references", reason: "Where he lived" },
     { from: "pGrandeur", to: "gimpo", relation: "references", reason: "The car with the car phone" },
