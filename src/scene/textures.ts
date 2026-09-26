@@ -215,39 +215,6 @@ function makeMacro(size = 256): THREE.CanvasTexture {
   return t;
 }
 
-/**
- * Moonlight through venetian blinds: soft horizontal slats in a window frame with a mullion.
- * Projected by a spotlight, it throws the classic noir stripes across the wall.
- */
-export function makeBlinds(size = 512): THREE.CanvasTexture {
-  const c = canvas(size);
-  const g = c.getContext("2d")!;
-  g.fillStyle = "#000";
-  g.fillRect(0, 0, size, size);
-  const x0 = size * 0.14;
-  const x1 = size * 0.86;
-  const y0 = size * 0.1;
-  const y1 = size * 0.9;
-  const slats = 11;
-  const pitch = (y1 - y0) / slats;
-  g.filter = "blur(5px)";
-  for (let i = 0; i < slats; i++) {
-    const y = y0 + i * pitch;
-    // Light between slats; slightly warmer-brighter towards the middle of the window.
-    const lum = 0.75 + 0.25 * Math.sin(((i + 0.5) / slats) * Math.PI);
-    g.fillStyle = `rgba(255,255,255,${lum})`;
-    g.fillRect(x0, y + pitch * 0.34, x1 - x0, pitch * 0.46);
-  }
-  // The mullion down the middle, and a cord.
-  g.fillStyle = "#000";
-  g.fillRect(size * 0.485, y0 - 10, size * 0.03, y1 - y0 + 20);
-  g.fillRect(size * 0.3, y0, 3, y1 - y0);
-  g.filter = "none";
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
 /** Paper fibre: a faint normal map shared by every sheet. */
 export function makePaperNormal(size = 512): THREE.CanvasTexture {
   const rand = mulberry32(5);

@@ -10,6 +10,7 @@ import { Strings3D, stringMid } from "../scene/Strings3D.tsx";
 import { RELATION_INFO } from "../lib/relations.ts";
 import { CameraRig, Cork, Dust, LITE, Lens, Lights, type LightRig, type View } from "../scene/Room.tsx";
 import { rustle } from "../lib/sound.ts";
+import { Wastebasket } from "./Wastebasket.tsx";
 import { fontsReady } from "../scene/paint.ts";
 import { Timeline3D } from "../scene/Timeline3D.tsx";
 import { layoutTimeline } from "../lib/timeline.ts";
@@ -74,7 +75,21 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
 
   // ---- Wall or timeline: where each note sits right now ----
   const mode = useStore((s) => s.view);
-  const timeline = useMemo(() => (mode === "timeline" ? layoutTimeline(c.notes) : null), [mode, c.notes]);
+  // The layout is kept even on the wall, so the timeline's 3D stays mounted (see below).
+  const timelineLayout = useMemo(() => layoutTimeline(c.notes), [c.notes]);
+  const timeline = mode === "timeline" ? timelineLayout : null;
+  // Both layers stay mounted and only swap visibility: unmounting disposed their materials, and
+  // recompiling those shaders on every switch was the stutter. The timeline also renders for its
+  // first couple of frames at a scale too small to see, so its shaders are ready before first use.
+  const [warming, setWarming] = useState(true);
+  useEffect(() => {
+    let n = 0;
+    let raf = requestAnimationFrame(function tick() {
+      if (++n < 3) raf = requestAnimationFrame(tick);
+      else setWarming(false);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
   /** Notes with the position they occupy in the current view. */
   const placed = useMemo(
     () =>
@@ -402,11 +417,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       } else if (grab.held) {
         // Pinned by holding: nothing more to do.
       } else if (!grab.moved) {
-        const s = store();
-        const cc = s.cases[caseIdRef.current];
-        const n = cc?.notes.find((x) => x.id === grab.id);
-        if (n && cc?.focusNoteId === n.id && n.status === "pinned") s.openDossier(n.id);
-        else s.setFocus(grab.id);
+        // A click opens the note's file; the spotlight goes to it at the same moment.
+        store().openDossier(grab.id);
       }
       setGrab(null);
       setDragTilt(0);
@@ -555,11 +567,12 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             onHover={onHover}
           />
         ))}
-        {timeline ? (
-          <Timeline3D layout={timeline} />
-        ) : (
-          <Strings3D notes={c.notes} links={c.links} lit={hoverNet?.links ?? null} draft={draft} onOpenTag={onOpenTag} />
-        )}
+        <group visible={!!timeline || warming} scale={timeline ? 1 : warming ? 1e-4 : 1}>
+          <Timeline3D layout={timelineLayout} />
+        </group>
+        <group visible={!timeline}>
+          <Strings3D notes={c.notes} links={c.links} lit={hoverNet?.links ?? null} draft={draft} onOpenTag={timeline ? undefined : onOpenTag} />
+        </group>
         <Dust view={view} rig={rig} />
         <Lens />
       </Canvas>
@@ -657,17 +670,6 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             </div>
           );
         })}
-        {(() => {
-          // Discoverability: the second click opens the file, so say so on the focused note.
-          const n = placedById.get(hoverNoteId ?? "");
-          if (!n || grab || settling || n.id !== c.focusNoteId || n.status !== "pinned") return null;
-          const p = toScreen({ x: n.x, y: n.y + NOTE_SIZE[n.type].h / 2 });
-          return (
-            <div className="proposal-anchor open-hint" style={{ left: p.x, top: p.y + 10 }}>
-              click to open the file ›
-            </div>
-          );
-        })()}
         {timeline && !settling && (
           <>
             {timeline.stops.map((st, i) => {
@@ -714,22 +716,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             <circle className="head" cx="30" cy="30" r="6" />
           </svg>
         )}
-        {!timeline && (
-          <div
-            ref={binRef}
-            className={`bin ${draggingId || crumples.length ? "is-shown" : ""} ${binHot ? "is-hot" : ""} ${crumples.length ? "is-gulping" : ""}`}
-            style={{ left: stage.cx }}
-            aria-hidden
-          >
-            <span className="bin-label">{binHot ? "let go to toss" : "toss"}</span>
-            <div className="bin-back" />
-            {crumples.map((k) => (
-              <span key={k} className="crumple" />
-            ))}
-            <div className="bin-body" />
-            <div className="bin-rim" />
-          </div>
-        )}
+        {!timeline && <Wastebasket ref={binRef} shown={!!draggingId || crumples.length > 0} hot={binHot} gulps={crumples} left={stage.cx} />}
         {dropping && (
           <div className="drop-hint" aria-hidden>
             <span>Drop to pin the photo here</span>

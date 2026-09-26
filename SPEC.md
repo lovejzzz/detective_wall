@@ -102,7 +102,7 @@ Every note shows:
 |---|---|---|
 | **Proposed** (from the AI) | Lying loose at a steeper angle, no pin, 75% opacity, pencil "?" in the corner | **Pin it** / **Toss it**, or press and hold the note to pin it (a red ring fills under the finger), or drag it into the bin |
 | **Pinned** | Full opacity, pinned, soft drop shadow | Drag, open, link, edit, remove |
-| **Focused** | Spotlight centered on it, its strings brighten, unrelated notes dim to 55% | — |
+| **Focused** | Spotlight centered on it, its strings brighten, unrelated notes dim to 55%. A click (press and release) opens the note's file at the same moment the spotlight moves to it. | — |
 | **Dragging** | Lifted: bigger shadow, 1.03× scale, tilts toward the drag direction (±6°, spring-damped). A wire wastebasket rises at the bottom of the wall; dropping the note in it balls it up and tosses it (undoable) | — |
 
 ### 5.3 Dossier (detail view)
@@ -137,10 +137,8 @@ Opening a note (click, or `Enter` on a focused note) slides in a manila folder w
 | Element | Behaviour |
 |---|---|
 | Overhead lamp | A warm tungsten wash (about 2700 K) from a lamp just out of shot, brightest at the top center, falling off softly toward the edges |
-| Moonlight through blinds | A faint, cold (≈ 7000 K) spotlight from high on the left, projected through a venetian-blind gobo: soft diagonal stripes across the lower-left of the wall. Warm against cool is the whole palette. |
-| Passing cars | Every minute or two, a car's headlights sweep through the blinds: the stripes warm, brighten and travel across the wall for about three seconds, then the moonlight returns. Off with reduced motion. |
 | Camera | Flights move like a crane, not a scroll: the longer the move, the more the camera rises mid-flight and the longer it takes to settle. Opening a note's file pulls focus: the wall behind blurs, dims and cools while the camera pushes in on the note, and eases back on close. |
-| Sound | Synthesised with Web Audio (no assets): typewriter keys (the partner's reply types on a quieter machine), the carriage bell on send, a pin pressed home, paper balled up, a sheet rustling onto the wall, string pulled taut, the steel drawer, a low thump when a case opens, a car passing with each headlight sweep, and a barely-there room tone. Starts on the first gesture; muted with the speaker switch or `M`, remembered per browser. |
+| Sound | Synthesised with Web Audio (no assets): typewriter keys (the partner's reply types on a quieter machine), the carriage bell on send, a pin pressed home, paper balled up, a sheet rustling onto the wall, string pulled taut, the steel drawer, a low thump when a case opens, and a barely-there room tone. Starts on the first gesture; muted with the speaker switch or `M`, remembered per browser. |
 | Film grade | Neutral tone mapping, then a gentle split-tone (cool shadows, warm highlights), blacks lifted a touch like a print, slight desaturation, soft vignette and fine grain |
 | Spotlight | A radial pool (radius about 340 px on screen) that eases to the focused note in 600 ms. It stays at the last focus when idle. |
 | Darkness | A vignette at the viewport edges, plus a dim veil over wall regions with no pinned notes. Any note inside the veil stays at least 35% visible. |
@@ -300,7 +298,7 @@ interface Message {
 | Paper | Curved sheet meshes (stickies lift at the free end, typed sheets curl at a corner, newsprint cockles, polaroids bow). Each sheet's face is typeset onto a 3× canvas texture with seeded imperfections: typewriter baseline wobble and uneven ribbon ink, handwriting drift and pen pressure, rubber stamps with dry-pad voids, pen-drawn sketches. | Text stays sharp at normal zooms, and every sheet looks individually made |
 | Pins, clips, tape | Lathe-turned push pins (clearcoat plastic), brass tacks, a binder clip, translucent masking tape | Small metal and plastic highlights sell the scale |
 | Strings | Tubes along a sagging curve, with a twisted-ply normal map, casting shadows. Proposed strings are dashed graphite. | Thread has thickness and throws a shadow across the paper it crosses |
-| Light | A tungsten lamp hanging just out of shot, whose light falls off with distance and sways very slightly on its cord; cold moonlight through venetian blinds (a spotlight with a projected gobo); and a soft-edged focus spotlight that glides to the focused note. Both cast soft shadows. A cool, low fill lights the shadows. | Warm light against cool shadow; "light = attention" happens physically. The light carries the mood without a prop in the frame |
+| Light | A tungsten lamp hanging just out of shot, whose light falls off with distance and sways very slightly on its cord, and a soft-edged focus spotlight that glides to the focused note. Both cast soft shadows. A cool, low fill lights the shadows. | Warm light against cool shadow; "light = attention" happens physically. The light carries the mood without a prop in the frame |
 | Cork | A procedural albedo, normal and roughness at real crumb scale: dense, close-valued granules, shallow pits and the odd old pin hole, plus a large-scale variation map (≈ 2900 px) so the tile never shows | Raking light reveals a fine relief rather than craters |
 | Atmosphere | Dust motes visible only inside the light cones, ambient occlusion, gentle bloom on the bulb, film grain, vignette, neutral tone mapping | The air feels like an attic at night |
 | Controls on the wall | Plain DOM overlays (Pin it / Toss, proposed-string tags, popovers), positioned from exact world→screen mapping | Crisp, accessible buttons that never move under the cursor |

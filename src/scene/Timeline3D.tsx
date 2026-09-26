@@ -10,22 +10,19 @@ export const Timeline3D = memo(function Timeline3D({ layout }: { layout: Timelin
   const { stringNormal } = sharedTextures();
   const { x0, x1 } = layout.cord;
 
-  const cord = useMemo(() => {
-    const curve = new THREE.LineCurve3(new THREE.Vector3(x0, 0, CORD_Z), new THREE.Vector3(x1, 0, CORD_Z));
-    const geometry = new THREE.TubeGeometry(curve, 8, 3.2, 12, false);
+  // One material for the life of the wall: rebuilding it on every layout change would recompile its shader.
+  const cordMat = useMemo(() => {
     const normalMap = stringNormal.clone();
     normalMap.needsUpdate = true;
-    normalMap.repeat.set((x1 - x0) / 7, 1);
-    const material = new THREE.MeshStandardMaterial({ color: "#a01c14", roughness: 0.8, normalMap, normalScale: new THREE.Vector2(1.4, 1.4) });
-    return { geometry, material };
-  }, [x0, x1, stringNormal]);
-  useEffect(
-    () => () => {
-      cord.geometry.dispose();
-      cord.material.dispose();
-    },
-    [cord],
-  );
+    return new THREE.MeshStandardMaterial({ color: "#a01c14", roughness: 0.8, normalMap, normalScale: new THREE.Vector2(1.4, 1.4) });
+  }, [stringNormal]);
+  useEffect(() => () => cordMat.dispose(), [cordMat]);
+  const cord = useMemo(() => {
+    const curve = new THREE.LineCurve3(new THREE.Vector3(x0, 0, CORD_Z), new THREE.Vector3(x1, 0, CORD_Z));
+    cordMat.normalMap!.repeat.set((x1 - x0) / 7, 1);
+    return { geometry: new THREE.TubeGeometry(curve, 8, 3.2, 12, false), material: cordMat };
+  }, [x0, x1, cordMat]);
+  useEffect(() => () => cord.geometry.dispose(), [cord]);
 
   const threads = useMemo(() => {
     const out: THREE.TubeGeometry[] = [];

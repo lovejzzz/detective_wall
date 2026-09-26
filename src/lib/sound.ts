@@ -1,6 +1,6 @@
 // The attic's sound, synthesised with Web Audio: nothing to download, nothing to license.
 // Typewriter keys and the carriage-return bell, pins pressed into cork, paper balled up and
-// rustling, string pulled taut, the steel drawer, a low room tone and the odd car passing outside.
+// rustling, string pulled taut, the steel drawer, and a low room tone.
 //
 // Browsers only allow audio after a user gesture, so the context starts on the first click or key.
 // Muting (the switch by the view tabs, or M) is remembered in this browser.
@@ -218,21 +218,6 @@ export function thump() {
   const t = c.currentTime;
   tone(c, t, 70, 0.5, 0.35, "sine", 45);
   noise(c, t, 0.3, "lowpass", 300, 0.7, 0.2);
-}
-
-/** A car passing in the street below: swells in, the tyres hiss, and it fades away. */
-export function carPass(seconds = 3.2) {
-  const c = ready();
-  if (!c) return;
-  const t = c.currentTime;
-  const { f, g } = noise(c, t, seconds, "lowpass", 400, 0.7, 0.001);
-  g.gain.cancelScheduledValues(t);
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(0.11, t + seconds * 0.45);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
-  f.frequency.setValueAtTime(260, t);
-  f.frequency.exponentialRampToValueAtTime(1100, t + seconds * 0.45);
-  f.frequency.exponentialRampToValueAtTime(220, t + seconds);
 }
 
 /** The room itself: a low, steady air, barely there. */

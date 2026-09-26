@@ -4,6 +4,7 @@ import { useStore } from "../store.ts";
 import { ask } from "../ai/partner.ts";
 import { Typed } from "./Typed.tsx";
 import { carriage, key as typeKey } from "../lib/sound.ts";
+import { Typewriter, pressKey } from "./Typewriter.tsx";
 import { importPhoto, isPhotoFile, photoIdOf, photoURL } from "../lib/images.ts";
 import { findFreeSpot } from "../lib/geometry.ts";
 
@@ -207,11 +208,17 @@ export function Notepad({ c }: { c: Case }) {
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      if (draft.trim() || attachedRef.current.length) carriage();
+      if (draft.trim() || attachedRef.current.length) {
+        carriage();
+        pressKey("Enter");
+      }
       void send();
       return;
     }
-    if ((e.key.length === 1 || e.key === "Backspace" || e.key === "Enter") && !e.metaKey && !e.ctrlKey) typeKey();
+    if ((e.key.length === 1 || e.key === "Backspace" || e.key === "Enter") && !e.metaKey && !e.ctrlKey) {
+      typeKey();
+      pressKey(e.key === "Backspace" ? "P" : e.key);
+    }
     if (e.key === "Escape") input.current?.blur();
   };
 
@@ -225,7 +232,7 @@ export function Notepad({ c }: { c: Case }) {
   const resumeLine = busy || spokeThisVisit
     ? null
     : firstVisit && c.demo
-      ? "This is a real, unsolved case, set up as a demo. Ask me anything on the typewriter below. Drag from a pin to tie a string. Click a note once to light it, and again to open its file."
+      ? "This is a real, unsolved case, set up as a demo. Ask me anything on the typewriter below. Drag from a pin to tie a string. Click a note to open its file."
       : !firstVisit && c.messages.length > 0 && latestPinned && Date.now() - (previousOpen ?? 0) > 10 * 60_000
         ? `Picking this back up. Last we had: “${latestPinned.title}”.`
         : null;
@@ -380,16 +387,7 @@ export function Notepad({ c }: { c: Case }) {
           />
         </div>
         <div className="tw-body">
-          <div className="tw-roller" />
-          <div className="tw-keys" aria-hidden>
-            {Array.from({ length: 11 }, (_, i) => (
-              <span key={i} />
-            ))}
-          </div>
-          <button className="tw-return" onClick={() => void send()} disabled={(!draft.trim() && !attached.length && !importing) || anyBusy} title="Send (Enter)">
-            {busy ? "…" : "Return"}
-            <span className="lever" />
-          </button>
+          <Typewriter onReturn={() => void send()} canSend={(!!draft.trim() || !!attached.length || importing) && !anyBusy} busy={busy} />
         </div>
       </div>
     </aside>

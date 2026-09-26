@@ -71,7 +71,7 @@ function tagTexture(relation: Relation, flipped: boolean) {
 }
 
 /** A manila tag hung from the middle of a tied string. Click it for details. */
-function Tag({ link, from, to, onOpen }: { link: Link; from: THREE.Vector3; to: THREE.Vector3; onOpen(id: string): void }) {
+function Tag({ link, from, to, onOpen }: { link: Link; from: THREE.Vector3; to: THREE.Vector3; onOpen?: (id: string) => void }) {
   const mid = stringCurve(from, to).getPoint(0.5);
   const angle = Math.atan2(to.y - from.y, to.x - from.x);
   const flipped = angle > Math.PI / 2 || angle < -Math.PI / 2;
@@ -81,10 +81,14 @@ function Tag({ link, from, to, onOpen }: { link: Link; from: THREE.Vector3; to: 
     <group position={[mid.x, mid.y - 9, mid.z + 1.2]} rotation={[0.18, 0, tilt]}>
       <mesh
         castShadow
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          onOpen(link.id);
-        }}
+        // No handler while hidden (timeline view), so hidden tags can't catch clicks.
+        onPointerDown={
+          onOpen &&
+          ((e) => {
+            e.stopPropagation();
+            onOpen(link.id);
+          })
+        }
       >
         <planeGeometry args={[46, 27]} />
         <meshStandardMaterial map={tagTexture(link.relation, flipped)} roughness={0.85} side={THREE.DoubleSide} />
@@ -105,7 +109,7 @@ interface Props {
   links: Link[];
   lit: Set<string> | null;
   draft: { from: Note; to: { x: number; y: number } } | null;
-  onOpenTag(id: string): void;
+  onOpenTag?: (id: string) => void;
 }
 
 export const Strings3D = memo(function Strings3D({ notes, links, lit, draft, onOpenTag }: Props) {
