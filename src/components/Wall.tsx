@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPE } from "react";
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
-import type { Camera, Case, Note } from "../lib/types.ts";
+import { BEAT_LABEL, type Camera, type Case, type Note } from "../lib/types.ts";
+import { whenLabel } from "../lib/when.ts";
 import { NOTE_SIZE } from "../lib/geometry.ts";
 import { useStore } from "../store.ts";
 import { tween, reducedMotion } from "../lib/motion.ts";
@@ -209,11 +210,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       if (timeline && (timeline.chapters.length || timeline.aside)) {
         const b = timeline.bounds;
         const room = stage.w - TRAY_W - 80;
-        // Enough to take in the title and the whole first chapter; the rest is a scroll away.
-        const first = timeline.chapters[0];
-        const opening = first ? first.y + first.h - b.y0 : b.y1 - b.y0;
-        // A phone can't hold a chapter's width at reading size: fit it anyway, the labels carry it.
-        const zoom = clampZ(Math.min(0.62, room / (b.x1 - b.x0), (stage.h - 150) / opening));
+        // The page's full width at a size you can read, from the top; the rest is a scroll away.
+        const zoom = clampZ(Math.min(0.56, room / (b.x1 - b.x0)));
         const fitsW = (b.x1 - b.x0) * zoom <= room;
         const x = fitsW ? (b.x0 + b.x1) / 2 - TRAY_W / 2 / zoom : b.x0 + (stage.w / 2 - TRAY_W - 40) / zoom;
         const fitsH = (b.y1 - b.y0) * zoom <= stage.h - 150;
@@ -362,6 +360,18 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     for (const ch of chapterStarts) if (ch.y <= y) n = ch.n;
     return n;
   }, [cam.y, cam.zoom, stage.h, stage.cy, chapterStarts]);
+  /** The key moments in time order, for the story line under the heading. */
+  const story = useMemo(() => timelineLayout.moments.filter((m) => m.when), [timelineLayout]);
+  const goToMoment = useCallback(
+    (id: string) => {
+      const m = timelineLayout.moments.find((x) => x.id === id);
+      if (!m) return;
+      justFramed.current = c.focusNoteId !== id; // this flight is the framing: the focus change mustn't re-centre over it
+      store().setFocus(id);
+      flyTo({ x: m.x, y: m.y, zoom: Math.max(camRef.current.zoom, 0.6) }, 800);
+    },
+    [timelineLayout, flyTo, store, c.focusNoteId],
+  );
   // While the camera is still flying to a chapter, the next press counts on from that one.
   const aimedChapter = useRef<{ n: number; until: number } | null>(null);
   const goToChapter = useCallback(
@@ -695,6 +705,24 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               </div>
             );
           })}
+        {/* key moments: a ribbon on the note's corner, on the wall and on the timeline */}
+        {!settling &&
+          placed
+            .filter((n) => n.beat)
+            .map((n) => {
+              const { w, h } = NOTE_SIZE[n.type];
+              const p = toScreen({ x: n.x - w / 2 + 10, y: n.y - h / 2 + 6 });
+              return (
+                <div
+                  key={`beat-${n.id}`}
+                  className={`beat-tag beat-${n.beat} ${n.status === "proposed" ? "is-proposed" : ""}`}
+                  style={{ left: p.x, top: p.y, transform: `rotate(${n.rotation - 4}deg) scale(${tagScale}) translate(-14px, -62%)` }}
+                  aria-hidden
+                >
+                  {BEAT_LABEL[n.beat!]}
+                </div>
+              );
+            })}
         {!timeline && c.links.map((l) => {
           const a = c.notes.find((n) => n.id === l.from);
           const b = c.notes.find((n) => n.id === l.to);
@@ -757,6 +785,20 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                   </span>
                   <span>{timeline.heading.count} dated</span>
                 </p>
+                {story.length > 0 && (
+                  <ol className="tl-story" aria-label="Key moments">
+                    {story.map((m) => (
+                      <li key={m.id} className={`beat-${m.beat}`}>
+                        <button onClick={() => goToMoment(m.id)} title={`${BEAT_LABEL[m.beat]}: ${m.title}`}>
+                          <b>{BEAT_LABEL[m.beat]}</b>
+                          <i aria-hidden />
+                          <span className="when">{whenLabel(m.when!)}</span>
+                          <span className="what">{m.title}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </div>
             )}
             {chapterStarts.length > 1 && (

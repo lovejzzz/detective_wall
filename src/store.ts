@@ -1,11 +1,11 @@
 import { create } from "zustand";
 import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
-import type { Camera, Case, Link, Message, Note, NoteType, Relation, StickyColor, TrailStep } from "./lib/types.ts";
+import { SINGLE_BEATS, type Beat, type Camera, type Case, type Link, type Message, type Note, type NoteType, type Relation, type StickyColor, type TrailStep } from "./lib/types.ts";
 import type { ProposedNote, WallUpdate } from "./lib/contract.ts";
 import { findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
 import { seedCase } from "./lib/seed.ts";
-import { COMMONS, COOPER_DATES, COOPER_DEMO, COOPER_PHASES, coldCase } from "./lib/coldcase.ts";
-import { TYLENOL_DEMO, TYLENOL_PHASES, tylenolCase } from "./lib/tylenolcase.ts";
+import { COMMONS, COOPER_BEATS, COOPER_DATES, COOPER_DEMO, COOPER_PHASES, coldCase } from "./lib/coldcase.ts";
+import { TYLENOL_BEATS, TYLENOL_DEMO, TYLENOL_PHASES, tylenolCase } from "./lib/tylenolcase.ts";
 
 export type PartnerMode = "unknown" | "live" | "offline";
 
@@ -75,7 +75,7 @@ interface Actions {
   framed(caseId: string): void;
   setFocus(noteId: string | null): void;
   moveNote(noteId: string, x: number, y: number): void;
-  updateNote(noteId: string, patch: Partial<Pick<Note, "title" | "body" | "type" | "color" | "stamp" | "rotation" | "when" | "approx">>): void;
+  updateNote(noteId: string, patch: Partial<Pick<Note, "title" | "body" | "type" | "color" | "stamp" | "rotation" | "when" | "approx" | "beat">>): void;
   /** Puts one find on the wall while the partner is still researching. Returns its note id. */
   addLead(caseId: string, lead: { turnId: string; note: ProposedNote; placed: Map<string, string>; anchorId: string | null }): string | null;
   pinNote(noteId: string): void;
@@ -372,6 +372,16 @@ export const useStore = create<Store>()(
                 }
               }
 
+            // The partner's tidying: key moments on new or old notes, dates for undated ones.
+            for (const m of update.moments ?? []) {
+              const id = resolve(m.note);
+              if (id) markBeat(c, id, m.beat);
+            }
+            for (const d of update.dates ?? []) {
+              const n = c.notes.find((x) => x.id === resolve(d.note));
+              if (n && !n.when) Object.assign(n, { when: d.when }, d.approx ? { approx: true } : {});
+            }
+
             for (const l of update.links) {
               const from = resolve(l.from);
               const to = resolve(l.to);
@@ -442,11 +452,13 @@ export const useStore = create<Store>()(
         },
         updateNote(noteId, patch) {
           // Text edits are checkpointed once per editing session by the dossier; the rest here.
-          if (patch.type || patch.color || patch.stamp || "when" in patch || "approx" in patch) get().checkpoint(`Changed ${noteTitle(noteId)}`);
+          if (patch.type || patch.color || patch.stamp || "when" in patch || "approx" in patch || "beat" in patch) get().checkpoint(`Changed ${noteTitle(noteId)}`);
           mutateActive((c) => {
             const n = c.notes.find((x) => x.id === noteId);
             if (!n) return;
-            Object.assign(n, patch);
+            if ("beat" in patch) markBeat(c, noteId, patch.beat ?? null);
+            const { beat: _beat, ...rest } = patch;
+            Object.assign(n, rest);
             if (!n.when) {
               delete n.when;
               delete n.approx;
@@ -640,6 +652,15 @@ function markOpened(id: string) {
  * First run (or once every case is deleted): file the demo cases and open the cold case.
  * Existing walls get the cold case added once, in front, so returning users see the new demo too.
  */
+/** Marks (or with null, unmarks) a key moment; the ones a case has only one of move to this note. */
+function markBeat(c: Case, noteId: string, beat: Beat | null) {
+  const n = c.notes.find((x) => x.id === noteId);
+  if (!n) return;
+  if (beat && SINGLE_BEATS.includes(beat)) for (const o of c.notes) if (o.beat === beat) delete o.beat;
+  if (beat) n.beat = beat;
+  else delete n.beat;
+}
+
 export function ensureCases() {
   const s = useStore.getState();
   if (s.order.length === 0) {
@@ -712,6 +733,21 @@ export function ensureCases() {
     const phases = c.demo === COOPER_DEMO ? COOPER_PHASES : c.demo === TYLENOL_DEMO ? TYLENOL_PHASES : null;
     if (phases && !c.phases) useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...s2.cases[c.id], phases } } }));
   }
+  // ...and mark their key moments, once (so a mark the user takes off stays off).
+  let beatsMarked = false;
+  try {
+    beatsMarked = localStorage.getItem("detective-wall/demo-beats") === "1";
+    localStorage.setItem("detective-wall/demo-beats", "1");
+  } catch {
+    /* storage unavailable */
+  }
+  if (!beatsMarked)
+    for (const c of Object.values(useStore.getState().cases)) {
+      const beats = c.demo === COOPER_DEMO ? COOPER_BEATS : c.demo === TYLENOL_DEMO ? TYLENOL_BEATS : null;
+      if (!beats || c.notes.some((n) => n.beat)) continue;
+      const notes = c.notes.map((n) => (beats[n.title] ? { ...n, beat: beats[n.title] } : n));
+      useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...s2.cases[c.id], notes } } }));
+    }
   const active = useStore.getState().activeId;
   if (active) markOpened(active);
 }

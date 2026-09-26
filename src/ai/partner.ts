@@ -87,6 +87,7 @@ function toRequest(c: Case): InvestigateRequest {
       body: n.body,
       ...(n.origin.url ? { url: n.origin.url } : {}),
       ...(n.when ? { when: n.when } : {}),
+      ...(n.beat ? { beat: n.beat } : {}),
     })),
     links: c.links.map((l) => ({ from: l.from, to: l.to, relation: l.relation, status: l.status })),
     messages: c.messages.map((m) => ({ role: m.role, text: m.text })),

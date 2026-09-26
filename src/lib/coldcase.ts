@@ -4,7 +4,7 @@
 // Every fact here is limited to what is widely documented (FBI summary, HistoryLink,
 // contemporary reporting, the Citizen Sleuths tie analysis). Suspects are deliberately
 // never named: this wall is about evidence, not accusing people.
-import type { Case, Link, Message, Note, Phase } from "./types.ts";
+import type { Beat, Case, Link, Message, Note, Phase } from "./types.ts";
 import { uid } from "./geometry.ts";
 
 export const COOPER_DEMO = "cooper-1971";
@@ -17,6 +17,15 @@ export const COMMONS = {
 };
 
 /** Dates for the demo's evidence, by title: also used to backfill walls saved before dates existed. */
+/** Its key moments, by note title: how the story turns. */
+export const COOPER_BEATS: Record<string, Beat> = {
+  "Flight 305 · 24 Nov 1971": "origin",
+  "The demands": "escalation",
+  "Ransom cash on a river beach": "breakthrough",
+  "Unsolved": "dead_end",
+  "What was on the tie": "latest",
+};
+
 /** The chapters its timeline reads in. */
 export const COOPER_PHASES: Phase[] = [
   { title: "The hijacking", from: "1971-11-24" },
@@ -275,6 +284,7 @@ export function coldCase(now = Date.now()): Case {
   });
 
   const notes = [q, sketch, flight, demands, route, config, plane, knew, tie, particles, metals, tena, bills, money, place, survived, verdict, serials];
+  for (const n of notes) if (COOPER_BEATS[n.title]) n.beat = COOPER_BEATS[n.title];
   const links = [
     link(flight, demands, "causes", "The bomb threat bought the ransom", 92),
     link(route, flight, "references", "The route, in order", 91),

@@ -4,6 +4,7 @@ import { layoutTimeline, rangeLabel } from "../src/lib/timeline.ts";
 import { tylenolCase } from "../src/lib/tylenolcase.ts";
 import { NOTE_SIZE } from "../src/lib/geometry.ts";
 import { sanitizeWallUpdate } from "../src/lib/contract.ts";
+import { renderWallState } from "../server/prompt.ts";
 import { coldCase } from "../src/lib/coldcase.ts";
 import type { Link, Note } from "../src/lib/types.ts";
 
@@ -215,5 +216,61 @@ describe("dates in the tool contract", () => {
     expect(sanitizeWallUpdate({ notes: [], links: [], case_title: "  The Gardner   Museum heist " }, new Set()).case_title).toBe("The Gardner Museum heist");
     expect(sanitizeWallUpdate({ notes: [], links: [], case_title: "x".repeat(80) }, new Set()).case_title!.length).toBe(48);
     expect(sanitizeWallUpdate({ notes: [], links: [], case_title: " " }, new Set()).case_title).toBeUndefined();
+  });
+});
+
+describe("key moments", () => {
+  it("keeps moments on known notes or new refs, and dates only for undated notes on the wall", () => {
+    const out = sanitizeWallUpdate(
+      {
+        notes: [{ ref: "n1", type: "fact", title: "Arrest", body: "", when: "1990-05-02" }],
+        links: [],
+        moments: [
+          { note: "n1", beat: "breakthrough" },
+          { note: "w1", beat: "origin" },
+          { note: "w2", beat: null },
+          { note: "ghost", beat: "twist" },
+          { note: "w1", beat: "latest" },
+          { note: "w3", beat: "climax" },
+        ],
+        dates: [
+          { note: "w1", when: "1989-12-02", approx: true },
+          { note: "n1", when: "1990" },
+          { note: "w2", when: "soon" },
+        ],
+      },
+      new Set(["w1", "w2", "w3"]),
+    );
+    expect(out.moments).toEqual([
+      { note: "n1", beat: "breakthrough" },
+      { note: "w1", beat: "origin" },
+      { note: "w2", beat: null },
+    ]);
+    expect(out.dates).toEqual([{ note: "w1", when: "1989-12-02", approx: true }]);
+  });
+
+  it("puts the story's key moments in time order for the heading, and makes room for them", () => {
+    const c = tylenolCase();
+    const t = layoutTimeline(c.notes, c.links, { title: c.title, phases: c.phases });
+    expect(t.moments.map((m) => m.beat)).toEqual(["origin", "breakthrough", "escalation", "dead_end", "twist", "latest"]);
+    for (const m of t.moments) expect(m.anchor).not.toBeNull();
+    const plain = layoutTimeline(c.notes.map(({ beat: _b, ...n }) => n), c.links, { title: c.title, phases: c.phases });
+    expect(t.heading!.y).toBeLessThan(plain.heading!.y);
+  });
+
+  it("shows the partner which notes are undated and which are key moments", () => {
+    const text = renderWallState({
+      caseTitle: "X",
+      notes: [
+        { id: "a", type: "fact", status: "pinned", title: "Start", body: "", when: "1990", beat: "origin" },
+        { id: "b", type: "fact", status: "pinned", title: "Later", body: "" },
+      ],
+      links: [],
+      messages: [],
+      phases: [{ title: "The crime", from: "1990" }],
+    });
+    expect(text).toContain("- a · fact · pinned · 1990 · moment: origin · Start");
+    expect(text).toContain("- b · fact · pinned · undated · Later");
+    expect(text).toContain("1. The crime (from 1990)");
   });
 });

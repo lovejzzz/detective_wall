@@ -2,9 +2,11 @@
 // Shared by the server (tool schema) and the client (validation + offline partner).
 import { isWhen } from "./when.ts";
 import {
+  BEATS,
   NOTE_TYPES,
   RELATIONS,
   STAMPS,
+  type Beat,
   type Confidence,
   type DiagramSpec,
   type NoteType,
@@ -40,6 +42,9 @@ export interface ProposedLink {
 
 /** At most this many named chapters on a timeline. */
 export const MAX_PHASES = 6;
+/** Key moments and dates the partner can set in one turn, tidying the file. */
+export const MAX_MOMENTS = 12;
+export const MAX_DATES = 20;
 
 export interface WallUpdate {
   notes: ProposedNote[];
@@ -50,13 +55,17 @@ export interface WallUpdate {
   case_title?: string;
   /** The chapters the case's timeline reads in; replaces any named before. */
   phases?: { title: string; from: string }[];
+  /** Key moments to mark (or, with beat null, unmark) on new notes (by ref) or ones on the wall (by id). */
+  moments?: { note: string; beat: Beat | null }[];
+  /** Dates for undated notes already on the wall. */
+  dates?: { note: string; when: string; approx?: boolean }[];
 }
 
 export interface InvestigateRequest {
   caseTitle: string;
   /** The timeline's named chapters, if any. */
   phases?: { title: string; from: string }[];
-  notes: { id: string; type: NoteType; status: string; title: string; body: string; url?: string; when?: string }[];
+  notes: { id: string; type: NoteType; status: string; title: string; body: string; url?: string; when?: string; beat?: string }[];
   links: { from: string; to: string; relation: Relation; status: string }[];
   messages: { role: "user" | "assistant"; text: string }[];
   /** Photos attached to the latest user message (base64, already downscaled by the browser). */
@@ -183,6 +192,36 @@ export const UPDATE_WALL_SCHEMA = {
         },
       },
     },
+    moments: {
+      type: "array",
+      maxItems: MAX_MOMENTS,
+      description:
+        "Key moments in the story: mark a note (a new note's ref, or the id of one on the wall) as where the case began, escalated, broke open, turned, hit a dead end, was resolved, or where it stands now. Use beat null to unmark. 'origin', 'resolved' and 'latest' each belong to one note, so marking one moves it.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["note", "beat"],
+        properties: {
+          note: { type: "string" },
+          beat: { type: ["string", "null"], enum: [...BEATS, null] },
+        },
+      },
+    },
+    dates: {
+      type: "array",
+      maxItems: MAX_DATES,
+      description: "Dates for notes already on the wall that have none, by id, so they take their place on the timeline.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["note", "when"],
+        properties: {
+          note: { type: "string" },
+          when: { type: "string", description: "YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM." },
+          approx: { type: "boolean" },
+        },
+      },
+    },
     new_case: {
       type: "object",
       additionalProperties: false,
@@ -299,6 +338,28 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
   if (isStr(raw.case_title)) out.case_title = clip(raw.case_title.trim().replace(/\s+/g, " "), 48);
   const phases = sanitizePhases(raw.phases);
   if (phases.length) out.phases = phases;
+  if (Array.isArray(raw.moments)) {
+    const moments: NonNullable<WallUpdate["moments"]> = [];
+    for (const m of raw.moments.slice(0, MAX_MOMENTS * 2)) {
+      if (!m || typeof m !== "object") continue;
+      const { note, beat } = m as Record<string, unknown>;
+      const b = beat === null ? null : oneOf(beat, BEATS);
+      if (!resolvable(note) || b === undefined || moments.some((x) => x.note === note)) continue;
+      moments.push({ note, beat: b });
+    }
+    if (moments.length) out.moments = moments.slice(0, MAX_MOMENTS);
+  }
+  if (Array.isArray(raw.dates)) {
+    const dates: NonNullable<WallUpdate["dates"]> = [];
+    for (const d of raw.dates.slice(0, MAX_DATES * 2)) {
+      if (!d || typeof d !== "object") continue;
+      const { note, when, approx } = d as Record<string, unknown>;
+      // only notes already on the wall: a new note carries its own date
+      if (typeof note !== "string" || !knownIds.has(note) || !isWhen(when) || dates.some((x) => x.note === note)) continue;
+      dates.push({ note, when, ...(approx === true ? { approx: true } : {}) });
+    }
+    if (dates.length) out.dates = dates.slice(0, MAX_DATES);
+  }
   return out;
 }
 

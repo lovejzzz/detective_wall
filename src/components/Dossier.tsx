@@ -4,7 +4,7 @@ import { parseWhenInput, whenLabel } from "../lib/when.ts";
 import { photoIdOf, photoURL } from "../lib/images.ts";
 import { commonsFileOf, resolveCommons, type CommonsPhoto } from "../lib/commons.ts";
 import { ask } from "../ai/partner.ts";
-import { NOTE_TYPES, RELATIONS, STAMPS, STICKY_COLORS } from "../lib/types.ts";
+import { BEATS, BEAT_LABEL, NOTE_TYPES, RELATIONS, STAMPS, STICKY_COLORS } from "../lib/types.ts";
 import { typeLabel, useStore } from "../store.ts";
 import { RELATION_INFO } from "../lib/relations.ts";
 
@@ -224,6 +224,20 @@ export function Dossier({ c }: { c: Case }) {
           )}
 
           <WhenField note={note} />
+
+          <div className="d-row d-beats" role="group" aria-label="Key moment">
+            <span className="d-label">Moment</span>
+            {BEATS.map((b) => (
+              <button
+                key={b}
+                className={`mini-beat beat-${b} ${note.beat === b ? "is-on" : ""}`}
+                aria-pressed={note.beat === b}
+                onClick={() => s.updateNote(note.id, { beat: note.beat === b ? undefined : b })}
+              >
+                {BEAT_LABEL[b]}
+              </button>
+            ))}
+          </div>
 
           <section className="d-section">
             <h4>Origin</h4>

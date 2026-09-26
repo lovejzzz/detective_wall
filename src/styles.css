@@ -1875,6 +1875,177 @@ kbd {
   color: #8f1d15;
 }
 
+/* ───────────────────────── Key moments ───────────────────────── */
+
+/* one ink per kind of moment, shared by the ribbon, the story line and the dossier */
+.beat-origin {
+  --beat: #8f1d15;
+}
+.beat-escalation {
+  --beat: #a4481a;
+}
+.beat-breakthrough {
+  --beat: #2e6b3a;
+}
+.beat-twist {
+  --beat: #3b3f8f;
+}
+.beat-dead_end {
+  --beat: #4b4540;
+}
+.beat-resolved {
+  --beat: #1f5e4a;
+}
+.beat-latest {
+  --beat: #8a6414;
+}
+
+/* a cloth ribbon pinned over the note's top corner */
+.beat-tag {
+  position: absolute;
+  transform-origin: 0 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 17px 5px 9px;
+  font: 13px/1 var(--typed);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #f6ecd6;
+  background: var(--beat) var(--grain);
+  background-blend-mode: soft-light;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 1px 1px rgba(0, 0, 0, 0.35),
+    0 8px 14px -6px rgba(0, 0, 0, 0.75);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 50%, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+/* the brass eyelet it's pinned through */
+.beat-tag::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #f4dca0, #9c7431 70%);
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.28);
+}
+.beat-tag.is-proposed {
+  opacity: 0.7;
+}
+
+/* the story at a glance, under the case's name: each key moment on one line, in order */
+.tl-story {
+  position: relative;
+  display: flex;
+  margin: 36px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.tl-story li {
+  position: relative;
+  width: 310px;
+  flex: none;
+}
+/* the line that runs through the moments */
+.tl-story li::before {
+  content: "";
+  position: absolute;
+  top: 58px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(38, 34, 29, 0.35);
+}
+.tl-story li:first-child::before {
+  left: 20px;
+}
+.tl-story li:last-child::before {
+  right: auto;
+  width: 20px;
+}
+.tl-story button {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 0;
+  width: 100%;
+  padding: 0 22px 0 0;
+  border: 0;
+  text-align: left;
+  color: var(--ink);
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.tl-story b {
+  height: 38px;
+  font: 400 30px/38px var(--typed);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--beat);
+}
+.tl-story i {
+  width: 40px;
+  height: 40px;
+  margin: 1px 0 12px 1px;
+  border-radius: 50%;
+  background: var(--beat);
+  box-shadow:
+    0 0 0 5px #f1e9d6,
+    0 0 0 7px var(--beat);
+  transition: scale 0.2s ease;
+}
+.tl-story .when {
+  font: 29px/1.1 var(--typed);
+  color: var(--ink-soft);
+}
+.tl-story .what {
+  display: -webkit-box;
+  margin-top: 6px;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font: 700 40px/1 var(--hand);
+  color: var(--ink);
+}
+.tl-story button:hover i,
+.tl-story button:focus-visible i {
+  scale: 1.25;
+}
+.tl-story button:hover .what {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.tl-story button:focus-visible {
+  outline: 3px solid var(--beat);
+  outline-offset: 6px;
+}
+
+/* choosing one in a note's file */
+.d-beats {
+  gap: 6px;
+}
+.mini-beat {
+  padding: 5px 8px 4px;
+  border: 1.5px solid var(--beat);
+  border-radius: 2px;
+  font: 11px/1 var(--typed);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--beat);
+  background: transparent;
+  cursor: pointer;
+}
+.mini-beat.is-on {
+  color: #f6ecd6;
+  background: var(--beat);
+}
+
 /* ───────────────────────── Photo drop target ───────────────────────── */
 
 .wall3d.is-dropping::after {

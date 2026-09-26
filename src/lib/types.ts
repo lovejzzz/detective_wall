@@ -10,6 +10,21 @@ export const RELATIONS: Relation[] = ["supports", "causes", "contradicts", "refe
 export const STAMPS: Stamp[] = ["LIKELY", "CONFIRMED", "RULED OUT", "OPEN"];
 export const STICKY_COLORS: StickyColor[] = ["yellow", "pink", "blue", "green"];
 
+/** A key moment in the story of a case, marked on its note: the shape of the case at a glance. */
+export type Beat = "origin" | "escalation" | "breakthrough" | "twist" | "dead_end" | "resolved" | "latest";
+export const BEATS: Beat[] = ["origin", "escalation", "breakthrough", "twist", "dead_end", "resolved", "latest"];
+/** A case begins once, is resolved once, and stands in one place now: these mark a single note each. */
+export const SINGLE_BEATS: Beat[] = ["origin", "resolved", "latest"];
+export const BEAT_LABEL: Record<Beat, string> = {
+  origin: "It begins",
+  escalation: "It escalates",
+  breakthrough: "Breakthrough",
+  twist: "Twist",
+  dead_end: "Dead end",
+  resolved: "Resolved",
+  latest: "Where it stands",
+};
+
 export interface DiagramSpec {
   kind: "bars" | "circles" | "flow";
   items: { label: string; value?: number }[];
@@ -47,6 +62,8 @@ export interface Note {
   when?: string;
   /** The date is approximate. */
   approx?: boolean;
+  /** A key moment in the case's story (where it began, a breakthrough, a twist...). */
+  beat?: Beat;
   origin: NoteOrigin;
   createdAt: number;
 }

@@ -53,6 +53,25 @@ function tapeTexture(): THREE.Texture {
   return t;
 }
 
+/** A pool of warm light: how a key moment stands out on the cork, as if a lamp were turned on it. */
+function glowTexture(): THREE.Texture {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d")!;
+  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, "rgba(255,255,255,1)");
+  grad.addColorStop(0.45, "rgba(255,255,255,0.5)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/** A wax seal on the cord where a key moment hangs, in place of the plain tack. */
+const SEAL = new THREE.CylinderGeometry(8.5, 9.5, 3.2, 28).rotateX(Math.PI / 2);
+
 /**
  * The timeline as a physical thing: a band of shade behind each chapter, a taut cord across it,
  * a tack per event, a thread to each note, and short threads down to the photos hanging with them.
@@ -72,6 +91,10 @@ export const Timeline3D = memo(function Timeline3D({ layout }: { layout: Timelin
     const map = bandTexture();
     return [0.3, 0.16].map((opacity) => new THREE.MeshBasicMaterial({ color: "#0c0704", map, transparent: true, opacity, depthWrite: false }));
   }, []);
+  const glowMat = useMemo(
+    () => new THREE.MeshBasicMaterial({ color: "#ffcf8f", map: glowTexture(), transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false }),
+    [],
+  );
   const tapeMat = useMemo(() => new THREE.MeshStandardMaterial({ map: tapeTexture(), transparent: true, roughness: 0.92, depthWrite: false }), []);
   useEffect(
     () => () => {
@@ -79,12 +102,14 @@ export const Timeline3D = memo(function Timeline3D({ layout }: { layout: Timelin
       threadMat.dispose();
       tapeMat.map?.dispose();
       tapeMat.dispose();
+      glowMat.map?.dispose();
+      glowMat.dispose();
       bandMats.forEach((m) => {
         m.map?.dispose();
         m.dispose();
       });
     },
-    [cordMat, threadMat, tapeMat, bandMats],
+    [cordMat, threadMat, tapeMat, glowMat, bandMats],
   );
 
   const cords = useMemo(() => {
@@ -108,6 +133,7 @@ export const Timeline3D = memo(function Timeline3D({ layout }: { layout: Timelin
   }, [layout]);
   useEffect(() => () => threads.forEach((g) => g.dispose()), [threads]);
 
+  const sealed = useMemo(() => new Set(layout.moments.flatMap((m) => (m.anchor ? [`${Math.round(m.anchor.x)}:${Math.round(m.anchor.y)}`] : []))), [layout]);
   const anchors = useMemo(() => {
     const seen = new Set<string>();
     const out: [number, number][] = [];
@@ -151,8 +177,18 @@ export const Timeline3D = memo(function Timeline3D({ layout }: { layout: Timelin
           ))}
         </group>
       ))}
-      {anchors.map(([x, y]) => (
-        <mesh key={`${x}:${y}`} geometry={TACK} material={pinMaterials.brass} position={[x, -y, CORD_Z - 2.5]} scale={1.05} castShadow />
+      {anchors.map(([x, y]) =>
+        sealed.has(`${Math.round(x)}:${Math.round(y)}`) ? (
+          <mesh key={`${x}:${y}`} geometry={SEAL} material={pinMaterials.red} position={[x, -y, CORD_Z + 2]} castShadow />
+        ) : (
+          <mesh key={`${x}:${y}`} geometry={TACK} material={pinMaterials.brass} position={[x, -y, CORD_Z - 2.5]} scale={1.05} castShadow />
+        ),
+      )}
+      {/* key moments stand in their own pool of light */}
+      {layout.moments.map((m) => (
+        <mesh key={`glow-${m.id}`} position={[m.x, -m.y, 0.9]} scale={[m.w * 2.1, m.h * 1.75, 1]} material={glowMat} renderOrder={-1}>
+          <planeGeometry />
+        </mesh>
       ))}
       {threads.map((g, i) => (
         <mesh key={i} geometry={g} material={threadMat} castShadow />

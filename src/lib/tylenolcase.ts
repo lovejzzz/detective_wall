@@ -6,10 +6,20 @@
 // James W. Lewis appears only as documented: convicted of extortion over a letter to Johnson &
 // Johnson, never charged with the poisonings, which he denied. The 2026 Idaho identification is
 // reported as the sheriff's office reported it: a possible tie, not a named suspect.
-import type { Case, Link, Message, Note, Phase } from "./types.ts";
+import type { Beat, Case, Link, Message, Note, Phase } from "./types.ts";
 import { uid } from "./geometry.ts";
 
 export const TYLENOL_DEMO = "tylenol-1982";
+
+/** Its key moments, by note title: how the story turns. */
+export const TYLENOL_BEATS: Record<string, Beat> = {
+  "Mary Kellerman, 12": "origin",
+  "Two firefighters make the link": "breakthrough",
+  "The recall": "escalation",
+  "Extortion, not murder": "dead_end",
+  "1986: it happens again": "twist",
+  "Identified after 44 years": "latest",
+};
 
 /** The chapters its timeline reads in. */
 export const TYLENOL_PHASES: Phase[] = [
@@ -404,6 +414,7 @@ export function tylenolCase(now = Date.now()): Case {
     verdict,
     lead,
   ];
+  for (const n of notes) if (TYLENOL_BEATS[n.title]) n.beat = TYLENOL_BEATS[n.title];
   const links = [
     link(pElk, kellerman, "references", "Where she lived", 228),
     link(pArl, janus, "references", "Where it happened", 227),

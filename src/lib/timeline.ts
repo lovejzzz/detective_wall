@@ -2,7 +2,7 @@
 // the top, then one chapter per row, each with its own cord. Dated notes hang above and below
 // their chapter's cord in order, a photo strung to an event hangs with that event, long silences
 // are marked, and anything else undated waits in a tray at the end.
-import type { Link, Note, Phase } from "./types.ts";
+import type { Beat, Link, Note, Phase } from "./types.ts";
 import { NOTE_SIZE } from "./geometry.ts";
 import { isWhen, precisionOf, whenDay, whenKey, whenLabel, whenYears } from "./when.ts";
 
@@ -50,6 +50,8 @@ export interface TimelineLayout {
   threads: { from: { x: number; y: number }; to: { x: number; y: number } }[];
   /** The tray of undated evidence after the last chapter: its band's top-left corner and size. */
   aside: { x: number; y: number; w: number; h: number; count: number } | null;
+  /** The case's key moments where they hang, dated ones first and in order: the story at a glance. */
+  moments: { id: string; beat: Beat; title: string; when?: string; x: number; y: number; w: number; h: number; anchor: { x: number; y: number } | null }[];
   bounds: { x0: number; y0: number; x1: number; y1: number };
 }
 
@@ -57,8 +59,9 @@ const GAP_Y = 64; // between the cord and the nearest edge of a note (room for t
 const COL_GAP = 34;
 /** Room on the cord for a date tag, which sits just before its first event. */
 const STOP_GAP = 170;
-/** The case's name and span, above the first chapter. */
+/** The case's name and span, above the first chapter; taller when it carries the story's key moments. */
 const HEADING_H = 300;
+const HEADING_STORY_H = 560;
 /** A chapter's own heading, between the top of its band and its highest note. */
 const CHAPTER_HEAD = 240;
 const ROW_GAP = 90;
@@ -83,6 +86,8 @@ function gapLabel(years: number): string {
 
 /** About how wide the typed heading runs (80px Special Elite, with its padding), to keep it in frame. */
 const headingWidth = (title: string) => title.length * 80 * 0.6 + 130;
+/** Each key moment's column in the heading's story line (see .tl-story). */
+const STORY_STEP = 310;
 
 function laterLabel(years: number): string | null {
   if (years < 0.25) return null;
@@ -383,8 +388,17 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
     aside = { x: left, y: sectionTop, w: Math.max(right - left, span + PAD * 2), h: bottom - sectionTop + PAD, count: undated.length };
   }
 
+  const moments: TimelineLayout["moments"] = [...dated, ...undatedAll]
+    .filter((n) => n.beat && slots.has(n.id))
+    .map((n) => {
+      const s = slots.get(n.id)!;
+      const { w, h } = NOTE_SIZE[n.type];
+      return { id: n.id, beat: n.beat!, title: n.title, when: n.when, x: s.x, y: s.y, w, h, anchor: s.row === "above" || s.row === "below" ? s.anchor : null };
+    });
+
+  const headingH = moments.some((m) => m.when) ? HEADING_STORY_H : HEADING_H;
   const heading = dated.length
-    ? { title: opts.title?.trim() || "Chronology", range: rangeLabel(dated[0].when!, dated[dated.length - 1].when!), count: dated.length, x: left, y: -HEADING_H }
+    ? { title: opts.title?.trim() || "Chronology", range: rangeLabel(dated[0].when!, dated[dated.length - 1].when!), count: dated.length, x: left, y: -headingH }
     : null;
   return {
     slots,
@@ -396,10 +410,11 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
     heading,
     threads,
     aside,
+    moments,
     bounds: {
       x0: left,
-      y0: heading ? -HEADING_H : 0,
-      x1: Math.max(right, aside ? aside.x + aside.w : right, heading ? left + headingWidth(heading.title) : right),
+      y0: heading ? heading.y : 0,
+      x1: Math.max(right, aside ? aside.x + aside.w : right, heading ? left + Math.max(headingWidth(heading.title), moments.filter((m) => m.when).length * STORY_STEP + 130) : right),
       y1: bottom,
     },
   };
