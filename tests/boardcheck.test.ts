@@ -100,6 +100,32 @@ describe("the wall as the partner reads it", () => {
     expect(text).toContain("the origin (m, 2022-03-31T19:00) is dated after the latest (r, 2007)");
   });
 
+  it("doesn't mistake a later year in the text for a wrong date", () => {
+    const text = renderWallState({
+      caseTitle: "X",
+      notes: [
+        note("q", "hypothesis", { by: "user" }),
+        note("b", "fact", { when: "1948-12-01", body: "Found on the beach; exhumed in 2021 and named in 2022." }),
+        note("s", "fact", { when: "1949-06-06", body: "Inquest reopened in 1958." }),
+      ],
+      links: [{ from: "b", to: "s", relation: "causes", status: "pinned" }],
+      messages: [],
+    });
+    expect(text).not.toContain("b is dated");
+    expect(text).toContain("s is dated 1949-06-06 but its text says 1958");
+  });
+
+  it("notices a conclusion strung to everything", () => {
+    const facts = ["a", "b", "d", "e", "f"];
+    const text = renderWallState({
+      caseTitle: "X",
+      notes: [note("q", "hypothesis", { by: "user" }), note("c", "conclusion", { stamp: "CONFIRMED" }), ...facts.map((id) => note(id, "fact"))],
+      links: facts.map((id) => ({ from: id, to: "c", relation: "supports" as const, status: "pinned" })),
+      messages: [],
+    });
+    expect(text).toContain("c carries 5 strings");
+  });
+
   it("stays quiet about a board in good order", () => {
     const text = renderWallState({
       caseTitle: "X",

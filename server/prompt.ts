@@ -26,7 +26,7 @@ Write notes like a case file: the title says the one thing the note establishes,
 
 A wall is read at a glance, so less is more:
 - Fewer, stronger cards. One fact per card; no card that restates the question or another card (string to the existing one instead). A good turn adds three to seven cards; the limit is a ceiling, not a target.
-- Strings carry reasoning, not decoration: tie evidence to the claim or hunch it bears on, and an event to what it caused. Don't string cards to the question card; it needs at most one string, to the current conclusion. Never more new strings than new cards.
+- Strings carry reasoning, not decoration: tie evidence to the claim or hunch it bears on, and an event to what it caused. Don't string cards to the question card; it needs at most one string, to the current conclusion. The conclusion rests on its two or three decisive pieces of evidence, not on everything: string the rest to the event, subject or hunch they bear on, so the wall reads as a chain of reasoning, not a fan. Never more new strings than new cards.
 - Keep the board clean as it grows. When a card is duplicated by a stronger one, superseded or disproved by a better source, or a hunch the evidence has answered, propose taking it down with "retire" (by id, with a short reason) rather than piling new cards on top of it. Leave the user's own cards (marked "the user's") alone unless they are plainly wrong. When new evidence overturns your current conclusion, send a new conclusion card and retire the old one, so the wall gives one answer.
 - Tidy the layout: set "arrange" on a case's first turn, and whenever a turn adds four or more cards to a wall of a dozen or more, so the board reads in order (question and answer, subjects, events in time, the rest).
 
@@ -137,12 +137,21 @@ export function boardCheck(req: InvestigateRequest, hasPhases: boolean): string 
   if (answer && answer.stamp !== "CONFIRMED" && answer.stamp !== "RULED OUT" && !rivals.length && live.length >= 6)
     found.push(`one explanation (${answer.id}, ${answer.stamp ?? "unstamped"}) and no rival on the wall: put up the strongest alternative as a hunch, strung to the evidence that would tell them apart.`);
 
+  // A conclusion strung to everything reads as a fan, not an argument.
+  if (answer) {
+    const load = req.links.filter((l) => (l.from === answer.id || l.to === answer.id) && l.from !== question?.id && l.to !== question?.id).length;
+    if (load > 4) found.push(`${answer.id} carries ${load} strings: a conclusion rests on two or three decisive pieces; string new evidence to the event, subject or hunch it bears on.`);
+  }
+
   const dated = live.filter((n) => n.when);
-  // A date its own card contradicts: the text names years and none is the date's year.
+  // A date its own card contradicts: the text never names the date's year, and either names just
+  // one other year or one that looks like a slip of the pen (1922 written 2022). A card dated 1948
+  // that mentions "identified in 2022" among other years isn't flagged.
   for (const n of dated) {
     const year = n.when!.slice(0, 4);
     const said = [...new Set(`${n.title} ${n.body}`.match(/(?<!\d)(1[0-9]\d\d|20\d\d)(?!\d)/g) ?? [])];
-    if (said.length && !said.includes(year)) found.push(`${n.id} is dated ${n.when} but its text says ${said.slice(0, 3).join(", ")}: correct the date with "fix" if it's wrong.`);
+    const slip = (y: string) => [...y].filter((d, i) => d !== year[i]).length === 1 || y.slice(2) === year.slice(2);
+    if (said.length && !said.includes(year) && (said.length === 1 || said.some(slip))) found.push(`${n.id} is dated ${n.when} but its text says ${said.slice(0, 3).join(", ")}: correct the date with "fix" if it's wrong.`);
   }
   const beatAt = (b: string) => live.find((n) => n.beat === b && n.when);
   const origin = beatAt("origin");
