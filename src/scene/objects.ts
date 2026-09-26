@@ -40,13 +40,14 @@ function lift(type: NoteType, u: number, v: number, r: () => number, k: number[]
 
 const geomCache = new Map<string, THREE.PlaneGeometry>();
 
-export function paperGeometry(type: NoteType, id: string): THREE.PlaneGeometry {
+/** A sheet's curled paper. `plain`: a coarser mesh, for machines that need the wall lighter. */
+export function paperGeometry(type: NoteType, id: string, plain = false): THREE.PlaneGeometry {
   const seed = hashString(id) % 7; // a handful of variants per type is plenty
-  const key = `${type}:${seed}`;
+  const key = `${type}:${seed}:${plain ? "plain" : "full"}`;
   const hit = geomCache.get(key);
   if (hit) return hit;
   const { w, h } = NOTE_SIZE[type];
-  const g = new THREE.PlaneGeometry(w, h, 28, 32);
+  const g = plain ? new THREE.PlaneGeometry(w, h, 12, 14) : new THREE.PlaneGeometry(w, h, 28, 32);
   const r = mulberry32(seed + 1);
   const k = [r() * 6 - 3, r(), r(), r()];
   const pos = g.attributes.position;

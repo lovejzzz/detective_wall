@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo } from "react";
 import * as THREE from "three";
+import { useTier } from "./quality.ts";
 import type { Link, Note, Relation } from "../lib/types.ts";
 import { pinPoint } from "../lib/geometry.ts";
 import { paintTag } from "./paint.ts";
@@ -23,14 +24,15 @@ function endpoints(a: Note, b: Note) {
 
 function StringTube({ from, to, relation, proposed, lit, faded }: { from: THREE.Vector3; to: THREE.Vector3; relation: Relation; proposed: boolean; lit: boolean | null; faded?: boolean }) {
   const { stringNormal, dash } = sharedTextures();
+  const plain = useTier() === 2;
   const look = LOOK[relation];
   const key = `${from.x},${from.y},${to.x},${to.y}`;
   const { geometry, length } = useMemo(() => {
     const curve = stringCurve(from, to);
     const radius = proposed ? 0.85 : look.radius;
-    return { geometry: new THREE.TubeGeometry(curve, 64, radius, 7, false), length: curve.getLength() };
+    return { geometry: new THREE.TubeGeometry(curve, plain ? 28 : 64, radius, plain ? 5 : 7, false), length: curve.getLength() };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, proposed, look.radius]);
+  }, [key, proposed, look.radius, plain]);
   const material = useMemo(() => {
     if (proposed) {
       // Pencil line: graphite grey, dashed.

@@ -9,6 +9,7 @@ import type { Camera } from "../lib/types.ts";
 import { reducedMotion } from "../lib/motion.ts";
 import { sharedTextures } from "./objects.ts";
 import { Grade } from "./grade.tsx";
+import { useTier } from "./quality.ts";
 
 const debug = new URLSearchParams(location.search);
 
@@ -102,6 +103,7 @@ export function lampPlacement(view: View, viewportH: number) {
 
 export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y: number } | null; rig: React.MutableRefObject<LightRig> }) {
   const { size } = useThree();
+  const tier = useTier();
   const lamp = useRef<THREE.SpotLight>(null);
   const spot = useRef<THREE.SpotLight>(null);
 
@@ -115,7 +117,7 @@ export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y
     const S = spot.current;
     if (!L || !S) return;
     // The lamp still hangs on its cord out of shot: a slow sway keeps the shadows faintly alive.
-    const sway = reducedMotion() ? 0 : Math.sin(state.clock.elapsedTime * 0.55) * 7 * (0.8 / view.cam.zoom);
+    const sway = reducedMotion() || tier > 0 ? 0 : Math.sin(state.clock.elapsedTime * 0.55) * 7 * (0.8 / view.cam.zoom);
     L.position.set(pos.x + sway, pos.y - 10 * (0.8 / view.cam.zoom), pos.z);
     lampTarget.position.set(view.cam.x, pos.y - (size.height / view.cam.zoom) * 0.42, 0);
     // Light falls off with distance from the bulb: brightest just under the lamp.
@@ -164,7 +166,7 @@ export function Lights({ view, focus, rig }: { view: View; focus: { x: number; y
         angle={0.42}
         penumbra={1}
         target={spotTarget}
-        castShadow
+        castShadow={tier < 2}
         shadow-mapSize={[SHADOW_SIZE, SHADOW_SIZE]}
         shadow-bias={-0.00002}
         shadow-normalBias={0.02}
@@ -224,6 +226,7 @@ void main() {
 
 export function Dust({ view, rig }: { view: View; rig: React.MutableRefObject<LightRig> }) {
   const { size, gl } = useThree();
+  const tier = useTier();
   const count = 1100;
   const geometry = useMemo(() => {
     const g = new THREE.BufferGeometry();
@@ -271,7 +274,7 @@ export function Dust({ view, rig }: { view: View; rig: React.MutableRefObject<Li
     u.uLampDir.value.copy(r.lampTarget).sub(r.lampPos).normalize();
     u.uSize.value = 5200 * gl.getPixelRatio() * (d / 2500);
   });
-  if (reducedMotion()) return null;
+  if (reducedMotion() || tier === 2) return null;
   return <points geometry={geometry} material={material} frustumCulled={false} />;
 }
 
@@ -286,10 +289,12 @@ export const LITE =
 const SHADOW_SIZE = LITE ? 1024 : 2048;
 
 export function Lens() {
+  // a machine that can't keep up loses the ambient occlusion and the multisampling first
+  const tier = useTier();
   if (debug.get("fx") === "0") return null;
   return (
-    <EffectComposer multisampling={LITE ? 0 : 4}>
-      {debug.get("ao") === "0" || LITE ? <></> : <N8AO aoRadius={18} distanceFalloff={0.6} intensity={1.6} quality="medium" halfRes />}
+    <EffectComposer multisampling={LITE || tier > 0 ? 0 : 4}>
+      {debug.get("ao") === "0" || LITE || tier > 0 ? <></> : <N8AO aoRadius={18} distanceFalloff={0.6} intensity={1.6} quality="medium" halfRes />}
       <Bloom mipmapBlur intensity={0.45} luminanceThreshold={0.78} luminanceSmoothing={0.3} />
       <ToneMapping mode={debug.get("tm") === "agx" ? ToneMappingMode.AGX : ToneMappingMode.NEUTRAL} />
       {debug.get("grade") === "0" ? <></> : <Grade />}

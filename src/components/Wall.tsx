@@ -13,6 +13,7 @@ import { NoteMesh } from "../scene/NoteMesh.tsx";
 import { Strings3D, stringMid, stringPoint } from "../scene/Strings3D.tsx";
 import { RELATION_INFO } from "../lib/relations.ts";
 import { CameraRig, Cork, Dust, LITE, Lens, Lights, type LightRig, type View } from "../scene/Room.tsx";
+import { Governor, Pace, dprFor, getTier } from "../scene/quality.ts";
 import { rustle } from "../lib/sound.ts";
 import { Wastebasket } from "./Wastebasket.tsx";
 import { fontsReady, paintedWords } from "../scene/paint.ts";
@@ -939,7 +940,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       <Canvas
         shadows="soft"
         flat
-        dpr={LITE ? [1, 1.5] : [1, 2]}
+        dpr={dprFor(getTier(), LITE)}
         gl={{ antialias: false, powerPreference: "high-performance", stencil: false }}
         camera={{ fov: 30, position: [0, 0, 2000] }}
         onPointerMissed={() => onHover(null)}
@@ -949,6 +950,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       >
         <color attach="background" args={["#0d0906"]} />
         {fontsVersion > 0 && (!cjkText || cjkDone === cjkText) && <FirstFrames />}
+        <Pace moving={cam} />
+        <Governor lite={LITE} />
         <CameraRig view={view} />
         <Lights view={view} focus={focusNote} rig={rig} />
         <Cork />

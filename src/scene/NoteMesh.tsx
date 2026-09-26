@@ -9,6 +9,7 @@ import { commonsFileOf, loadCommonsImage } from "../lib/commons.ts";
 import { loadPagePhoto, pagePhotoOf } from "../lib/pagephoto.ts";
 import { trackBootLoad } from "../lib/boot.ts";
 import { livePose } from "./live.ts";
+import { useTier } from "./quality.ts";
 import { paintKey, paintNote } from "./paint.ts";
 import { PUSHPIN, TACK, binderClip, contactShadow, liftAtPin, paperGeometry, pinMaterials, sharedTextures, tapeMaterial } from "./objects.ts";
 
@@ -172,7 +173,8 @@ export const NoteMesh = memo(function NoteMesh(p: Props) {
   const { note } = p;
   const { w, h } = NOTE_SIZE[note.type];
   const tex = useNoteTexture(note, p.fontsVersion);
-  const geom = useMemo(() => paperGeometry(note.type, note.id), [note.type, note.id]);
+  const plain = useTier() === 2;
+  const geom = useMemo(() => paperGeometry(note.type, note.id, plain), [note.type, note.id, plain]);
   const { paperNormal } = sharedTextures();
   const proposed = note.status === "proposed";
   const group = useRef<THREE.Group>(null);
