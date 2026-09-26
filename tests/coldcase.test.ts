@@ -44,15 +44,15 @@ describe("Flight 305 demo case", () => {
 });
 
 describe("real case photos", () => {
-  it("come from Wikimedia Commons, with a drawn fallback where one exists", async () => {
+  it("come from Wikimedia Commons or the FBI's own pages, with a drawn fallback where one exists", async () => {
     const { COMMONS } = await import("../src/lib/coldcase.ts");
     const c = coldCase(0);
     const photos = c.notes.filter((n) => n.type === "photo");
     const commons = photos.filter((n) => n.imageUrl?.startsWith("commons:")).map((n) => n.imageUrl!.slice(8));
     expect(commons.sort()).toEqual(Object.values(COMMONS).sort());
     expect(photos.find((n) => n.imageUrl === `commons:${COMMONS.plane}`)?.imageFallback).toBe("sketch:727");
-    // the tie has no free photo, so it stays an illustration
-    expect(photos.some((n) => n.imageUrl === "sketch:tie")).toBe(true);
+    // the tie is shown as the FBI published it
+    expect(photos.find((n) => n.title.includes("tie"))?.imageUrl).toMatch(/^page:https:\/\/www\.fbi\.gov\//);
   });
 
   it("only Commons' media server is accepted for URL-sourced images", async () => {

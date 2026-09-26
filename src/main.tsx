@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
-import { ensureCases } from "./store.ts";
+import { ensureCases, useStore } from "./store.ts";
 import { installTextures } from "./lib/textures.ts";
 import { checkPartner } from "./ai/partner.ts";
 import { startSoundDirector } from "./lib/soundDirector.ts";
@@ -17,6 +17,13 @@ import "./styles.css";
 
 installTextures();
 ensureCases();
+// On a phone the notepad is a sheet over half the screen: a case that already has a wall opens
+// with it folded, so the wall is what you see first.
+if (window.innerWidth < 760) {
+  const s = useStore.getState();
+  const c = s.activeId ? s.cases[s.activeId] : undefined;
+  if (c && c.notes.length > 1 && s.notepadOpen) useStore.setState({ notepadOpen: false });
+}
 void checkPartner();
 startSoundDirector();
 

@@ -16,7 +16,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const LEEHYUNGHO_DEMO = "leehyungho-1991";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const LEEHYUNGHO_VERSION = 1;
+export const LEEHYUNGHO_VERSION = 2;
 
 export const LEEHYUNGHO_PHASES: Phase[] = [
   { title: "The playground and the car phone", from: "1991-01-29" },
@@ -92,6 +92,7 @@ const spec: DemoSpec = {
     { key: "sbs2001", type: "web", title: "SBS: slight differences in the voice", when: "2001-04-21", url: KO_WIKI, body: "그것이 알고싶다 returned to the case; a finer voiceprint analysis reported small differences between recordings, and the programme concluded two men were involved." },
     { key: "statute", type: "fact", title: "The statute of limitations runs out", when: "2006-01-28", approx: true, beat: "dead_end", url: KHAN_2011, body: "The 15-year limit for murder expired at the end of 28 January 2006 (some reports give 29 January). With the Hwaseong murders and the Frog Boys, it became one of Korea's three great unsolved cases." },
     { key: "film", type: "web", title: "그놈 목소리: the real voice in cinemas", when: "2007-02-01", url: "https://www.khan.co.kr/article/200701251802371", body: "Park Jin-pyo's film, billed as a \"wanted-poster film\", ends with the kidnapper's actual recorded calls and an appeal: please listen carefully to this voice. Its website linked an online investigation HQ, wanted1991.org." },
+    { key: "pPoster", type: "photo", photoPage: "https://www.newswire.co.kr/newsRead.php?no=210156", title: "The teaser poster for 그놈 목소리", body: "The caller as a silhouette, no actors' faces (Film company Zip, via Newswire, 7 Dec 2006)." },
     { key: "mbc", type: "web", title: "MBC ages the face and the voice", when: "2007-02-10", url: "https://news.sbs.co.kr/news/endPage.do?news_id=N1000217486", body: "MBC's 뉴스 후 had facial and voiceprint experts age the montage and the voice by 16 years, and used the 46 recorded calls to estimate the caller's personality and job." },
     { key: "tips2007", type: "fact", title: "Tips go to Gangnam police", when: "2007-02-14", url: "https://www.khan.co.kr/article/200702141805001", body: "About 200 tips reached the online HQ, which offered a ₩30 million reward; a missing-children group passed 18 to Gangnam police. Police accepted them but said that with the statute expired they could not compel anyone; they would check only those who consented." },
 
@@ -153,6 +154,7 @@ const spec: DemoSpec = {
     { key: "weekdays", type: "fact", title: "No calls at weekends", proposed: true, url: "https://www.goodmorningcc.com/news/articleView.html?idxno=297425", body: "Voice scientist Cho Dong-wook notes the caller avoided Saturdays and Sundays and spoke of getting home: in his view, a man with a family and a routine." },
   ],
   links: [
+    { from: "pPoster", to: "film", relation: "references", reason: "How the film was sold" },
     { from: "pApt", to: "kidnap", relation: "references", reason: "Where he lived" },
     { from: "pGrandeur", to: "gimpo", relation: "references", reason: "The car with the car phone" },
     { from: "pGimpo", to: "gimpo", relation: "references", reason: "The first drop" },

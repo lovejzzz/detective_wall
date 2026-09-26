@@ -19,14 +19,16 @@ describe("Tylenol demo case", () => {
     for (const n of c.notes.filter((x) => x.type === "web")) expect(n.origin.url).toMatch(/^https:\/\//);
   });
 
-  it("pins every Commons photo, each a valid file name credited to its page", () => {
+  it("pins every Commons photo, each a valid file name credited to its page, and the rest by their publishers", () => {
     const photos = c.notes.filter((n) => n.type === "photo");
-    expect(photos).toHaveLength(Object.keys(TYLENOL_COMMONS).length);
-    for (const p of photos) {
+    const commons = photos.filter((p) => p.imageUrl?.startsWith("commons:"));
+    expect(commons).toHaveLength(Object.keys(TYLENOL_COMMONS).length);
+    for (const p of commons) {
       const file = p.imageUrl!.replace(/^commons:/, "");
       expect(commonsFile(file)).toBe(file);
       expect(p.origin.url).toContain("commons.wikimedia.org/wiki/File:");
     }
+    for (const p of photos.filter((x) => !x.imageUrl?.startsWith("commons:"))) expect(p.origin.url).toBe(p.imageUrl!.replace(/^page:/, ""));
   });
 
   it("puts the case's development on the timeline, from 1982 to 2026", () => {

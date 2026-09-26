@@ -16,7 +16,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const FROGBOYS_DEMO = "frogboys-1991";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const FROGBOYS_VERSION = 1;
+export const FROGBOYS_VERSION = 2;
 
 export const FROGBOYS_PHASES: Phase[] = [
   { title: "Salamander eggs on election day", from: "1991-03-26" },
@@ -133,12 +133,14 @@ const spec: DemoSpec = {
     // ── Reopened after Hwaseong ──
     { key: "coldTeam", type: "fact", title: "The file goes to Daegu's cold-case team", when: "2019-04-25", url: YNA_2019_0919, body: "The main records moved from Seongseo police to the Daegu Metropolitan Police Agency's cold-case team. Over 1,500 tips since 2002 had all come to nothing." },
     { key: "reopen", type: "fact", title: "\"From scratch\": the police chief on the mountain", when: "2019-09-20T13:00", beat: "escalation", url: YNA_2019, body: "Two days after police named a suspect in the Hwaseong serial murders, Commissioner General Min Gap-ryong became the first police chief to visit the site and promised the families a reinvestigation using every modern technique." },
+    { key: "pChiefSite", type: "photo", photoPage: "https://www.joongang.co.kr/article/23582329", title: "The police chief at the grave site, 2019", body: "Min Gap-ryong saluting at the Sebang-gol site, 20 Sep 2019 (Yonhap, via JoongAng Ilbo)." },
     { key: "pKNPA", type: "photo", photo: "Korean National Police Agency Building01.jpg", title: "National Police Agency, Seoul", body: "Headquarters of the force whose chief ordered the reinvestigation (2009)." },
     { key: "audit", type: "fact", title: "Police tell parliament: homicide", when: "2019-10-10T15:20", approx: true, url: OHMY_2019, body: "Daegu's police chief told a National Assembly audit the boys were killed by multiple blunt-force blows. A US review of 247 skull photos found screwdriver and blunt injuries on one skull, blunt injury on another, and possibly a heavy weight on a third." },
     { key: "pDaeguPolice", type: "photo", photo: "Daegu Metroporitan Police Agency.JPG", title: "Daegu Metropolitan Police Agency", body: "Where the audit was held and the cold-case team works (photographed 2015)." },
     { key: "nfs", type: "fact", title: "New tests find nothing", when: "2020-06-03", url: YNA_2020, body: "About 100 items, clothing and damaged skulls among them, went to the National Forensic Service. Repeated reports came back: nothing meaningful for identifying anyone." },
     { key: "pNFS", type: "photo", photo: "231226 국립과학수사연구원.jpg", title: "National Forensic Service", body: "The forensic institute in Wonju Innovation City (2023)." },
     { key: "memorial", type: "fact", title: "Thirty years: a memorial stone", when: "2021-03-26T11:00", url: KHAN_2021, body: "Daegu unveiled a granite \"memorial and children's safety\" stone in Seonwon Park by Waryongsan. Police had received about 50 tips since reopening, none useful." },
+    { key: "pStone", type: "photo", photoPage: "https://www.yna.co.kr/view/AKR20240326095400053", title: "The memorial stone, Seonwon Park", body: "The boys' memorial by Waryongsan (Yonhap file photo, 26 Mar 2024)." },
     { key: "pd", type: "web", title: "MBC tests the caliper theory", when: "2022-07-19", url: PD_2022, body: "PD Su-cheop struck pig skulls with tools: a vernier caliper and pruning shears came closest to the X-shaped mark. It aired soldiers' and witnesses' accounts; the unit said it had nothing confirmed to add." },
     { key: "pCaliper", type: "photo", photo: "Mid 1990s Kanon vernier scale caliper resolution 0 05 mm made in Japan.jpg", title: "A vernier caliper", body: "A mid-1990s Japanese steel caliper: the kind of tool a 2022 theory proposed (not evidence)." },
     { key: "anniv35", type: "fact", title: "Thirty-five years, still no answer", when: "2026-03-26T10:00", beat: "latest", url: YNA_2026, body: "At the 35th memorial in Seonwon Park, families called for a truth commission, a memorial hall, release of the investigation records and a meeting with the president. Daegu police say evidence re-examination and a review of the records continue." },
@@ -170,6 +172,8 @@ const spec: DemoSpec = {
     { from: "pSeongseoPolice", to: "handover", relation: "references", reason: "Kept the file" },
     { from: "pAssembly", to: "taewan", relation: "references", reason: "Where the law passed" },
     { from: "pKNPA", to: "reopen", relation: "references", reason: "Ordered the reinvestigation" },
+    { from: "pChiefSite", to: "reopen", relation: "references", reason: "At the grave site" },
+    { from: "pStone", to: "memorial", relation: "references", reason: "The stone itself" },
     { from: "pDaeguPolice", to: "audit", relation: "references", reason: "Where police briefed MPs" },
     { from: "pNFS", to: "nfs", relation: "references", reason: "Re-tested the evidence" },
     { from: "pCaliper", to: "pd", relation: "references", reason: "The tool in the theory" },

@@ -11,10 +11,13 @@ export const NOTE_SIZE: Record<NoteType, { w: number; h: number }> = {
   subject: { w: 300, h: 392 },
 };
 
+/** How far below a note's top edge its pin goes in: a sticky is pinned close to its edge, above the writing. */
+export const pinInset = (type: NoteType) => (type === "hypothesis" ? 11 : 18);
+
 /** Where a string attaches: the pin (or tape) near the top-center, rotated with the note. */
 export function pinPoint(n: Pick<Note, "type" | "x" | "y" | "rotation">): { x: number; y: number } {
   const { h } = NOTE_SIZE[n.type];
-  const dy = -h / 2 + 18;
+  const dy = -h / 2 + pinInset(n.type);
   const a = (n.rotation * Math.PI) / 180;
   return { x: n.x - dy * Math.sin(a), y: n.y + dy * Math.cos(a) };
 }

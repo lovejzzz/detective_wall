@@ -13,7 +13,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const TYLENOL_DEMO = "tylenol-1982";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const TYLENOL_VERSION = 6;
+export const TYLENOL_VERSION = 8;
 
 export const TYLENOL_PHASES: Phase[] = [
   { title: "Seven deaths", from: "1982-09-29" },
@@ -33,12 +33,10 @@ export const TYLENOL_COMMONS = {
   winfield: "Winfield IL Central Dupage Hospital.JPG",
   yorktown: "Yorktown center.jpg",
   cyanide: "Kaliumcyanid.jpg",
-  bottle: "Tylenol bottle closeup crop.jpg",
   woodfield: "Woodfield Mall entrance.jpg",
   oscoAd: "1975 Osco Tylenol ad.jpg",
   jnj: "JohnsonJohnson HQ building.jpg",
   burke: "James E. Burke holding Tylenol bottle in 1982.jpg",
-  arnold: "Roger Arnold leaves Chicago court Tylenol investigation 1982.jpg",
   sealed: "Induction sealed bottle 2025.jpg",
   shelf: "Extra Strength Tylenol and Tylenol PM.jpg",
   boise: "Boise Union Pacific Depot - Boise, Idaho (14377574168).jpg",
@@ -101,13 +99,14 @@ const spec: DemoSpec = {
     { key: "pYorktown", type: "photo", photo: C.yorktown, title: "Yorktown Center, Lombard", body: "Where Mary McFarland worked and collapsed." },
     { key: "cyanide", type: "fact", title: "Cyanide in the capsules", when: "1982-09-30", url: UPI_LOTS, body: "Cook County toxicologist Michael Schaffer confirmed cyanide in the Kellerman and Janus bottles. The capsules had been emptied and refilled with potassium cyanide, in doses that varied: a sign of tampering by hand." },
     { key: "pCyanide", type: "photo", photo: C.cyanide, title: "Potassium cyanide", body: "A lethal dose of potassium cyanide beside a one-euro-cent coin (a reference sample, not case evidence)." },
-    { key: "pBottle", type: "photo", photo: C.bottle, title: "A Tylenol bottle", body: "The brand at the centre of the case (a later bottle)." },
+    { key: "pBottle", type: "photo", photoPage: "https://radio.foxnews.com/2011/05/19/unabomber-tylenol-deaths-link/file-this-sept-30-1982-file-photo-shows-a-bottle-of-extra-strength-tylenol-from-the-same-lot-number-mc-2880-found-to-have-caused-cyanide-poisoning-to-people-in-the-chicago-area-the-chicago-fbi/", title: "A bottle from lot MC 2880, 30 Sep 1982", body: "The first lot tied to the deaths (AP file photo, via Fox News Radio, 19 May 2011)." },
     { key: "shelfBottle", type: "fact", title: "A poisoned bottle still on a shelf", when: "1982-09-30", url: TRIB_BOTTLES, body: "FDA spot checks found a sixth tainted bottle at the Osco Drug in Woodfield Mall, Schaumburg: 14 of its 50 capsules held cyanide. It was the first found before anyone swallowed one." },
     { key: "pWoodfield", type: "photo", photo: C.woodfield, title: "Woodfield Mall, Schaumburg", body: "Its Osco still had a poisoned bottle on the shelf." },
     { key: "pOsco", type: "photo", photo: C.oscoAd, title: "An Osco Tylenol ad, 1975", body: "Tylenol as the stores sold it in the years before the murders." },
     { key: "warnings", type: "web", title: "A region told to stop taking Tylenol", when: "1982-09-30", url: WTTW, body: "That evening police cars and ambulances cruised the suburbs with loudspeakers telling people not to take Tylenol. At a midnight briefing on 1–2 October, Mayor Jane Byrne banned its sale in Chicago." },
     { key: "prince", type: "fact", title: "Paula Prince, the seventh", when: "1982-10-01T17:45", approx: true, url: CBS, body: "Her sister found her in her Old Town condo at about 5:45 p.m. One capsule was gone from the bottle; four of the 23 left held cyanide." },
     { key: "reward", type: "fact", title: "$100,000 reward, 100 agents", when: "1982-10-01", url: "https://www.nytimes.com/1982/10/05/us/cyanide-case-focuses-on-find-in-parking-lot-at-all-night-restaurant.html", body: "Johnson & Johnson's McNeil offered $100,000 for the poisoner. A task force under Illinois Attorney General Tyrone Fahner grew past 100 agents and took 300–400 tips a day." },
+    { key: "pTaskForce", type: "photo", photoPage: "https://www.chicagohistory.org/tylenol-murders/", title: "Task force investigators, Des Plaines", body: "At the Attorney General's investigation centre, 2 Dec 1982 (Sun-Times/Gene Pesek, Chicago History Museum)." },
 
     // ── Recall, a letter, an arrest ──
     { key: "recall", type: "fact", title: "The recall", when: "1982-10-05", beat: "escalation", url: TRIB_TIMELINE, body: "After recalling two lots (264,000 bottles) on 30 September and 1 October, J&J pulled every Tylenol capsule in the country: about 31 million bottles worth over $100 million. Tylenol's market share fell from 35% to 8%." },
@@ -116,9 +115,9 @@ const spec: DemoSpec = {
     { key: "letter", type: "fact", title: "\"$1 million to stop the killing\"", when: "1982-10-06", url: "https://www.upi.com/Archives/1983/10/19/The-text-of-the-extortion-letter-James-Lewis-allegedly/6333435384000/", body: "A hand-printed letter postmarked 1 October reached Johnson & Johnson: \"If you want to stop the killing then wire $1,000,000 to bank account number 84-49-597 at Continental Illinois Bank Chicago.\" The account was that of a travel-agency owner who had bounced Lewis's wife's paycheck." },
     { key: "pContinental", type: "photo", photo: C.continental, title: "Continental Illinois, Chicago", body: "The Continental Illinois National Bank and Trust building (2013). The letter wanted the $1 million wired to an account at this bank, which itself failed in 1984." },
     { key: "arnold", type: "fact", title: "Roger Arnold picked up", when: "1982-10-12", url: "https://www.upi.com/Archives/1982/10/13/Police-acting-on-a-tip-received-during-the-investigation/6229403329600/", body: "Acting on a bar owner's tip, Chicago police arrested Jewel dockworker Roger Arnold, 48, who had told people he had cyanide. They found guns but no cyanide; he was charged only with weapons violations, never with the poisonings." },
-    { key: "pArnold", type: "photo", photo: C.arnold, title: "Roger Arnold leaves a Chicago court, 1982", body: "As the wire photo's own caption identifies him (26 October 1982)." },
     { key: "film", type: "web", title: "Police release the drugstore film", when: "1982-10-18", url: "https://www.upi.com/Archives/1982/10/18/Police-Monday-released-film-from-a-drugstore-security-camera/3756403761600/", body: "Police released the Walgreens security frame of Prince at the register. A bearded man stands behind her; police said he resembled the fugitive James W. Lewis. He was never identified." },
     { key: "eight", type: "fact", title: "Eight poisoned bottles in all", when: "1982-10-25", url: TRIB_BOTTLES, body: "Testing returned stock found a seventh bottle, from a Dominick's in Old Town (11 of 50 capsules), and an eighth, bought on 29 September at Frank's Finer Foods in Wheaton and turned in on 14 October (7 of 50). Five bottles killed seven people; three never did." },
+    { key: "pTesting", type: "photo", photoPage: "https://www.newser.com/article/3c314f287670e4b3200d061ac3ad7884/idaho-case-may-be-connected-to-the-1982-tylenol-murders-officials-say.html", title: "Bottles tested for cyanide, October 1982", body: "Paper that turns blue with cyanide, Illinois Dept. of Health (AP/John Swart, via Newser, 2026)." },
     { key: "sealed", type: "fact", title: "Triple-sealed", when: "1982-11-11", url: "https://www.upi.com/Archives/1982/11/11/Maker-of-Tylenol-reveal-new-packaging/5407405838800/", body: "J&J relaunched the capsules sealed three ways: glued box flaps, a plastic neck band and a foil seal under the cap. The FDA had approved its tamper-resistant packaging rule the week before." },
     { key: "pSealed", type: "photo", photo: C.sealed, title: "An induction-sealed bottle", body: "A foil seal under the cap (a 2025 bottle): one of the tamper-evident features the case brought in." },
     { key: "pShelf", type: "photo", photo: C.shelf, title: "Extra-Strength Tylenol, mid-2000s", body: "Sold sealed, a direct legacy of the case." },
@@ -166,13 +165,14 @@ const spec: DemoSpec = {
     { from: "pWinfield", to: "marys", relation: "references", reason: "Where Mary Reiner died" },
     { from: "pYorktown", to: "marys", relation: "references", reason: "Where Mary McFarland worked" },
     { from: "pCyanide", to: "cyanide", relation: "references", reason: "The poison" },
-    { from: "pBottle", to: "cyanide", relation: "references", reason: "The product" },
+    { from: "pBottle", to: "cyanide", relation: "references", reason: "The first poisoned lot" },
+    { from: "pTesting", to: "eight", relation: "references", reason: "How returned stock was checked" },
+    { from: "pTaskForce", to: "reward", relation: "references", reason: "The task force at work" },
     { from: "pWoodfield", to: "shelfBottle", relation: "references", reason: "The store's mall" },
     { from: "pOsco", to: "shelfBottle", relation: "references", reason: "The chain" },
     { from: "pJnj", to: "recall", relation: "references", reason: "The company that recalled" },
     { from: "pBurke", to: "recall", relation: "references", reason: "Who ordered it" },
     { from: "pContinental", to: "letter", relation: "references", reason: "The bank the letter named" },
-    { from: "pArnold", to: "arnold", relation: "references", reason: "Leaving court" },
     { from: "pLibrary", to: "lewis", relation: "references", reason: "Where he was arrested" },
     { from: "pSealed", to: "sealed", relation: "references", reason: "What changed" },
     { from: "pShelf", to: "sealed", relation: "references", reason: "The legacy" },

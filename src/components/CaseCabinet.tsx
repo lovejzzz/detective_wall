@@ -165,9 +165,9 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
                           ensureCases();
                         }}
                       >
-                        yes
+                        shred
                       </button>
-                      <button onClick={() => setShredding(null)}>no</button>
+                      <button onClick={() => setShredding(null)}>keep</button>
                     </span>
                   ) : (
                     <button className="file-shred" onClick={() => setShredding(c.id)} aria-label={`Shred ${c.title}`} title="Shred this case">

@@ -11,7 +11,7 @@ import { buildDemo, type DemoSpec } from "./demo.ts";
 
 export const COOPER_DEMO = "cooper-1971";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const COOPER_VERSION = 7;
+export const COOPER_VERSION = 8;
 
 /** Real photos of the case on Wikimedia Commons (credit is read from each file's metadata at runtime). */
 export const COMMONS = {
@@ -102,6 +102,7 @@ const spec: DemoSpec = {
     // ── The money surfaces ──
     { key: "tena", type: "fact", title: "Ransom cash on a river beach", when: "1980-02-10", beat: "breakthrough", url: HISTORYLINK, body: "Brian Ingram, 8, raking sand for a campfire at Tena Bar on the Columbia, about 9 miles downstream of Vancouver, Wash., uncovered three rotting packets of $20s still in rubber bands: $5,800, in the order they were handed over." },
     { key: "pBills", type: "photo", photo: C.bills, title: "The Tena Bar bills", body: "Some of the ransom twenties found in 1980 (FBI)." },
+    { key: "pPress1980", type: "photo", photoPage: "https://www.berkshireeagle.com/db-cooper-1980/image_51e834a2-6ca9-11eb-a033-bf76a3313910.html", title: "The money at the FBI, 12 February 1980", body: "Part of the ransom shown at the FBI's news conference (AP/Eric Risberg, via The Berkshire Eagle)." },
     { key: "split", type: "fact", title: "The Tena Bar money is split", when: "1986-06", approx: true, url: HISTORYLINK, body: "A court divided the $5,800 between Brian Ingram and the insurer; the FBI kept 14 bills as evidence." },
     { key: "amboy", type: "fact", title: "A buried parachute, ruled out", when: "2008-04-01", url: "https://komonews.com/news/local/man-who-packed-chutes-discovery-not-db-coopers", body: "Children found a parachute buried near Amboy, Wash. The rigger who had packed Cooper's chutes identified it as 1940s silk, not nylon, and the FBI confirmed it wasn't his." },
 
@@ -111,7 +112,7 @@ const spec: DemoSpec = {
     { key: "standDown", type: "fact", title: "The FBI stands down", when: "2016-07-08", beat: "dead_end", url: FBI_2016, body: "After 45 years the FBI redirected the resources assigned to the case, known inside as NORJAK, and announced it on 12 July. The file is preserved and released in parts on the FBI Vault." },
 
     { key: "tieFindings", type: "fact", title: "What was on the tie", when: "2017-01", url: "https://www.seattletimes.com/seattle-news/did-d-b-cooper-work-at-boeing-citizen-sleuths-say-maybe-after-particles-found-on-tie/", body: "The volunteer group Citizen Sleuths reported that electron microscopy of the tie found about 100,000 particles, among them cerium, strontium sulfide and unalloyed titanium, all rare in 1971." },
-    { key: "tie", type: "photo", image: "sketch:tie", title: "Left on seat 18E", body: "A black JCPenney clip-on tie with a mother-of-pearl clip. No photo of it is on Wikimedia Commons, so it is drawn here." },
+    { key: "tie", type: "photo", photoPage: "https://www.fbi.gov/image-repository/black-tie.jpg/@@images/image", title: "The clip-on tie left on seat 18E", body: "The black JCPenney clip-on and its clip, from the FBI's image library (FBI)." },
     { key: "diatoms", type: "fact", title: "Diatoms on the ransom bills", when: "2020-08-03", beat: "twist", url: "https://www.nature.com/articles/s41598-020-70015-z", body: "A study in Scientific Reports found late-spring or early-summer diatoms on a Tena Bar bill: the money went into the water months after the November jump, not the night it fell." },
     { key: "court", type: "fact", title: "Court: the tie is not a record", when: "2023-12-13", url: "https://www.justice.gov/oip/ulis-v-fbi-no-23-636-2023-wl-8620632-ddc-dec-13-2023-cobb-j", body: "A federal judge dismissed a researcher's freedom-of-information suit for access to the tie, ruling that the law covers records, not physical evidence." },
     { key: "rig", type: "fact", title: "A parachute rig returned, no finding", when: "2025-12", approx: true, url: "https://cowboystatedaily.com/2026/02/22/fbis-one-in-a-billion-parachute-returns-and-revives-d-b-cooper-mystery/", body: "A rig found on the family property of the 1972 United hijacker was handed to the FBI in 2023, examined, and returned in December 2025 with no conclusion announced." },
@@ -120,6 +121,7 @@ const spec: DemoSpec = {
     // ── Exhibits ──
     { key: "night", type: "diagram", title: "The night, in order", diagram: { kind: "flow", items: [{ label: "Portland 2:50" }, { label: "Sea-Tac 5:46" }, { label: "Takeoff 7:40" }, { label: "Stairs 8:00" }, { label: "Pitch-up 8:13" }, { label: "Reno 11:02" }] } },
     { key: "chutes", type: "fact", title: "Four parachutes, two left behind", url: WIKI, body: "Two back chutes came from a local pilot and two front reserves from a skydiving school; one reserve was a sewn-shut training dummy. In Reno agents found one intact main and one opened reserve with its lines cut." },
+    { key: "pChute", type: "photo", photoPage: "https://www.fbi.gov/image-repository/parachute.jpg/@@images/image", title: "A parachute from the Cooper case", body: "Evidence photo of one of the four chutes handed over at Sea-Tac (FBI)." },
     { key: "money", type: "diagram", title: "Where the money went", diagram: { kind: "bars", items: [{ label: "Paid", value: 200000 }, { label: "Found", value: 5800 }] } },
     { key: "pLater", type: "photo", photo: C.laterLife, title: "The same airframe in 1979", body: "N467US flew on for Piedmont as N838N after 1978, and was scrapped in 1996." },
 
@@ -144,6 +146,8 @@ const spec: DemoSpec = {
     { from: "pVane", to: "copycat", relation: "references", reason: "One of the fixes that ended it" },
     { from: "pSketchB", to: "sketchB", relation: "references", reason: "The final version" },
     { from: "pBills", to: "tena", relation: "references", reason: "The bills themselves" },
+    { from: "pPress1980", to: "tena", relation: "references", reason: "Shown to the press" },
+    { from: "pChute", to: "chutes", relation: "references", reason: "One of the four" },
     { from: "flightMap", to: "jump", relation: "references", reason: "Where he went out" },
     { from: "split", to: "tena", relation: "references", reason: "What became of the find" },
     { from: "tie", to: "tieFindings", relation: "references", reason: "The tie tested" },

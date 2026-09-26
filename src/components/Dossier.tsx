@@ -188,6 +188,8 @@ export function Dossier({ c }: { c: Case }) {
   if (!note) return null;
   const s = useStore.getState();
   const exhibitNo = c.notes.filter((n) => n.createdAt <= note.createdAt).length;
+  // Evidence that came with a prepared case file has no moment of its own to report.
+  const seeded = note.origin.kind === "seed" || (!!c.demo && !note.origin.messageId && note.origin.kind !== "user");
   const msg = c.messages.find((m) => m.id === note.origin.messageId);
   const connections = c.links
     .filter((l) => l.from === note.id || l.to === note.id)
@@ -195,7 +197,7 @@ export function Dossier({ c }: { c: Case }) {
     .filter((x) => x.other);
 
   const originWho =
-    note.origin.kind === "user" ? "You" : note.origin.kind === "seed" ? "Case file" : note.origin.kind === "web" ? "Partner, from the web" : "Partner";
+    note.origin.kind === "user" ? "You" : seeded ? "Case file" : note.origin.kind === "web" ? "Partner, from the web" : "Partner";
 
   return (
     <div className="dossier-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
@@ -223,11 +225,13 @@ export function Dossier({ c }: { c: Case }) {
           </div>
 
           {note.type === "photo" && <PhotoPrint note={note} caseId={c.id} />}
-          <input
+          <textarea
             className="d-title"
             value={note.title}
             maxLength={120}
-            onChange={(e) => s.updateNote(note.id, { title: e.target.value })}
+            rows={note.title.length > 42 ? 2 : 1}
+            onChange={(e) => s.updateNote(note.id, { title: e.target.value.replace(/\n/g, " ") })}
+            onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
             onFocus={() => s.checkpoint("Edited a note")}
             aria-label="Title"
           />
@@ -291,13 +295,14 @@ export function Dossier({ c }: { c: Case }) {
           <section className="d-section">
             <h4>Origin</h4>
             <p className="d-origin">
-              <b>{originWho}</b> · {when(note.createdAt)}
+              <b>{originWho}</b>
+              {!(seeded || (c.demo && !note.origin.messageId)) && <> · {when(note.createdAt)}</>}
               {note.confidence && <> · confidence {note.confidence}</>}
             </p>
             {(note.origin.excerpt || msg) && <blockquote>{note.origin.excerpt ?? msg?.text}</blockquote>}
             {note.origin.url && (
-              <a className="d-url" href={note.origin.url} target="_blank" rel="noreferrer">
-                {note.origin.url}
+              <a className="d-url" href={note.origin.url} target="_blank" rel="noreferrer" title={note.origin.url}>
+                {shortUrl(note.origin.url)}
               </a>
             )}
           </section>
@@ -393,4 +398,16 @@ export function LinkPicker() {
       </div>
     </div>
   );
+}
+
+/** A source link as a reader wants it: the site and the page, not 90 characters of percent-escapes. */
+function shortUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    let path = decodeURIComponent(u.pathname).replace(/\/$/, "").replace(/_/g, " ");
+    if (path.length > 48) path = `${path.slice(0, 22)}…${path.slice(-22)}`;
+    return `${u.hostname.replace(/^www\./, "")}${path}`;
+  } catch {
+    return url;
+  }
 }

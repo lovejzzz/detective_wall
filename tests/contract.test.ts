@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sanitizeWallUpdate, MAX_NOTES_PER_TURN, UPDATE_WALL_SCHEMA } from "../src/lib/contract.ts";
-import { findFreeSpot, NOTE_SIZE, pinPoint, stringPath } from "../src/lib/geometry.ts";
+import { findFreeSpot, NOTE_SIZE, pinInset, pinPoint, stringPath } from "../src/lib/geometry.ts";
 import type { Note } from "../src/lib/types.ts";
 
 describe("sanitizeWallUpdate", () => {
@@ -107,7 +107,9 @@ describe("geometry", () => {
   it("puts the pin near the top center of an unrotated note", () => {
     const p = pinPoint(note(100, 100));
     expect(p.x).toBeCloseTo(100);
-    expect(p.y).toBeCloseTo(100 - NOTE_SIZE.hypothesis.h / 2 + 18);
+    // a sticky is pinned close to its top edge, above the writing
+    expect(p.y).toBeCloseTo(100 - NOTE_SIZE.hypothesis.h / 2 + pinInset("hypothesis"));
+    expect(pinInset("hypothesis")).toBeLessThan(pinInset("fact"));
   });
 
   it("strings sag below the straight line between pins", () => {

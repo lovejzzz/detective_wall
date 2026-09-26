@@ -358,7 +358,9 @@ function paintSticky(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
   g.fillStyle = strip;
   g.fillRect(0, 0, w, h);
   const m = w * 0.1;
-  const titleLines = handwrite(g, n.title, m, h * 0.19, {
+  // the writing starts below the pin
+  const top = h * 0.255;
+  const titleLines = handwrite(g, n.title, m, top, {
     size: w * 0.135,
     weight: 700,
     lineH: w * 0.13,
@@ -368,12 +370,12 @@ function paintSticky(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
     rand,
   });
   if (n.body) {
-    handwrite(g, n.body, m, h * 0.19 + titleLines * w * 0.13 + w * 0.06, {
+    handwrite(g, n.body, m, top + titleLines * w * 0.13 + w * 0.06, {
       size: w * 0.098,
       weight: 500,
       lineH: w * 0.1,
       maxW: w - m * 2,
-      maxLines: Math.max(1, 7 - titleLines),
+      maxLines: Math.max(1, 6 - titleLines),
       color: "#34405e",
       rand,
     });
@@ -384,15 +386,16 @@ function paintFact(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
   paintStock(g, w, h, { base: "#efeadc", edge: "rgba(160,130,80,0.22)", mottle: 0.05 }, rand);
   const m = w * 0.085;
   const u = w / 248;
-  typewrite(g, "EXHIBIT  ·  FACT", m, 30 * u, { size: 10.5 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#4d463c", letterSpacing: 2.2 * u });
+  // the header sits under the tack, not beneath it
+  typewrite(g, "EXHIBIT  ·  FACT", m, 38 * u, { size: 10.5 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#4d463c", letterSpacing: 2.2 * u });
   g.fillStyle = "rgba(40,34,28,0.55)";
-  g.fillRect(m, 38 * u, w - m * 2, 1.1 * u);
+  g.fillRect(m, 45 * u, w - m * 2, 1.1 * u);
   if (n.confidence) {
     const col = { high: "#2c6a33", medium: "#8a6412", low: "#9b3325" }[n.confidence];
-    stamp(g, n.confidence.toUpperCase(), w - m - 26 * u, 27 * u, 8.5 * u, col, -0.06, rand);
+    stamp(g, n.confidence.toUpperCase(), w - m - 26 * u, 34 * u, 8.5 * u, col, -0.06, rand);
   }
-  const tl = typewrite(g, n.title, m, 64 * u, { size: 17 * u, lineH: 21 * u, maxW: w - m * 2, maxLines: 2, rand });
-  typewrite(g, n.body, m, 64 * u + tl * 21 * u + 12 * u, {
+  const tl = typewrite(g, n.title, m, 69 * u, { size: 17 * u, lineH: 21 * u, maxW: w - m * 2, maxLines: 2, rand });
+  typewrite(g, n.body, m, 69 * u + tl * 21 * u + 12 * u, {
     size: 13.2 * u,
     lineH: 19 * u,
     maxW: w - m * 2,

@@ -192,14 +192,15 @@ kbd {
   position: relative;
   border: 0;
   background: none;
-  padding: 2px 5px;
-  font: 14px/1 var(--typed);
+  padding: 3px 7px;
+  font: 15px/1 var(--typed);
+  cursor: pointer;
 }
 /* a finger-sized hit area around the small printed marks */
 .tag3d button::after {
   content: "";
   position: absolute;
-  inset: -9px -4px;
+  inset: -10px -5px;
 }
 .tag3d button:first-of-type {
   color: #2e7d32;
@@ -420,6 +421,8 @@ kbd {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* the page curls under the header rather than being sliced by it */
+  mask-image: linear-gradient(transparent 0, #000 18px);
   padding: 14px 18px 28px 60px;
   background-image: repeating-linear-gradient(transparent 0 27px, rgba(80, 120, 170, 0.3) 27px 28px);
   background-attachment: local;
@@ -912,17 +915,40 @@ kbd {
   font: 18px/1 var(--typed);
   color: #6c5328;
 }
+/* a small slip clipped over the folder: the question, then a red "shred" and a plain "keep" */
 .shred-confirm {
   display: flex;
-  gap: 6px;
-  font: 12px/22px var(--typed);
-  color: #7c1f16;
+  align-items: center;
+  gap: 8px;
+  top: 50% !important;
+  right: 10px !important;
+  translate: 0 -50%;
+  padding: 7px 8px 7px 12px;
+  font: 12px/1 var(--typed);
+  letter-spacing: 0.04em;
+  color: #3b2c12;
+  background: #f4ecd8 var(--grain);
+  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.75);
+  rotate: -1deg;
+  z-index: 2;
 }
 .shred-confirm button {
-  padding: 0 4px;
+  min-width: 44px;
+  min-height: 28px;
+  padding: 0 10px;
   border: 0;
-  background: rgba(0, 0, 0, 0.08);
-  font: 12px/22px var(--typed);
+  border-radius: 2px;
+  font: 12px/28px var(--typed);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.shred-confirm button:first-of-type {
+  color: #fdf5e6;
+  background: #8f1d15;
+}
+.shred-confirm button:last-of-type {
+  color: #3b2c12;
+  background: rgba(59, 44, 18, 0.12);
 }
 
 /* ───────────────────────── Dossier ───────────────────────── */
@@ -1031,6 +1057,7 @@ kbd {
   border-color: #2b261e;
 }
 .d-title {
+  display: block;
   width: 100%;
   margin-bottom: 8px;
   padding: 4px 0;
@@ -1040,12 +1067,17 @@ kbd {
   font: 23px/1.2 var(--typed);
   color: var(--ink);
   outline: none;
+  resize: none;
+  overflow: hidden;
+  field-sizing: content;
 }
 .d-body {
   width: 100%;
   padding: 6px 0;
   border: 0;
-  resize: vertical;
+  resize: none;
+  field-sizing: content;
+  min-height: 5.5em;
   background: transparent;
   font: 14.5px/1.6 var(--typed);
   color: #2e2a24;
@@ -1393,18 +1425,40 @@ kbd {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.4),
     0 4px 8px rgba(0, 0, 0, 0.6);
-  opacity: 0.72;
   text-shadow: 0 1px 0 rgba(255, 240, 200, 0.4);
+  align-items: center;
+  cursor: default;
 }
 .plaque kbd {
   font-family: var(--typed);
   font-weight: 700;
 }
+.plaque-label {
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+/* folded, the plate shows only its label; open, it reads out every key */
+.plaque-keys {
+  display: none;
+  gap: 14px;
+  white-space: nowrap;
+}
+.plaque.is-open .plaque-keys {
+  display: flex;
+  animation: plaque-read 0.35s ease both;
+}
+@keyframes plaque-read {
+  from {
+    opacity: 0;
+    translate: -6px 0;
+  }
+}
 
 /* ───────────────────────── Small screens ───────────────────────── */
 
 @media (max-width: 1100px) {
-  .plaque span:last-child {
+  .plaque-keys > span:nth-last-child(-n + 2) {
     display: none;
   }
 }
@@ -1412,6 +1466,19 @@ kbd {
 @media (max-width: 759px) {
   :root {
     --notepad-w: 100vw;
+  }
+  .type-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-right: -8px;
+    padding-bottom: 2px;
+  }
+  .type-tabs button {
+    flex: none;
+  }
+  .d-title {
+    font-size: 19px;
   }
   .notepad {
     top: auto;
@@ -1847,7 +1914,9 @@ kbd {
 .tl-rail button.is-on b {
   color: #8f1d15;
 }
-.tl-rail button.is-on span {
+/* the current chapter names itself only when you reach for the index: at rest the rail is
+   numerals only, so it never covers the page (the chapter's own card names it) */
+.tl-rail:hover button.is-on span {
   max-width: 260px;
   margin-right: 8px;
   opacity: 1;
@@ -1872,6 +1941,10 @@ kbd {
   }
   .tl-rail button:hover {
     translate: 0 0;
+  }
+  .tl-rail button span,
+  .tl-rail:hover button.is-on span {
+    display: none;
   }
 }
 .tl-rail button:focus-visible {
@@ -2077,8 +2150,10 @@ kbd {
 }
 .tl-story .what {
   display: -webkit-box;
+  max-width: 100%;
   margin-top: 6px;
   overflow: hidden;
+  overflow-wrap: anywhere;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   font: 700 40px/1 var(--hand);
@@ -2265,9 +2340,41 @@ kbd {
 .d-approx {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font: 12px/1 var(--typed);
   color: #6d6049;
+  cursor: pointer;
+}
+/* a box ruled on the form, ticked in pen when it applies */
+.d-approx input {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  border: 1.3px solid rgba(60, 50, 38, 0.6);
+  border-radius: 1px;
+  background: transparent;
+  cursor: pointer;
+}
+.d-approx input::after {
+  content: "✓";
+  font: 700 17px/1 var(--hand);
+  color: #1d2640;
+  translate: 1px -3px;
+  opacity: 0;
+}
+.d-approx input:checked::after {
+  opacity: 1;
+}
+.d-approx input:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.d-approx input:focus-visible {
+  outline: 2px solid #b9892f;
+  outline-offset: 2px;
 }
 .d-bad {
   flex-basis: 100%;
@@ -2908,15 +3015,29 @@ kbd {
 }
 .file-shred.is-asking {
   display: flex;
-  gap: 6px;
-  font: 12px/22px var(--typed);
-  color: #7c1f16;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  font: 12px/1 var(--typed);
+  color: #3b2c12;
+  background: #f4ecd8 var(--grain);
+  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.75);
 }
 .file-shred.is-asking button {
-  padding: 0 4px;
+  min-width: 44px;
+  min-height: 28px;
+  padding: 0 10px;
   border: 0;
-  background: rgba(0, 0, 0, 0.08);
-  font: 12px/22px var(--typed);
+  border-radius: 2px;
+  font: 12px/28px var(--typed);
+  cursor: pointer;
+}
+.file-shred.is-asking button:first-of-type {
+  color: #fdf5e6;
+  background: #8f1d15;
+}
+.file-shred.is-asking button:last-of-type {
+  background: rgba(59, 44, 18, 0.12);
 }
 .files-empty {
   margin: 30px 0;

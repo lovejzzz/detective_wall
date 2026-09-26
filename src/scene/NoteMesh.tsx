@@ -2,7 +2,7 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "rea
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Note } from "../lib/types.ts";
-import { NOTE_SIZE } from "../lib/geometry.ts";
+import { NOTE_SIZE, pinInset } from "../lib/geometry.ts";
 import { reducedMotion } from "../lib/motion.ts";
 import { photoIdOf, photoURL } from "../lib/images.ts";
 import { commonsFileOf, loadCommonsImage } from "../lib/commons.ts";
@@ -74,7 +74,7 @@ function useNoteTexture(note: Note, fontsVersion: number) {
 
 function Pin({ note, onGrabPin }: { note: Note; onGrabPin: Props["onGrabPin"] }) {
   const { h } = NOTE_SIZE[note.type];
-  const y = h / 2 - 18;
+  const y = h / 2 - pinInset(note.type);
   const z = liftAtPin(note.type) + 0.4;
   const clip = useMemo(() => (note.type === "photo" ? binderClip() : null), [note.type]);
   const [hot, setHot] = useState(false);

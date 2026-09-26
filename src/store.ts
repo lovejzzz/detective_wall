@@ -54,6 +54,8 @@ interface State {
   history: Record<string, { past: Snapshot[]; future: Snapshot[] }>;
   /** The last undoable thing that happened, for the undo slip. */
   lastAction: { label: string; at: number; destructive: boolean } | null;
+  /** The case last shredded this visit, so the undo slip can put it back. */
+  shredded: { case: Case; index: number; wasActive: boolean } | null;
 }
 
 interface Actions {
@@ -266,6 +268,7 @@ export const useStore = create<Store>()(
         arrangedAt: 0,
         history: {},
         lastAction: null,
+        shredded: null,
         cases: {},
         order: [],
         activeId: null,
@@ -295,10 +298,20 @@ export const useStore = create<Store>()(
         },
         deleteCase(id) {
           set((s) => {
+            const gone = s.cases[id];
+            if (!gone) return {};
             const cases = { ...s.cases };
             delete cases[id];
             const order = s.order.filter((o) => o !== id);
-            return { cases, order, activeId: s.activeId === id ? (order[0] ?? null) : s.activeId, dossierId: null };
+            return {
+              cases,
+              order,
+              activeId: s.activeId === id ? (order[0] ?? null) : s.activeId,
+              dossierId: null,
+              // Shredding is undoable like everything else: the slip can put the whole file back.
+              shredded: { case: gone, index: s.order.indexOf(id), wasActive: s.activeId === id },
+              lastAction: { label: `Shredded “${gone.title}”`, at: Date.now(), destructive: true },
+            };
           });
         },
         renameCase(id, title) {
@@ -632,6 +645,21 @@ export const useStore = create<Store>()(
           });
         },
         undo() {
+          const shred = get().shredded;
+          if (shred && get().lastAction?.label.startsWith("Shredded")) {
+            set((s) => {
+              const order = [...s.order];
+              order.splice(Math.min(shred.index, order.length), 0, shred.case.id);
+              return {
+                cases: { ...s.cases, [shred.case.id]: shred.case },
+                order,
+                activeId: shred.wasActive ? shred.case.id : s.activeId,
+                shredded: null,
+                lastAction: null,
+              };
+            });
+            return;
+          }
           const { activeId, cases, history } = get();
           const c = activeId ? cases[activeId] : undefined;
           const h = activeId ? history[activeId] : undefined;

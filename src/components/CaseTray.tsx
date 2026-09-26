@@ -2,6 +2,28 @@ import { useMemo, useState } from "react";
 import { ensureCases, useStore } from "../store.ts";
 import { caseNumbers, fileNo } from "../lib/cases.ts";
 
+/** What's written on a case file's spine: the name people know it by, never a word cut in half. */
+const SPINES: Record<string, string> = {
+  "cooper-1971": "D.B. Cooper",
+  "tylenol-1982": "Tylenol",
+  "glico-morinaga-1984": "Glico-Morinaga",
+  "fuchu-300m-1968": "¥300 million",
+  "setagaya-2000": "Setagaya",
+  "hachioji-1995": "Hachiōji",
+  "frogboys-1991": "Frog Boys",
+  "leehyungho-1991": "Lee Hyung-ho",
+};
+export function spineOf(c: { title: string; demo?: string }): string {
+  if (c.demo && SPINES[c.demo]) return SPINES[c.demo];
+  const words = c.title.replace(/^(the|a|an)\s+/i, "").split(/\s+/);
+  let out = "";
+  for (const w of words) {
+    if ((out ? out.length + 1 : 0) + w.length > 15) break;
+    out = out ? `${out} ${w}` : w;
+  }
+  return out || `${words[0].slice(0, 14)}…`;
+}
+
 /** The tray keeps the most recent cases at hand; the rest wait in the cabinet. */
 const AT_HAND = 5;
 
@@ -41,12 +63,12 @@ export function CaseTray() {
                   {pinned} {pinned === 1 ? "exhibit" : "exhibits"}
                 </span>
                 <span className="folder-spine" aria-hidden>
-                  {c.title}
+                  {spineOf(c)}
                 </span>
               </button>
               {shredding === id ? (
                 <span className="shred-confirm">
-                  Shred?
+                  Shred this file?
                   <button
                     onClick={() => {
                       useStore.getState().deleteCase(id);
@@ -54,9 +76,9 @@ export function CaseTray() {
                       ensureCases();
                     }}
                   >
-                    yes
+                    shred
                   </button>
-                  <button onClick={() => setShredding(null)}>no</button>
+                  <button onClick={() => setShredding(null)}>keep</button>
                 </span>
               ) : (
                 <button className="folder-x" onClick={() => setShredding(id)} aria-label={`Delete case ${c.title}`} title="Shred this case">

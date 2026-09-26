@@ -112,34 +112,49 @@ export function App() {
       <CaseCabinet />
       <TitleCard />
       <Notepad c={c} />
-      <div className="plaque" aria-hidden>
-        <span>
-          <kbd>Tab</kbd> next note
-        </span>
-        <span>
-          <kbd>↵</kbd> open
-        </span>
-        <span>
-          <kbd>/</kbd> type
-        </span>
-        <span>
-          <kbd>0</kbd> overview
-        </span>
-        <span>
-          <kbd>T</kbd> timeline
-        </span>
-        <span>
-          <kbd>A</kbd> arrange
-        </span>
-        <span>
-          <kbd>C</kbd> cabinet
-        </span>
-        <span>hold a lead to pin it</span>
-        <span>drag a pin to tie string</span>
-      </div>
+      <KeyPlaque />
       <UndoSlip left={stage.cx} />
       <Dossier c={c} />
       <LinkPicker />
+    </div>
+  );
+}
+
+/**
+ * The keys, on a small brass plate in the corner. It reads out in full for the first moments,
+ * then folds to its label so it never sits over the wall; reach for it to read it again.
+ */
+function KeyPlaque() {
+  const view = useStore((s) => s.view);
+  const [open, setOpen] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setOpen(false), 9000);
+    return () => clearTimeout(t);
+  }, []);
+  const keys: [string, string][] = [
+    ["Tab", "next note"],
+    ["↵", "open"],
+    ["/", "type"],
+    ["0", "overview"],
+    ["T", view === "timeline" ? "wall" : "timeline"],
+    ...(view === "timeline" ? ([["[ ]", "chapters"]] as [string, string][]) : []),
+    ["A", "arrange"],
+    ["C", "cabinet"],
+    ["P / X", "pin / toss a lead"],
+    [/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘Z" : "Ctrl Z", "undo"],
+  ];
+  return (
+    <div className={`plaque ${open ? "is-open" : ""}`} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} aria-hidden>
+      <b className="plaque-label">Keys</b>
+      <span className="plaque-keys">
+        {keys.map(([k, what]) => (
+          <span key={k}>
+            <kbd>{k}</kbd> {what}
+          </span>
+        ))}
+        <span>hold a lead to pin it</span>
+        <span>drag a pin to tie string</span>
+      </span>
     </div>
   );
 }

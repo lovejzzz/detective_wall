@@ -94,3 +94,23 @@ describe("arranging the wall", async () => {
     expect(new Set([...at.values()].map((p) => Math.round(p.x))).size).toBeLessThanOrEqual(ARRANGE_COLS);
   });
 });
+
+describe("shredding a case", async () => {
+  const { useStore } = await import("../src/store.ts");
+  const s = () => useStore.getState();
+
+  it("can be undone from the slip, back in its place and open", () => {
+    const a = s().newCase("First");
+    const b = s().newCase("Second");
+    const before = [...s().order];
+    s().switchCase(b);
+    s().deleteCase(b);
+    expect(s().cases[b]).toBeUndefined();
+    expect(s().lastAction).toMatchObject({ label: "Shredded “Second”", destructive: true });
+    s().undo();
+    expect(s().cases[b]?.title).toBe("Second");
+    expect(s().order).toEqual(before);
+    expect(s().activeId).toBe(b);
+    expect(s().cases[a]).toBeDefined();
+  });
+});

@@ -25,9 +25,13 @@ export interface Stage {
   h: number;
 }
 
-const MIN_Z = 0.35;
+const MIN_Z = 0.2;
+/** Below this zoom the taped-on far labels start to shrink with the wall. */
+const LABEL_Z = 0.35;
 const MAX_Z = 2.2;
 const TRAY_W = 70;
+/** The timeline's chapter index along the stage's right edge. */
+const RAIL_W = 56;
 /** Chapter numbers, the way a case file numbers its parts. */
 function roman(n: number): string {
   let out = "";
@@ -39,7 +43,7 @@ function roman(n: number): string {
   return out;
 }
 /** A phone can zoom further out: its screen holds much less of the wall at the same size. */
-const minZ = () => (typeof window !== "undefined" && window.innerWidth < 760 ? 0.2 : MIN_Z);
+const minZ = () => MIN_Z;
 const clampZ = (z: number) => Math.max(minZ(), Math.min(MAX_Z, z));
 
 type Grab =
@@ -159,11 +163,12 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   );
   /** The whole wall if it fits; otherwise its full width from the top, the way you'd open a file. */
   const pageFrame = useCallback(
-    (notes: Note[]): Camera => {
+    /** `wholeDownTo`: the smallest zoom at which the whole wall is shown rather than its top. */
+    (notes: Note[], wholeDownTo = LABEL_Z): Camera => {
       const f = framing(notes, 0.9);
       const top = Math.min(...notes.map((n) => n.y - NOTE_SIZE[n.type].h / 2));
       const bottom = Math.max(...notes.map((n) => n.y + NOTE_SIZE[n.type].h / 2));
-      if (bottom - top <= (stage.h - 160) / f.zoom) return f;
+      if (f.zoom >= wholeDownTo && bottom - top <= (stage.h - 160) / f.zoom) return f;
       const left = Math.min(...notes.map((n) => n.x - NOTE_SIZE[n.type].w / 2));
       const right = Math.max(...notes.map((n) => n.x + NOTE_SIZE[n.type].w / 2));
       const zoom = clampZ(Math.min(0.9, (stage.w - TRAY_W - 80) / (right - left)));
@@ -184,7 +189,10 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.id]);
   const seen = useRef<{ caseId: string; ids: Set<string> }>({ caseId: c.id, ids: new Set(c.notes.map((n) => n.id)) });
+  const lastFocus = useRef(c.focusNoteId);
   useEffect(() => {
+    const focusChanged = lastFocus.current !== c.focusNoteId;
+    lastFocus.current = c.focusNoteId;
     if (seen.current.caseId !== c.id) {
       seen.current = { caseId: c.id, ids: new Set(c.notes.map((n) => n.id)) };
       return;
@@ -193,9 +201,12 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     seen.current.ids = new Set(c.notes.map((n) => n.id));
     const k = camRef.current;
     if (fresh.some((n) => n.status === "proposed")) {
-      // Bring the new evidence into view, but never zoom out past reading distance.
-      if (!fresh.every((n) => inView(n, k))) {
-        const f = framing(fresh, Math.max(k.zoom, 0.7));
+      // Leads stream in one at a time: keep every lead of this reply in view together, not just
+      // the newest, but never zoom out past reading distance.
+      const reply = fresh.find((n) => n.origin.messageId)?.origin.messageId;
+      const batch = placed.filter((n) => n.status === "proposed" && (fresh.includes(n) || (reply && n.origin.messageId === reply)));
+      if (!batch.every((n) => inView(n, k))) {
+        const f = framing(batch, Math.max(k.zoom, 0.7));
         flyTo({ ...f, zoom: Math.max(f.zoom, Math.min(k.zoom, 0.6)) }, 900);
       }
       return;
@@ -204,7 +215,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       justFramed.current = false;
       return;
     }
-    if (focusNote && !inView(focusNote, k)) flyTo({ x: focusNote.x, y: focusNote.y, zoom: k.zoom });
+    // Follow the focus when it moves, not when a note comes or goes elsewhere on the wall.
+    if (focusChanged && focusNote && !inView(focusNote, k)) flyTo({ x: focusNote.x, y: focusNote.y, zoom: k.zoom });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.focusNoteId, c.notes.length, c.id]);
 
@@ -224,9 +236,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       // Read it like a page: the case's name at the top, every chapter's width in view, from the top down.
       if (timeline && (timeline.chapters.length || timeline.aside)) {
         const b = timeline.bounds;
-        const room = stage.w - TRAY_W - 80;
+        // Clear of the case folders on the left and the chapter index on the right.
+        const room = stage.w - TRAY_W - 80 - RAIL_W;
         // The page's full width at a size you can read, from the top; the rest is a scroll away.
-        const zoom = clampZ(Math.min(0.56, room / (b.x1 - b.x0)));
+        // (Capped where the taped-on labels are fully up, never halfway through their fade.)
+        const zoom = clampZ(Math.min(0.5, room / (b.x1 - b.x0)));
         const fitsW = (b.x1 - b.x0) * zoom <= room;
         const x = fitsW ? (b.x0 + b.x1) / 2 - TRAY_W / 2 / zoom : b.x0 + (stage.w / 2 - TRAY_W - 40) / zoom;
         const fitsH = (b.y1 - b.y0) * zoom <= stage.h - 150;
@@ -243,8 +257,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
 
   // Arranged: step back to take in the tidied wall.
   const arrangedAt = useStore((st) => st.arrangedAt);
+  const arrangedSeen = useRef(arrangedAt);
   useEffect(() => {
-    if (!arrangedAt) return;
+    // Only a fresh Arrange, not the last one replayed when another case's wall mounts.
+    if (!arrangedAt || arrangedAt === arrangedSeen.current) return;
+    arrangedSeen.current = arrangedAt;
     const notes = useStore.getState().cases[c.id]?.notes ?? [];
     if (notes.length) flyTo(pageFrame(notes), 900);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -366,7 +383,9 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
           return { ...k, y: dy > 0 ? Math.min(y, Math.max(k.y, end)) : Math.max(y, Math.min(k.y, top)) };
         });
       } else if (e.ctrlKey || mouseWheel) {
-        zoomAt({ x: e.clientX, y: e.clientY }, clampZ(camRef.current.zoom * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015))));
+        // A trackpad pinch arrives as Ctrl + small deltas; a mouse wheel's notches are big, even with Ctrl held.
+        const rate = e.ctrlKey && !mouseWheel ? 0.01 : 0.0015;
+        zoomAt({ x: e.clientX, y: e.clientY }, clampZ(camRef.current.zoom * Math.exp(-e.deltaY * rate)));
       } else {
         setCam((k) => ({ ...k, x: k.x + e.deltaX / k.zoom, y: k.y + e.deltaY / k.zoom }));
       }
@@ -412,8 +431,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
-      if (t.closest("input, textarea, [contenteditable=true]") || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === "0") flyTo(placed.length ? framing(placed, 1) : { x: 0, y: 0, zoom: 0.9 }, 600);
+      if (t.closest("input, textarea, [contenteditable=true], [role=dialog]") || e.metaKey || e.ctrlKey || e.altKey) return;
+      // An open file or the cabinet has the keys; the wall behind it stays put.
+      const st = useStore.getState();
+      if (st.dossierId || st.cabinetOpen) return;
+      if (e.key === "0") flyTo(placed.length ? pageFrame(placed, MIN_Z) : { x: 0, y: 0, zoom: 0.9 }, 600);
       else if (e.key === "t" || e.key === "T") store().setView(useStore.getState().view === "timeline" ? "wall" : "timeline");
       else if (e.key === "a" || e.key === "A") store().arrangeWall();
       else if ((e.key === "]" || e.key === "PageDown" || e.key === "[" || e.key === "PageUp") && useStore.getState().view === "timeline") {
@@ -426,7 +448,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [placed, stage, zoomAt, flyTo, framing, store, goToChapter, readingChapter]);
+  }, [placed, stage, zoomAt, flyTo, pageFrame, store, goToChapter, readingChapter]);
 
   // ---- Grabbing notes and pins ----
   const [grab, setGrab] = useState<Grab | null>(null);
@@ -597,8 +619,29 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   });
   const draggingId = grab?.kind === "note" && grab.moved ? grab.id : null;
   const tagScale = Math.max(0.6, Math.min(1, cam.zoom * 1.25));
+  // Far out (a phone, an overview) the cord's tags would overlap: a date tag that would cover the
+  // one before it stays off until you come closer, and a gap chip gives way to the dates.
+  const cordVisible = useMemo(() => {
+    const t = timelineLayout;
+    const stops: boolean[] = t.stops.map(() => true);
+    const gaps: boolean[] = t.gaps.map(() => true);
+    const k = cam.zoom;
+    const span = (label: string) => ((label.length * 8.9 + 36) * tagScale) / k;
+    const order = t.stops.map((st, i) => ({ st, i })).sort((a, b) => a.st.y - b.st.y || a.st.x - b.st.x);
+    let prev: { x: number; y: number } | null = null;
+    for (const { st, i } of order) {
+      if (prev && prev.y === st.y && st.x - span(st.label) - 11 * tagScale / k < prev.x + 4 / k) stops[i] = false;
+      else prev = st;
+    }
+    t.gaps.forEach((g, gi) => {
+      const half = ((g.label.length * 8 + 30) * tagScale) / k / 2;
+      gaps[gi] = !t.stops.some((st, i) => stops[i] && st.y === g.y && st.x - span(st.label) < g.x + half && st.x > g.x - half);
+    });
+    return { stops, gaps };
+  }, [timelineLayout, cam.zoom, tagScale]);
   // Far away, the paper's own type is too small to read: tape a marker label over each note.
-  const farOpacity = Math.max(0, Math.min(1, (0.6 - cam.zoom) / 0.1));
+  // A short cross-fade, so a resting camera never shows both the label and the paper's own type.
+  const farOpacity = Math.max(0, Math.min(1, (0.58 - cam.zoom) / 0.04));
   // Proposed-string tags: nudge apart so they never stack on top of each other.
   const tagSpots = (() => {
     const spots = new Map<string, { x: number; y: number }>();
@@ -717,7 +760,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             // On a photo the label goes on the polaroid's caption strip, so the picture stays visible.
             const p = toScreen(n.type === "photo" ? { x: n.x, y: n.y + NOTE_SIZE.photo.h / 2 - 26 } : n);
             // Zoomed out past the wall's usual limit (a phone), the labels shrink with the notes.
-            const shrink = Math.min(1, cam.zoom / MIN_Z);
+            const shrink = Math.min(1, cam.zoom / LABEL_Z);
             const w = Math.max(96 * shrink, NOTE_SIZE[n.type].w * cam.zoom * 1.1) / shrink;
             return (
               <div
@@ -763,7 +806,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             const tilt = Math.max(-0.42, Math.min(0.42, flipped ? m.angle - Math.sign(m.angle) * Math.PI : m.angle));
             return (
               <div key={l.id} className="tag-anchor" style={{ left: p.x, top: p.y }}>
-                <div className={`tag3d is-proposed rel-${l.relation}`} style={{ transform: `rotate(${-tilt}rad) scale(${tagScale})` }}>
+                <div className={`tag3d is-proposed rel-${l.relation}`} style={{ transform: `rotate(${-tilt}rad) scale(${Math.max(0.85, tagScale)})` }}>
                   <span className="tag-q">{info.name.toLowerCase()}?</span>
                   <button onClick={() => onPinLink(l.id)} aria-label="Accept string" title={`Tie it: ${a.title} ${info.blurb} ${b.title}`}>
                     ✓
@@ -860,6 +903,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               );
             })}
             {timeline.stops.map((st, i) => {
+              if (!cordVisible.stops[i]) return null;
               const p = toScreen(st);
               return (
                 <div key={`stop-${i}`} className="tl-stop" style={{ left: p.x, top: p.y, transform: `scale(${tagScale}) translate(calc(-100% - 11px), -50%)` }}>
@@ -876,6 +920,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               );
             })}
             {timeline.gaps.map((g, i) => {
+              if (!cordVisible.gaps[i]) return null;
               const p = toScreen(g);
               return (
                 <div key={`gap-${i}`} className="tl-gap" style={{ left: p.x, top: p.y, transform: `translate(-50%, -50%) scale(${tagScale})` }}>
