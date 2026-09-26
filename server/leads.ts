@@ -109,8 +109,25 @@ export class ReplyStream {
   }
 }
 
+/**
+ * What the partner actually looked at this turn. A web note must cite a page it searched or
+ * opened, and a photo note must use a file find_photos returned: nothing is taken on trust.
+ */
+export interface Seen {
+  /** URLs from searches and fetches; null when no search ran (then web notes aren't checked). */
+  pages: Map<string, string> | null;
+  /** Commons file names find_photos returned. */
+  photos: Set<string>;
+}
+
+export function verified(n: ProposedNote, seen: Seen): boolean {
+  if (n.type === "web") return !seen.pages || (!!n.url && seen.pages.has(n.url));
+  if (n.type === "photo") return !!n.image && seen.photos.has(n.image);
+  return true;
+}
+
 /** Validates one lead (a pin_lead input, or a lead block's JSON) against the wall and this turn's leads. */
-export function sanitizeLead(input: unknown, knownIds: Set<string>, sent: ProposedNote[], sources: Map<string, string> | null): ProposedNote | null {
+export function sanitizeLead(input: unknown, knownIds: Set<string>, sent: ProposedNote[], seen: Seen): ProposedNote | null {
   if (sent.length >= MAX_NOTES_PER_TURN) return null;
   let raw: unknown = input;
   if (typeof input === "string")
@@ -124,8 +141,7 @@ export function sanitizeLead(input: unknown, knownIds: Set<string>, sent: Propos
   // Earlier leads count as known, so a lead can be placed near one.
   const note = sanitizeWallUpdate({ notes: [raw], links: [] }, new Set([...knownIds, ...refs])).notes[0];
   if (!note) return null;
-  if (note.type === "web" && sources && !(note.url && sources.has(note.url))) return null;
-  return note;
+  return verified(note, seen) ? note : null;
 }
 
 /** The turn's final update: the leads already on the wall, then whatever else the end block adds. */

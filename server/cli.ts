@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { NOTE_SCHEMA, type InvestigateRequest, type PartnerEvent, type ProposedNote } from "../src/lib/contract.ts";
-import { ReplyStream, mergeTurn, sanitizeLead } from "./leads.ts";
+import { ReplyStream, mergeTurn, sanitizeLead, verified, type Seen } from "./leads.ts";
 import { CLI_SYSTEM_PROMPT, renderWallState } from "./prompt.ts";
 
 type Emit = (e: PartnerEvent) => void;
@@ -55,6 +55,7 @@ function workdir(): string {
 
 /** The pin_lead tool, served to the CLI by a one-tool MCP server (see wall-mcp.mjs). */
 const PIN_LEAD = "mcp__wall__pin_lead";
+const FIND_PHOTOS = "mcp__wall__find_photos";
 let mcpFile: string | null = null;
 function mcpConfigFile(): string {
   if (!mcpFile) {
@@ -151,6 +152,7 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
     "WebSearch",
     "WebFetch",
     PIN_LEAD,
+    FIND_PHOTOS,
   ];
 
   const child = spawn(CLI(), args, { cwd: workdir(), env: childEnv(), shell: process.platform === "win32", stdio: ["pipe", "pipe", "pipe"] });
@@ -161,6 +163,7 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
   child.stdin.end(JSON.stringify({ type: "user", message: { role: "user", content } }) + "\n");
 
   const sources = new Map<string, string>();
+  const seen: Seen = { pages: sources, photos: new Set() };
   const knownIds = new Set(req.notes.map((n) => n.id));
   const leads: ProposedNote[] = [];
   let blocks = 0;
@@ -171,7 +174,7 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
   });
   // A find goes up the moment it's made. A web lead must cite a page searched or fetched this turn.
   const putUp = (input: unknown) => {
-    const note = sanitizeLead(input, knownIds, leads, sources);
+    const note = sanitizeLead(input, knownIds, leads, seen);
     if (!note) return;
     leads.push(note);
     emit({ type: "lead", note });
@@ -203,6 +206,7 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
         for (const b of e.message?.content ?? []) {
           if (b.type !== "tool_use") continue;
           if (b.name === PIN_LEAD) putUp(b.input);
+          if (b.name === FIND_PHOTOS) emit({ type: "status", kind: "searching", detail: `photos of ${String(b.input?.query ?? "")}` });
           if (b.name === "WebSearch") emit({ type: "status", kind: "searching", detail: String(b.input?.query ?? "") });
           if (b.name === "WebFetch" && typeof b.input?.url === "string") {
             sources.set(b.input.url, b.input.url);
@@ -218,6 +222,17 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
         for (const b of e.message?.content ?? []) {
           if (b.type !== "tool_result") continue;
           const text = typeof b.content === "string" ? b.content : JSON.stringify(b.content ?? "");
+          // find_photos results: remember every file, so photo notes can only use real ones.
+          const parts = Array.isArray(b.content) ? b.content.map((c: { text?: string }) => c.text ?? "") : [String(b.content ?? "")];
+          for (const part of parts) {
+            try {
+              const found = JSON.parse(part) as { photos?: { file?: string; page?: string }[] };
+              for (const p of found.photos ?? []) if (p.file) seen.photos.add(p.file);
+              if (found.photos) emit({ type: "status", kind: "reading", detail: `${found.photos.length} ${found.photos.length === 1 ? "photo" : "photos"} on Wikimedia Commons` });
+            } catch {
+              /* not a photo search */
+            }
+          }
           let n = 0;
           for (const m of text.matchAll(/"title":"((?:[^"\\]|\\.)*)","url":"(https?:[^"\\]+)"/g)) {
             sources.set(m[2], m[1].replace(/\\(.)/g, "$1"));
@@ -253,7 +268,7 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
   reply.end();
   const update = mergeTurn(leads, reply.wall, knownIds);
   // Web notes must cite a page the CLI actually searched or fetched this turn.
-  update.notes = update.notes.filter((n) => n.type !== "web" || (n.url && sources.has(n.url)));
+  update.notes = update.notes.filter((n) => verified(n, seen));
   emit({
     type: "done",
     result: {

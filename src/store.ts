@@ -164,10 +164,12 @@ function proposeNote(c: Case, p: ProposedNote, nearId: string | undefined, messa
     ...(p.stamp ? { stamp: p.stamp } : {}),
     ...(p.diagram ? { diagram: p.diagram } : {}),
     ...(p.when ? { when: p.when, ...(p.approx ? { approx: true } : {}) } : {}),
+    // A photo the partner found on Wikimedia Commons: loaded and credited from the file itself.
+    ...(p.image ? { imageUrl: `commons:${p.image}` } : {}),
     origin: {
-      kind: p.type === "web" || p.url ? "web" : "ai",
+      kind: p.type === "web" || p.url || p.image ? "web" : "ai",
       messageId,
-      ...(p.url ? { url: p.url } : {}),
+      ...(p.url ? { url: p.url } : p.image ? { url: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(p.image.replace(/ /g, "_"))}` } : {}),
       excerpt,
     },
     createdAt: Date.now(),

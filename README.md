@@ -53,6 +53,7 @@ npm start                 # serves dist/ and the API on $PORT (default 8787)
 |---|---|
 | Ask | Type on the typewriter and press Enter (`/` jumps there) |
 | Accept or reject | Press and hold a loose note to pin it, or drag any note into the wastebasket that rises while you carry it. **Pin it** / **Toss**, ✓ / ✕ on a dashed string, `P` / `X`, and "pin all" under each reply work too. |
+| Photos from the partner | Ask for photos ("find photos of the suspects") and the partner searches Wikimedia Commons and pins real, freely licensed photos, captioned and credited from each file's own page. If there's no free photo, it says so and links to where one is published. |
 | Watch it work | While the partner researches, each find goes up on the wall as it's made, and its searches and pages are pencilled into the notepad margin. |
 | Tie a string | Drag from a note's pin to another note, then pick *supports*, *causes*, *contradicts* or *references* (keys `1`–`4`) |
 | Open a note | Click it to open its file; the spotlight goes to it at the same moment (`Tab` then `Enter` works too). Edits save as you type. |

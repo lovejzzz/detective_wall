@@ -13,7 +13,8 @@ import {
   type PartnerEvent,
   type ProposedNote,
 } from "../src/lib/contract.ts";
-import { ReplyStream, mergeTurn, sanitizeLead } from "./leads.ts";
+import { ReplyStream, mergeTurn, sanitizeLead, verified, type Seen } from "./leads.ts";
+import { FIND_PHOTOS, searchCommonsPhotos } from "./commons-search.mjs";
 
 const MODEL = () => process.env.DW_MODEL || "claude-opus-5";
 const WEB_SEARCH = () => (process.env.DW_WEB_SEARCH ?? "on") !== "off";
@@ -48,6 +49,12 @@ const PIN_LEAD_TOOL: Anthropic.Beta.BetaTool = {
     "Put one piece of evidence on the user's wall right now, while you keep researching. Call it right after the search that found it; don't save leads for the end. The user pins or tosses it.",
   input_schema: NOTE_SCHEMA as unknown as Anthropic.Beta.BetaTool.InputSchema,
   strict: true,
+};
+
+const FIND_PHOTOS_TOOL: Anthropic.Beta.BetaTool = {
+  name: FIND_PHOTOS.name,
+  description: FIND_PHOTOS.description,
+  input_schema: FIND_PHOTOS.input_schema as unknown as Anthropic.Beta.BetaTool.InputSchema,
 };
 
 function buildMessages(req: InvestigateRequest): Anthropic.Beta.BetaMessageParam[] {
@@ -93,18 +100,33 @@ let client: Anthropic | null = null;
 async function investigate(req: InvestigateRequest, emit: (e: PartnerEvent) => void, signal: AbortSignal): Promise<void> {
   client ??= new Anthropic();
   const messages = buildMessages(req);
-  const tools: Anthropic.Beta.BetaToolUnion[] = [PIN_LEAD_TOOL, UPDATE_WALL_TOOL];
+  const tools: Anthropic.Beta.BetaToolUnion[] = [PIN_LEAD_TOOL, FIND_PHOTOS_TOOL, UPDATE_WALL_TOOL];
   if (WEB_SEARCH()) tools.push({ type: "web_search_20260209", name: "web_search", max_uses: 4 });
 
   const sources = new Map<string, string>();
+  const photos = new Set<string>();
+  // Web notes are checked against search results only when search ran.
+  const seen = (): Seen => ({ pages: sources.size ? sources : null, photos });
   const knownIds = new Set(req.notes.map((n) => n.id));
   const leads: ProposedNote[] = [];
   // A find goes up the moment it's made. Web leads must cite a page search returned (when it ran).
   const putUp = (input: unknown) => {
-    const note = sanitizeLead(input, knownIds, leads, sources.size ? sources : null);
+    const note = sanitizeLead(input, knownIds, leads, seen());
     if (!note) return;
     leads.push(note);
     emit({ type: "lead", note });
+  };
+  const runTool = async (b: Anthropic.Beta.BetaToolUseBlock): Promise<{ content: string; is_error?: boolean }> => {
+    if (b.name === "pin_lead") return { content: "It's on the wall. Keep going." };
+    try {
+      const input = b.input as { query?: unknown; limit?: unknown };
+      const found = await searchCommonsPhotos(String(input.query ?? ""), Number(input.limit) || undefined);
+      for (const p of found) photos.add(p.file);
+      emit({ type: "status", kind: "reading", detail: `${found.length} ${found.length === 1 ? "photo" : "photos"} on Wikimedia Commons` });
+      return { content: JSON.stringify({ photos: found }) };
+    } catch (err) {
+      return { content: JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), is_error: true };
+    }
   };
   const reply = new ReplyStream({
     prose: (delta) => emit({ type: "text", delta }),
@@ -147,6 +169,8 @@ async function investigate(req: InvestigateRequest, emit: (e: PartnerEvent) => v
     });
     stream.on("contentBlock", (block) => {
       if (block.type === "tool_use" && block.name === "pin_lead") putUp(block.input);
+      else if (block.type === "tool_use" && block.name === "find_photos")
+        emit({ type: "status", kind: "searching", detail: `photos of ${String((block.input as { query?: unknown })?.query ?? "")}` });
       else if (block.type === "server_tool_use" && block.name === "web_search") {
         const q = (block.input as { query?: unknown })?.query;
         if (typeof q === "string") emit({ type: "status", kind: "searching", detail: q });
@@ -174,22 +198,26 @@ async function investigate(req: InvestigateRequest, emit: (e: PartnerEvent) => v
 
     for (const block of response.content) if (block.type === "tool_use" && block.name === "update_wall") toolInput = block.input;
     if (response.stop_reason === "max_tokens") truncated = true;
-    const pins = response.content.filter((b) => b.type === "tool_use" && b.name === "pin_lead");
-    const resume = response.stop_reason === "pause_turn" || (response.stop_reason === "tool_use" && pins.length > 0 && toolInput === null);
+    // Our own tools (pin_lead, find_photos) are answered here and the turn carries on.
+    const calls = response.content.filter(
+      (b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use" && (b.name === "pin_lead" || b.name === "find_photos"),
+    );
+    const resume = response.stop_reason === "pause_turn" || (response.stop_reason === "tool_use" && calls.length > 0 && toolInput === null);
     if (!resume) break;
     messages.push({ role: "assistant", content: response.content as Anthropic.Beta.BetaContentBlockParam[] });
-    if (pins.length)
+    if (calls.length)
       messages.push({
         role: "user",
-        content: pins.map((b) => ({ type: "tool_result" as const, tool_use_id: (b as Anthropic.Beta.BetaToolUseBlock).id, content: "It's on the wall. Keep going." })),
+        content: await Promise.all(
+          calls.map(async (b) => ({ type: "tool_result" as const, tool_use_id: b.id, ...(await runTool(b)) })),
+        ),
       });
   }
   reply.end();
 
   // A truncated tool input may parse to a partial object: keep the leads, drop the rest.
   const update = mergeTurn(leads, truncated ? null : toolInput, knownIds);
-  // Web notes must cite a URL that search actually returned (when search ran).
-  if (sources.size > 0) update.notes = update.notes.filter((n) => n.type !== "web" || (n.url && sources.has(n.url)));
+  update.notes = update.notes.filter((n) => verified(n, seen()));
 
   emit({
     type: "done",

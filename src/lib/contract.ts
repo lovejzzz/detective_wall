@@ -27,6 +27,8 @@ export interface ProposedNote {
   near?: string;
   when?: string;
   approx?: boolean;
+  /** Photo notes: a Wikimedia Commons file name (from find_photos), e.g. "DBCooper.jpg". */
+  image?: string;
 }
 
 export interface ProposedLink {
@@ -130,6 +132,10 @@ export const UPDATE_WALL_SCHEMA = {
             description: "When the evidence happened, as precise as is actually known: YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM. Omit for undated ideas.",
           },
           approx: { type: "boolean", description: "True if the date is approximate." },
+          image: {
+            type: "string",
+            description: "Photo notes only: a Wikimedia Commons file name exactly as find_photos returned it this turn, e.g. 'DBCooper.jpg'. The title says what the photo shows according to its source.",
+          },
         },
       },
     },
@@ -165,6 +171,13 @@ export const UPDATE_WALL_SCHEMA = {
 
 /** One evidence note, as the partner proposes it: the item schema of update_wall's notes. */
 export const NOTE_SCHEMA = UPDATE_WALL_SCHEMA.properties.notes.items;
+
+/** A Commons file name: "File:" prefix dropped, an image extension, no characters Commons forbids. */
+export function commonsFile(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const name = v.trim().replace(/^File:/i, "").replace(/_/g, " ");
+  return name.length > 0 && name.length <= 240 && /^[^#<>[\]|{}/]+\.(jpe?g|png|gif|webp|tiff?)$/i.test(name) ? name : null;
+}
 
 const isStr = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
@@ -212,6 +225,8 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
     const type = oneOf(r.type, NOTE_TYPES);
     if (!type || !isStr(r.ref) || !isStr(r.title) || refs.has(r.ref) || knownIds.has(r.ref)) continue;
     if (type === "web" && !isHttpUrl(r.url)) continue;
+    const image = type === "photo" ? commonsFile(r.image) : null;
+    if (type === "photo" && !image) continue; // a photo note is nothing without its photo
     const note: ProposedNote = {
       ref: r.ref,
       type,
@@ -226,6 +241,7 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
       const diagram = sanitizeDiagram(r.diagram);
       if (diagram) note.diagram = diagram;
     }
+    if (image) note.image = image;
     if (isStr(r.near)) note.near = r.near;
     if (isWhen(r.when)) {
       note.when = r.when;

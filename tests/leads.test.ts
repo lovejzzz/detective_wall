@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { ReplyStream, mergeTurn, sanitizeLead } from "../server/leads.ts";
+import { ReplyStream, mergeTurn, sanitizeLead, type Seen } from "../server/leads.ts";
+import { searchCommonsPhotos } from "../server/commons-search.mjs";
+import { sanitizeWallUpdate } from "../src/lib/contract.ts";
+
+const nothing = (): Seen => ({ pages: null, photos: new Set() });
 
 const run = (chunks: string[]) => {
   const prose: string[] = [];
@@ -45,26 +49,26 @@ describe("leads", () => {
   it("validates each lead, rejects repeats, and caps the turn", () => {
     const sent = [];
     for (const ref of ["n1", "n1", "n2", "n3", "n4", "n5"]) {
-      const n = sanitizeLead(fact(ref), new Set(), sent, null);
+      const n = sanitizeLead(fact(ref), new Set(), sent, nothing());
       if (n) sent.push(n);
     }
     expect(sent.map((n) => n.ref)).toEqual(["n1", "n2", "n3", "n4"]);
-    expect(sanitizeLead("not json", new Set(), [], null)).toBeNull();
+    expect(sanitizeLead("not json", new Set(), [], nothing())).toBeNull();
   });
 
   it("only accepts web leads citing a page seen this turn", () => {
     const web = JSON.stringify({ ref: "w", type: "web", title: "Page", body: "", url: "https://a.example/x" });
-    expect(sanitizeLead(web, new Set(), [], new Map())).toBeNull();
-    expect(sanitizeLead(web, new Set(), [], new Map([["https://a.example/x", "Page"]]))).not.toBeNull();
+    expect(sanitizeLead(web, new Set(), [], { pages: new Map(), photos: new Set() })).toBeNull();
+    expect(sanitizeLead(web, new Set(), [], { pages: new Map([["https://a.example/x", "Page"]]), photos: new Set() })).not.toBeNull();
   });
 
   it("lets a lead sit near an earlier lead", () => {
-    const first = sanitizeLead(fact("n1"), new Set(), [], null)!;
-    expect(sanitizeLead(fact("n2", { near: "n1" }), new Set(), [first], null)!.near).toBe("n1");
+    const first = sanitizeLead(fact("n1"), new Set(), [], nothing())!;
+    expect(sanitizeLead(fact("n2", { near: "n1" }), new Set(), [first], nothing())!.near).toBe("n1");
   });
 
   it("merges leads with the end block, which adds strings and new notes but can't repeat a lead", () => {
-    const leads = [sanitizeLead(fact("n1"), new Set(["q"]), [], null)!];
+    const leads = [sanitizeLead(fact("n1"), new Set(["q"]), [], nothing())!];
     const out = mergeTurn(
       leads,
       {
@@ -81,5 +85,69 @@ describe("leads", () => {
     expect(out.links).toHaveLength(1);
     expect(out.case_title).toBe("Name");
     expect(mergeTurn(leads, null, new Set()).notes).toHaveLength(1);
+  });
+});
+
+describe("photos", () => {
+  const photo = (image: unknown) => JSON.stringify({ ref: "p1", type: "photo", title: "Richard McCoy, 1972", body: "FBI photograph", image });
+
+  it("only pins a photo find_photos actually returned this turn", () => {
+    const seen: Seen = { pages: null, photos: new Set(["Richard Floyd McCoy.jpg"]) };
+    expect(sanitizeLead(photo("Richard Floyd McCoy.jpg"), new Set(), [], seen)?.image).toBe("Richard Floyd McCoy.jpg");
+    // the same file written the way Commons URLs write it
+    expect(sanitizeLead(photo("File:Richard_Floyd_McCoy.jpg"), new Set(), [], seen)?.image).toBe("Richard Floyd McCoy.jpg");
+    expect(sanitizeLead(photo("Made up.jpg"), new Set(), [], seen)).toBeNull();
+  });
+
+  it("drops a photo note with no usable image", () => {
+    for (const image of [undefined, "", "notes.pdf", "a/b.jpg", "x".repeat(300) + ".jpg"])
+      expect(sanitizeWallUpdate({ notes: [JSON.parse(photo(image))], links: [] }, new Set()).notes).toHaveLength(0);
+  });
+
+  it("reads a Commons search into files with their own credits", async () => {
+    const response = {
+      query: {
+        pages: [
+          { index: 2, title: "File:Doc.pdf", imageinfo: [{ mime: "application/pdf" }] },
+          {
+            index: 1,
+            title: "File:Richard Floyd McCoy.jpg",
+            imageinfo: [
+              {
+                mime: "image/jpeg",
+                width: 400,
+                height: 520,
+                descriptionurl: "https://commons.wikimedia.org/wiki/File:Richard_Floyd_McCoy.jpg",
+                extmetadata: {
+                  ImageDescription: { value: "<p>FBI photograph of <b>Richard Floyd McCoy</b>, 1972</p>" },
+                  Artist: { value: '<a href="x">Federal Bureau of Investigation</a>' },
+                  LicenseShortName: { value: "Public domain" },
+                  DateTimeOriginal: { value: "1972" },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    };
+    let asked = "";
+    const fake = (async (url: string) => {
+      asked = url;
+      return { ok: true, json: async () => response };
+    }) as unknown as typeof fetch;
+    const found = await searchCommonsPhotos("Richard Floyd McCoy", 5, fake);
+    expect(decodeURIComponent(asked)).toContain("Richard Floyd McCoy filetype:bitmap");
+    expect(found).toEqual([
+      {
+        file: "Richard Floyd McCoy.jpg",
+        description: "FBI photograph of Richard Floyd McCoy, 1972",
+        date: "1972",
+        author: "Federal Bureau of Investigation",
+        license: "Public domain",
+        width: 400,
+        height: 520,
+        page: "https://commons.wikimedia.org/wiki/File:Richard_Floyd_McCoy.jpg",
+      },
+    ]);
   });
 });
