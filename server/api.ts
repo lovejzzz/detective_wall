@@ -165,8 +165,8 @@ async function investigate(req: InvestigateRequest, emit: (e: PartnerEvent) => v
         const b = event.content_block;
         // Separate text blocks that are split by searches with a paragraph break.
         if (b.type === "text" && textBlocks++ > 0) reply.push("\n\n");
-        else if (b.type === "server_tool_use" || (b.type === "tool_use" && b.name === "find_photos")) {
-          // Prose written before more research was a working note, not the answer.
+        else if (b.type === "server_tool_use" || (b.type === "tool_use" && b.name !== "update_wall")) {
+          // Prose written before any more work (research or pinning) was a working note, not the answer.
           const aside = reply.retract();
           if (aside) emit({ type: "aside", text: aside });
           if (b.type === "server_tool_use") emit({ type: "status", kind: "searching" });

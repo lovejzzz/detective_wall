@@ -122,14 +122,14 @@ function whenEndKey(when: string): string {
   return `${y}-${m}-${d}T${time ?? "23:59"}`;
 }
 
-type Group = Note[];
-interface Chapter {
+export type Group = Note[];
+export interface Chapter {
   title: string | null;
   groups: Group[];
 }
 
 /** Named phases decide the chapters when the case has them; otherwise long silences do. */
-function chapters(groups: Group[], phases: Phase[] | undefined): Chapter[] {
+export function chapters(groups: Group[], phases: Phase[] | undefined): Chapter[] {
   const named = (phases ?? []).filter((p) => p.title && isWhen(p.from)).sort((a, b) => whenKey(a.from).localeCompare(whenKey(b.from)));
   if (named.length) {
     const out: Chapter[] = named.map((p) => ({ title: p.title, groups: [] }));
@@ -167,14 +167,14 @@ function chapters(groups: Group[], phases: Phase[] | undefined): Chapter[] {
   return segs.map((s) => ({ title: null, groups: s }));
 }
 
-/** Undated photos strung to a dated event hang with it (a couple each); the rest wait in the tray. */
-function hangers(dated: Note[], undated: Note[], links: Link[]): Map<string, Note[]> {
+/** Undated photos strung to a dated event (pinned or still proposed) hang with it, a couple each; the rest wait in the tray. */
+export function hangers(dated: Note[], undated: Note[], links: Link[]): Map<string, Note[]> {
   const datedIds = new Set(dated.map((n) => n.id));
   const out = new Map<string, Note[]>();
   for (const n of undated) {
     if (n.type !== "photo") continue;
     const host = links
-      .filter((l) => l.status === "pinned" && (l.from === n.id || l.to === n.id))
+      .filter((l) => l.from === n.id || l.to === n.id)
       .map((l) => (l.from === n.id ? l.to : l.from))
       .find((id) => datedIds.has(id) && (out.get(id)?.length ?? 0) < MAX_ATTACHED);
     if (host) out.set(host, [...(out.get(host) ?? []), n]);
@@ -182,21 +182,28 @@ function hangers(dated: Note[], undated: Note[], links: Link[]): Map<string, Not
   return out;
 }
 
-export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?: string; phases?: Phase[] } = {}): TimelineLayout {
-  const byTime = (a: Note, b: Note) => whenKey(a.when!).localeCompare(whenKey(b.when!)) || a.createdAt - b.createdAt;
-  const dated = notes.filter((n) => n.when).sort(byTime);
-  const undatedAll = notes.filter((n) => !n.when).sort((a, b) => a.createdAt - b.createdAt);
-  const hung = hangers(dated, undatedAll, links);
-  const hungIds = new Set([...hung.values()].flat().map((n) => n.id));
-  const undated = undatedAll.filter((n) => !hungIds.has(n.id));
-
-  // Group by day (or by year/month when that's all that's known).
+/** Dated notes (already in time order) grouped by day, or by year/month when that's all that's known. */
+export function groupByDay(dated: Note[]): Group[] {
   const groups: Group[] = [];
   for (const n of dated) {
     const last = groups[groups.length - 1];
     if (last && whenDay(last[0].when!) === whenDay(n.when!)) last.push(n);
     else groups.push([n]);
   }
+  return groups;
+}
+
+/** Earlier first; the same moment in the order the notes went up. */
+export const byTime = (a: Note, b: Note) => whenKey(a.when!).localeCompare(whenKey(b.when!)) || a.createdAt - b.createdAt;
+
+export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?: string; phases?: Phase[] } = {}): TimelineLayout {
+  const dated = notes.filter((n) => n.when).sort(byTime);
+  const undatedAll = notes.filter((n) => !n.when).sort((a, b) => a.createdAt - b.createdAt);
+  const hung = hangers(dated, undatedAll, links);
+  const hungIds = new Set([...hung.values()].flat().map((n) => n.id));
+  const undated = undatedAll.filter((n) => !hungIds.has(n.id));
+
+  const groups = groupByDay(dated);
 
   const slots = new Map<string, TimelineSlot>();
   const stops: TimelineLayout["stops"] = [];

@@ -209,11 +209,9 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
       } else if (e.type === "assistant") {
         for (const b of e.message?.content ?? []) {
           if (b.type !== "tool_use") continue;
-          // Prose written before more research was a working note, not the answer.
-          if (b.name === "WebSearch" || b.name === "WebFetch" || b.name === FIND_PHOTOS) {
-            const aside = reply.retract();
-            if (aside) emit({ type: "aside", text: aside });
-          }
+          // Prose written before any more work (research or pinning) was a working note, not the answer.
+          const aside = reply.retract();
+          if (aside) emit({ type: "aside", text: aside });
           if (b.name === PIN_LEAD) putUp(b.input);
           if (b.name === FIND_PHOTOS) emit({ type: "status", kind: "searching", detail: `photos of ${String(b.input?.query ?? "")}` });
           if (b.name === "WebSearch") emit({ type: "status", kind: "searching", detail: String(b.input?.query ?? "") });

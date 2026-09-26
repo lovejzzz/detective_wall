@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeWallUpdate, MAX_NOTES_PER_TURN } from "../src/lib/contract.ts";
+import { sanitizeWallUpdate, MAX_NOTES_PER_TURN, UPDATE_WALL_SCHEMA } from "../src/lib/contract.ts";
 import { findFreeSpot, NOTE_SIZE, pinPoint, stringPath } from "../src/lib/geometry.ts";
 import type { Note } from "../src/lib/types.ts";
 
@@ -125,5 +125,20 @@ describe("geometry", () => {
       const apart = Math.abs(n.x - spot.x) >= (s.w + w) / 2 || Math.abs(n.y - spot.y) >= (s.h + h) / 2;
       expect(apart).toBe(true);
     }
+  });
+});
+
+describe("the tool schemas stay within strict tool use", () => {
+  it("uses no array bounds or type unions (limits are enforced when sanitising instead)", () => {
+    const walk = (v: unknown, path: string, out: string[]) => {
+      if (!v || typeof v !== "object") return;
+      for (const [k, x] of Object.entries(v)) {
+        if (k === "maxItems" || (k === "minItems" && Number(x) > 1)) out.push(`${path}.${k}`);
+        if (k === "type" && Array.isArray(x)) out.push(`${path}.type`);
+        walk(x, `${path}.${k}`, out);
+      }
+      return out;
+    };
+    expect(walk(UPDATE_WALL_SCHEMA, "update_wall", [])).toEqual([]);
   });
 });

@@ -38,19 +38,15 @@ const ANGLES = [
 const COOPER_SCRIPT: { reply: string; update: (c: Case) => WallUpdate }[] = [
   {
     reply:
-      "(Offline, so I'm working from the case file rather than searching.)\n\nThe parachutes are a good thread. He asked for four: two back, two front. When the plane landed in Reno at 10:15 pm, Cooper, the money and two of the parachutes were gone. Which two he took, and what that says about his experience, has been argued over ever since.\n\nNext lead: what the airline industry changed afterwards.",
+      "(Offline, so I'm working from the case file rather than searching.)\n\nThe parachutes are a good thread. He was given two mains and two reserves, and one reserve was a sewn-shut dummy. In Reno one main and one opened reserve were left, so he went out with the other main and, it seems, the dummy. Whether he knew that says a lot about his experience.\n\nNext lead: what the serial numbers tell us.",
     update: (c) => {
-      const demands = c.notes.find((n) => n.title === "The demands");
+      const chutes = c.notes.find((n) => n.title === "Four parachutes, two left behind");
       const survived = c.notes.find((n) => n.title === "Did he survive?");
       return {
-        notes: [
-          { ref: "n1", type: "fact", title: "Two parachutes gone", body: "After landing in Reno at 10:15 pm the crew found Cooper, the money and two of the four parachutes gone.", confidence: "high", when: "1971-11-24T22:15", ...(demands ? { near: demands.id } : {}) },
-          { ref: "n2", type: "hypothesis", title: "Which two did he take?", body: "The choice of chutes says something about whether he knew what he was doing." },
-        ],
+        notes: [{ ref: "n1", type: "hypothesis", title: "Did he jump with the dummy reserve?", body: "One reserve was a sewn-shut training chute, and it left with him.", ...(chutes ? { near: chutes.id } : {}) }],
         links: [
-          ...(demands ? [{ from: demands.id, to: "n1", relation: "causes" as const, reason: "He asked for four; two left with him" }] : []),
-          { from: "n1", to: "n2", relation: "references", reason: "The open question" },
-          ...(survived ? [{ from: "n2", to: survived.id, relation: "references" as const, reason: "Experience bears on survival" }] : []),
+          ...(chutes ? [{ from: "n1", to: chutes.id, relation: "references" as const, reason: "What was left in Reno" }] : []),
+          ...(survived ? [{ from: "n1", to: survived.id, relation: "references" as const, reason: "Experience bears on survival" }] : []),
         ],
         focus: "n1",
       };
@@ -58,24 +54,24 @@ const COOPER_SCRIPT: { reply: string; update: (c: Case) => WallUpdate }[] = [
   },
   {
     reply:
-      "After Flight 305, Boeing 727s were fitted with a simple device, known as the “Cooper vane”, that stops the rear airstair from being lowered in flight. The escape route he used was closed off because of him.\n\nNext lead: the wave of copycat hijackings in 1972.",
+      "The serials are why the Tena Bar find could be matched at all. The bank photographed all 10,000 twenties on microfilm before delivery; most came from the Federal Reserve Bank of San Francisco, so their serials begin with L.\n\nNext lead: what happened to the bills the boy found.",
     update: (c) => {
-      const plane = c.notes.find((n) => n.title.startsWith("727"));
+      const tena = c.notes.find((n) => n.title === "Ransom cash on a river beach");
       return {
-        notes: [{ ref: "n1", type: "fact", title: "The “Cooper vane”", body: "Boeing 727s were later fitted with a vane that prevents the rear airstair from being lowered in flight.", confidence: "high", ...(plane ? { near: plane.id } : {}) }],
-        links: plane ? [{ from: "n1", to: plane.id, relation: "references", reason: "The stair he used" }] : [],
+        notes: [{ ref: "n1", type: "fact", title: "Most serials began with L", body: "Most of the 10,000 ransom twenties came from the Federal Reserve Bank of San Francisco, so their serial numbers begin with L.", confidence: "high", ...(tena ? { near: tena.id } : {}) }],
+        links: tena ? [{ from: "n1", to: tena.id, relation: "supports", reason: "How the bills were matched" }] : [],
         focus: "n1",
       };
     },
   },
   {
     reply:
-      "Cooper started a wave. In 1972 there were 31 hijackings in US airspace, and in 15 of them the hijacker demanded parachutes. Flight 305 is still the one nobody has solved.\n\nThat's as far as I can take it offline. Connect Claude (an API key) and I can search the record properly.",
+      "In June 1986 a court split the Tena Bar money: Brian Ingram got about half, and the FBI kept 14 bills as evidence.\n\nThat's as far as I can take it offline. Connect Claude and I can search the record properly.",
     update: (c) => {
-      const verdict = c.notes.find((n) => n.type === "conclusion");
+      const tena = c.notes.find((n) => n.title === "Ransom cash on a river beach");
       return {
-        notes: [{ ref: "n1", type: "fact", title: "Copycats, 1972", when: "1972", body: "31 hijackings in US airspace in 1972; in 15 the hijacker demanded parachutes. Cooper vanes and airport metal detectors ended the pattern.", confidence: "medium" }],
-        links: verdict ? [{ from: "n1", to: verdict.id, relation: "references", reason: "Why this one stands out" }] : [],
+        notes: [{ ref: "n1", type: "fact", title: "The bills are split, 1986", when: "1986-06", body: "A court divided the Tena Bar bills: Brian Ingram got about half, and the FBI kept 14 as evidence.", confidence: "medium" }],
+        links: tena ? [{ from: "n1", to: tena.id, relation: "references", reason: "What became of the find" }] : [],
         focus: "n1",
       };
     },

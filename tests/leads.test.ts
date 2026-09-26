@@ -63,11 +63,11 @@ describe("leads", () => {
 
   it("validates each lead, rejects repeats, and caps the turn", () => {
     const sent = [];
-    for (const ref of ["n1", "n1", "n2", "n3", "n4", "n5"]) {
+    for (const ref of ["n1", "n1", "n2", "n3", "n4", "n5", "n6", "n7"]) {
       const n = sanitizeLead(fact(ref), new Set(), sent, nothing());
       if (n) sent.push(n);
     }
-    expect(sent.map((n) => n.ref)).toEqual(["n1", "n2", "n3", "n4"]);
+    expect(sent.map((n) => n.ref)).toEqual(["n1", "n2", "n3", "n4", "n5", "n6"]);
     expect(sanitizeLead("not json", new Set(), [], nothing())).toBeNull();
   });
 

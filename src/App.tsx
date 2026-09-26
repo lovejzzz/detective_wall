@@ -129,6 +129,9 @@ export function App() {
           <kbd>T</kbd> timeline
         </span>
         <span>
+          <kbd>A</kbd> arrange
+        </span>
+        <span>
           <kbd>C</kbd> cabinet
         </span>
         <span>hold a lead to pin it</span>

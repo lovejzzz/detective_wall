@@ -1,0 +1,96 @@
+import { beforeAll, describe, expect, it } from "vitest";
+import type { Note } from "../src/lib/types.ts";
+
+// The store persists to localStorage; a plain map stands in for it here.
+beforeAll(() => {
+  const m = new Map<string, string>();
+  (globalThis as { localStorage?: unknown }).localStorage = {
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => void m.set(k, v),
+    removeItem: (k: string) => void m.delete(k),
+  };
+});
+
+const fact = (ref: string, title: string, when?: string) => ({ ref, type: "fact" as const, title, body: "", ...(when ? { when } : {}) });
+
+describe("key moments in the store", async () => {
+  const { useStore } = await import("../src/store.ts");
+  const s = () => useStore.getState();
+  const byTitle = (title: string): Note => s().cases[s().activeId!].notes.find((n) => n.title === title)!;
+  const turn = (update: Parameters<ReturnType<typeof s>["applyTurn"]>[1]["update"]) => s().applyTurn(s().activeId!, { reply: "ok", update });
+
+  it("moves a one-of-a-kind moment to a proposal only once it's pinned", () => {
+    s().newCase("Test");
+    turn({ notes: [fact("a", "Old news", "1990")], links: [], moments: [{ note: "a", beat: "latest" }] });
+    s().pinNote(byTitle("Old news").id);
+    expect(byTitle("Old news").beat).toBe("latest");
+
+    // the partner marks a fresh proposal as where it stands: the old mark stays until it's pinned
+    turn({ notes: [fact("b", "New turn", "2020")], links: [], moments: [{ note: "b", beat: "latest" }] });
+    expect(byTitle("New turn").beat).toBe("latest");
+    expect(byTitle("Old news").beat).toBe("latest");
+
+    // tossed: nothing lost
+    s().tossNote(byTitle("New turn").id);
+    expect(byTitle("Old news").beat).toBe("latest");
+
+    // pinned: it moves
+    turn({ notes: [fact("c", "Newer turn", "2021")], links: [], moments: [{ note: "c", beat: "latest" }] });
+    s().pinNote(byTitle("Newer turn").id);
+    expect(byTitle("Newer turn").beat).toBe("latest");
+    expect(byTitle("Old news").beat).toBeUndefined();
+  });
+
+  it("marks and unmarks notes already on the wall, and moves a single moment between pinned notes at once", () => {
+    const old = byTitle("Old news");
+    turn({ notes: [], links: [], moments: [{ note: old.id, beat: "origin" }] });
+    expect(byTitle("Old news").beat).toBe("origin");
+    s().updateNote(byTitle("Newer turn").id, { beat: "origin" });
+    expect(byTitle("Newer turn").beat).toBe("origin");
+    expect(byTitle("Old news").beat).toBeUndefined();
+    s().updateNote(byTitle("Newer turn").id, { beat: undefined });
+    expect(byTitle("Newer turn").beat).toBeUndefined();
+  });
+
+  it("dates undated notes but never overwrites a date", () => {
+    turn({ notes: [fact("u", "Undated event")], links: [], moments: [] });
+    const u = byTitle("Undated event");
+    const dated = byTitle("Old news");
+    turn({ notes: [], links: [], dates: [{ note: u.id, when: "1995-06", approx: true }, { note: dated.id, when: "1800" }] });
+    expect(byTitle("Undated event")).toMatchObject({ when: "1995-06", approx: true });
+    expect(byTitle("Old news").when).toBe("1990");
+  });
+});
+
+describe("arranging the wall", async () => {
+  const { arrangeWall, ARRANGE_COLS } = await import("../src/lib/arrange.ts");
+  const { tylenolCase } = await import("../src/lib/tylenolcase.ts");
+  const { NOTE_SIZE } = await import("../src/lib/geometry.ts");
+
+  it("reads top to bottom: question and answer, then events in time with their photos, then the rest", async () => {
+    const c = tylenolCase();
+    const at = arrangeWall(c.notes, c.links, c.phases);
+    expect(at.size).toBe(c.notes.length);
+    const pos = (n: Note) => at.get(n.id)!;
+    const top = (n: Note) => Math.round(pos(n).y - NOTE_SIZE[n.type].h / 2);
+    const order = [...c.notes].sort((a, b) => top(a) - top(b) || pos(a).x - pos(b).x);
+    const question = c.notes[0];
+    expect(order[0].id).toBe(question.id);
+    // dated events read in the same order as on the timeline: chapter by chapter, in time
+    const { layoutTimeline } = await import("../src/lib/timeline.ts");
+    const t = layoutTimeline(c.notes, c.links, { phases: c.phases });
+    const onLine = (n: Note) => t.slots.get(n.id)!.anchor;
+    const dated = order.filter((n) => n.when);
+    expect(dated.map((n) => n.id)).toEqual([...dated].sort((a, b) => onLine(a).y - onLine(b).y || onLine(a).x - onLine(b).x).map((n) => n.id));
+    // a photo strung to an event comes right after it
+    const elk = c.notes.find((n) => n.title.startsWith("Elk Grove"))!;
+    const kellerman = c.notes.find((n) => n.title.startsWith("Mary Kellerman"))!;
+    expect(order.indexOf(elk)).toBe(order.indexOf(kellerman) + 1);
+    // no card overlaps another, and rows are at most ARRANGE_COLS wide
+    const boxes = c.notes.map((n) => ({ n, ...pos(n), ...NOTE_SIZE[n.type] }));
+    for (const a of boxes)
+      for (const b of boxes)
+        if (a !== b) expect(Math.abs(a.x - b.x) < (a.w + b.w) / 2 && Math.abs(a.y - b.y) < (a.h + b.h) / 2).toBe(false);
+    expect(new Set([...at.values()].map((p) => Math.round(p.x))).size).toBeLessThanOrEqual(ARRANGE_COLS);
+  });
+});

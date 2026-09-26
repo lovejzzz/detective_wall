@@ -3,9 +3,11 @@ import { persist, createJSONStorage, type StateStorage } from "zustand/middlewar
 import { SINGLE_BEATS, type Beat, type Camera, type Case, type Link, type Message, type Note, type NoteType, type Relation, type StickyColor, type TrailStep } from "./lib/types.ts";
 import type { ProposedNote, WallUpdate } from "./lib/contract.ts";
 import { findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
-import { seedCase } from "./lib/seed.ts";
-import { COMMONS, COOPER_BEATS, COOPER_DATES, COOPER_DEMO, COOPER_PHASES, coldCase } from "./lib/coldcase.ts";
-import { TYLENOL_BEATS, TYLENOL_DEMO, TYLENOL_PHASES, tylenolCase } from "./lib/tylenolcase.ts";
+import { arrangeWall } from "./lib/arrange.ts";
+import { COOPER_DEMO, COOPER_VERSION, coldCase } from "./lib/coldcase.ts";
+import { TYLENOL_DEMO, TYLENOL_VERSION, tylenolCase } from "./lib/tylenolcase.ts";
+import { GLICO_DEMO, glicoCase } from "./lib/glicocase.ts";
+import { FUCHU_DEMO, fuchuCase } from "./lib/fuchucase.ts";
 
 export type PartnerMode = "unknown" | "live" | "offline";
 
@@ -42,6 +44,8 @@ interface State {
   live: { text: string; status?: string; trail?: TrailStep[] } | null;
   /** How the active case is laid out: the free wall, or ordered along a timeline. */
   view: "wall" | "timeline";
+  /** Bumped when the wall is arranged, so the camera steps back to take it all in. */
+  arrangedAt: number;
   /** Undo/redo stacks per case (this visit only). */
   history: Record<string, { past: Snapshot[]; future: Snapshot[] }>;
   /** The last undoable thing that happened, for the undo slip. */
@@ -81,6 +85,8 @@ interface Actions {
   pinNote(noteId: string): void;
   /** Pins every still-proposed note in the list, and the strings between notes that are now pinned. */
   pinAll(noteIds: string[]): void;
+  /** Tidies the whole wall into reading order (see lib/arrange.ts). Undoable. */
+  arrangeWall(): void;
   tossNote(noteId: string): void;
   removeNote(noteId: string): void;
   addLink(from: string, to: string, relation: Relation): void;
@@ -244,6 +250,7 @@ export const useStore = create<Store>()(
 
       return {
         view: "wall",
+        arrangedAt: 0,
         history: {},
         lastAction: null,
         cases: {},
@@ -474,6 +481,7 @@ export const useStore = create<Store>()(
             if (!n) return;
             n.status = "pinned";
             n.rotation = Math.max(-4, Math.min(4, n.rotation * 0.45));
+            claimBeat(c, n);
             c.focusNoteId = n.id;
           });
         },
@@ -487,10 +495,23 @@ export const useStore = create<Store>()(
               if (ids.has(x.id) && x.status === "proposed") {
                 x.status = "pinned";
                 x.rotation = Math.max(-4, Math.min(4, x.rotation * 0.45));
+                claimBeat(c, x);
               }
             const pinned = new Set(c.notes.filter((x) => x.status === "pinned").map((x) => x.id));
             for (const l of c.links) if (l.status === "proposed" && (ids.has(l.from) || ids.has(l.to)) && pinned.has(l.from) && pinned.has(l.to)) l.status = "pinned";
           });
+        },
+        arrangeWall() {
+          const c = get().activeId ? get().cases[get().activeId!] : null;
+          if (!c?.notes.length) return;
+          act("Arranged the wall", (c2) => {
+            const at = arrangeWall(c2.notes, c2.links, c2.phases);
+            for (const n of c2.notes) {
+              const p = at.get(n.id);
+              if (p) Object.assign(n, p);
+            }
+          });
+          set({ view: "wall", arrangedAt: Date.now() });
         },
         tossNote(noteId) {
           act(
@@ -527,6 +548,7 @@ export const useStore = create<Store>()(
               if ((n.id === l.from || n.id === l.to) && n.status === "proposed") {
                 n.status = "pinned";
                 n.rotation = Math.max(-4, Math.min(4, n.rotation * 0.45));
+                claimBeat(c, n);
               }
           });
         },
@@ -652,102 +674,80 @@ function markOpened(id: string) {
  * First run (or once every case is deleted): file the demo cases and open the cold case.
  * Existing walls get the cold case added once, in front, so returning users see the new demo too.
  */
-/** Marks (or with null, unmarks) a key moment; the ones a case has only one of move to this note. */
+/**
+ * Marks (or with null, unmarks) a key moment. The ones a case has only one of move to this note,
+ * but only once it's pinned: until then a proposal can be tossed, and the old mark should still be there.
+ */
 function markBeat(c: Case, noteId: string, beat: Beat | null) {
   const n = c.notes.find((x) => x.id === noteId);
   if (!n) return;
-  if (beat && SINGLE_BEATS.includes(beat)) for (const o of c.notes) if (o.beat === beat) delete o.beat;
   if (beat) n.beat = beat;
   else delete n.beat;
+  if (n.status === "pinned") claimBeat(c, n);
+}
+
+/** A pinned note with a one-of-a-kind moment takes it from any other note. */
+function claimBeat(c: Case, n: Note) {
+  if (!n.beat || !SINGLE_BEATS.includes(n.beat)) return;
+  for (const o of c.notes) if (o !== n && o.beat === n.beat) delete o.beat;
+}
+
+/** The built-in cases: each arrives once on every wall, and a saved copy of an older edition is brought up to date. */
+const DEMOS: { demo: string; version: number; flag: string; make: () => Case }[] = [
+  { demo: GLICO_DEMO, version: 1, flag: "detective-wall/demo-glico", make: () => glicoCase() },
+  { demo: FUCHU_DEMO, version: 1, flag: "detective-wall/demo-fuchu", make: () => fuchuCase() },
+  { demo: TYLENOL_DEMO, version: TYLENOL_VERSION, flag: "detective-wall/demo-tylenol", make: () => tylenolCase() },
+  { demo: COOPER_DEMO, version: COOPER_VERSION, flag: "detective-wall/demo-cooper", make: () => coldCase() },
+];
+
+function seen(flag: string): boolean {
+  try {
+    const was = localStorage.getItem(flag) === "1";
+    localStorage.setItem(flag, "1");
+    return was;
+  } catch {
+    return false;
+  }
 }
 
 export function ensureCases() {
+  // The old lens-adapter sample case is retired: take it off walls that still have it, recognised
+  // by the sample's own question card (a case someone started themselves never has one).
+  for (const c of Object.values(useStore.getState().cases)) {
+    const isSample = c.notes.some((n) => n.origin.kind === "seed" && n.title === "Vazen M43 anamorphic → Panasonic S9?");
+    if (!isSample) continue;
+    useStore.setState((s2) => {
+      const cases = { ...s2.cases };
+      delete cases[c.id];
+      const order = s2.order.filter((id) => id !== c.id);
+      return { cases, order, activeId: s2.activeId === c.id ? (order[0] ?? null) : s2.activeId };
+    });
+  }
+
+  // New demos go in front, in order, and the first new one opens; one that was shredded stays gone.
+  const fresh: Case[] = [];
+  for (const d of DEMOS) {
+    const had = seen(d.flag);
+    const present = Object.values(useStore.getState().cases).some((c) => c.demo === d.demo);
+    if (!present && !had) fresh.push(d.make());
+  }
+  if (fresh.length)
+    useStore.setState((s2) => ({
+      cases: { ...s2.cases, ...Object.fromEntries(fresh.map((c) => [c.id, c])) },
+      order: [...fresh.map((c) => c.id), ...s2.order],
+      activeId: fresh[0].id,
+    }));
+
+  // A demo saved from an older edition gets the new one: same folder, corrected and fuller file.
+  for (const c of Object.values(useStore.getState().cases)) {
+    const d = DEMOS.find((x) => x.demo === c.demo);
+    if (!d || (c.demoVersion ?? 1) >= d.version) continue;
+    const next = d.make();
+    useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...next, id: c.id, lastOpenedAt: c.lastOpenedAt } } }));
+  }
+
   const s = useStore.getState();
-  if (s.order.length === 0) {
-    const cold = coldCase();
-    const seed = seedCase();
-    useStore.setState({ cases: { [cold.id]: cold, [seed.id]: seed }, order: [cold.id, seed.id], activeId: cold.id });
-  } else {
-    const hasDemo = Object.values(s.cases).some((c) => c.demo === COOPER_DEMO);
-    let seeded = false;
-    try {
-      seeded = localStorage.getItem("detective-wall/demo-cooper") === "1";
-    } catch {
-      /* storage unavailable */
-    }
-    if (!hasDemo && !seeded) {
-      const cold = coldCase();
-      useStore.setState({ cases: { ...s.cases, [cold.id]: cold }, order: [cold.id, ...s.order], activeId: cold.id });
-    } else if (!s.activeId || !s.cases[s.activeId]) {
-      useStore.setState({ activeId: s.order[0] });
-    }
-  }
-  // Walls saved before evidence had dates: give the demo its dates so the timeline works.
-  const st = useStore.getState();
-  for (const c of Object.values(st.cases)) {
-    if (c.demo !== COOPER_DEMO || !c.notes.some((n) => !n.when && COOPER_DATES[n.title])) continue;
-    const notes = c.notes.map((n) => (!n.when && COOPER_DATES[n.title] ? { ...n, ...COOPER_DATES[n.title] } : n));
-    useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...s2.cases[c.id], notes } } }));
-  }
-  // Walls saved before the demo had real photos: swap in the aircraft photo, add the sketch and the bills.
-  for (const c of Object.values(useStore.getState().cases)) {
-    if (c.demo !== COOPER_DEMO || c.notes.some((n) => n.imageUrl === `commons:${COMMONS.sketch}`)) continue;
-    const fresh = coldCase();
-    const pick = (file: string) => fresh.notes.find((n) => n.imageUrl === `commons:${file}`)!;
-    const q = c.notes.find((n) => n.type === "hypothesis" && n.title.startsWith("Who was"));
-    const tena = c.notes.find((n) => n.title === "Ransom cash on a river beach");
-    const added = [pick(COMMONS.sketch), pick(COMMONS.bills)].filter((n) => !c.notes.some((x) => x.id === n.id));
-    const notes = [
-      ...c.notes.map((n) =>
-        n.imageUrl === "sketch:727" ? { ...n, ...pick(COMMONS.plane), id: n.id, x: n.x, y: n.y, rotation: n.rotation, createdAt: n.createdAt, status: n.status } : n,
-      ),
-      ...added,
-    ];
-    const newLinks: Link[] = [];
-    const [sk, bl] = added;
-    if (q && sk) newLinks.push({ id: uid(), from: sk.id, to: q.id, relation: "references", reason: "The face the FBI circulated", status: "pinned", createdBy: "ai", createdAt: Date.now() });
-    if (tena && bl) newLinks.push({ id: uid(), from: bl.id, to: tena.id, relation: "references", reason: "The bills themselves", status: "pinned", createdBy: "ai", createdAt: Date.now() });
-    useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...s2.cases[c.id], notes, links: [...s2.cases[c.id].links, ...newLinks] } } }));
-  }
-  try {
-    localStorage.setItem("detective-wall/demo-cooper", "1");
-  } catch {
-    /* storage unavailable */
-  }
-  // The Tylenol case arrives once on every wall, new or old, and opens in front.
-  // Shredding it keeps it gone.
-  let tylenolSeeded = false;
-  try {
-    tylenolSeeded = localStorage.getItem("detective-wall/demo-tylenol") === "1";
-    localStorage.setItem("detective-wall/demo-tylenol", "1");
-  } catch {
-    /* storage unavailable */
-  }
-  const cur = useStore.getState();
-  if (!tylenolSeeded && !Object.values(cur.cases).some((c) => c.demo === TYLENOL_DEMO)) {
-    const ty = tylenolCase();
-    useStore.setState({ cases: { ...cur.cases, [ty.id]: ty }, order: [ty.id, ...cur.order], activeId: ty.id });
-  }
-  // Walls saved before timelines had chapters: name the demos' chapters.
-  for (const c of Object.values(useStore.getState().cases)) {
-    const phases = c.demo === COOPER_DEMO ? COOPER_PHASES : c.demo === TYLENOL_DEMO ? TYLENOL_PHASES : null;
-    if (phases && !c.phases) useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...s2.cases[c.id], phases } } }));
-  }
-  // ...and mark their key moments, once (so a mark the user takes off stays off).
-  let beatsMarked = false;
-  try {
-    beatsMarked = localStorage.getItem("detective-wall/demo-beats") === "1";
-    localStorage.setItem("detective-wall/demo-beats", "1");
-  } catch {
-    /* storage unavailable */
-  }
-  if (!beatsMarked)
-    for (const c of Object.values(useStore.getState().cases)) {
-      const beats = c.demo === COOPER_DEMO ? COOPER_BEATS : c.demo === TYLENOL_DEMO ? TYLENOL_BEATS : null;
-      if (!beats || c.notes.some((n) => n.beat)) continue;
-      const notes = c.notes.map((n) => (beats[n.title] ? { ...n, beat: beats[n.title] } : n));
-      useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...s2.cases[c.id], notes } } }));
-    }
+  if (!s.activeId || !s.cases[s.activeId]) useStore.setState({ activeId: s.order[0] ?? null });
   const active = useStore.getState().activeId;
   if (active) markOpened(active);
 }

@@ -121,6 +121,8 @@ export interface Case {
   messages: Message[];
   /** Set on built-in demo cases; enables the scripted offline partner for that case. */
   demo?: string;
+  /** Which edition of a demo this is, so a wall saved with an older one can be brought up to date. */
+  demoVersion?: number;
   /** When the case was last opened, for the "picking this back up" line. */
   lastOpenedAt?: number;
   /** Open on the whole wall, framed for whatever screen it's on (then cleared). New demo cases set it. */

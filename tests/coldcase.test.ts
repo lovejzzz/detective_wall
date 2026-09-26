@@ -38,8 +38,8 @@ describe("Flight 305 demo case", () => {
       titles.push(update.notes[0].title);
       cur = { ...cur, messages: [...cur.messages, { id: `m${i}`, role: "assistant", text: turn.reply, createdAt: 0, offline: true }] };
     }
-    expect(titles.slice(0, 3)).toEqual(["Two parachutes gone", "The “Cooper vane”", "Copycats, 1972"]);
-    expect(titles[3]).not.toBe("Copycats, 1972");
+    expect(titles.slice(0, 3)).toEqual(["Did he jump with the dummy reserve?", "Most serials began with L", "The bills are split, 1986"]);
+    expect(titles[3]).not.toBe("The bills are split, 1986");
   });
 });
 

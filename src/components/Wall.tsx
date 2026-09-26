@@ -156,12 +156,22 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     },
     [toScreen, stage],
   );
+  /** The whole wall if it fits; otherwise its full width from the top, the way you'd open a file. */
+  const pageFrame = useCallback(
+    (notes: Note[]): Camera => {
+      const f = framing(notes, 0.9);
+      const top = Math.min(...notes.map((n) => n.y - NOTE_SIZE[n.type].h / 2));
+      const bottom = Math.max(...notes.map((n) => n.y + NOTE_SIZE[n.type].h / 2));
+      return bottom - top <= (stage.h - 160) / f.zoom ? f : { ...f, y: top + (stage.cy - 100) / f.zoom };
+    },
+    [framing, stage.h, stage.cy],
+  );
   // A case that asks to be framed (a new demo) opens on its whole wall, for whatever screen this is.
   // A layout effect, so the camera is set before the first paint and before the focus check below.
   const justFramed = useRef(false);
   useLayoutEffect(() => {
     if (!c.frameOnOpen || !placed.length) return;
-    const f = framing(placed, 0.9);
+    const f = pageFrame(placed);
     camRef.current = f;
     setCam(f);
     justFramed.current = true; // the whole wall is the point: don't re-centre on the focused note
@@ -225,6 +235,15 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
+
+  // Arranged: step back to take in the tidied wall.
+  const arrangedAt = useStore((st) => st.arrangedAt);
+  useEffect(() => {
+    if (!arrangedAt) return;
+    const notes = useStore.getState().cases[c.id]?.notes ?? [];
+    if (notes.length) flyTo(pageFrame(notes), 900);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arrangedAt]);
 
   // Opening a note's file: the camera pushes in on it behind the blur, and eases back on close.
   const dossierId = useStore((st) => st.dossierId);
@@ -391,6 +410,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       if (t.closest("input, textarea, [contenteditable=true]") || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === "0") flyTo(placed.length ? framing(placed, 1) : { x: 0, y: 0, zoom: 0.9 }, 600);
       else if (e.key === "t" || e.key === "T") store().setView(useStore.getState().view === "timeline" ? "wall" : "timeline");
+      else if (e.key === "a" || e.key === "A") store().arrangeWall();
       else if ((e.key === "]" || e.key === "PageDown" || e.key === "[" || e.key === "PageUp") && useStore.getState().view === "timeline") {
         e.preventDefault();
         const aimed = aimedChapter.current && performance.now() < aimedChapter.current.until ? aimedChapter.current.n : readingChapter;

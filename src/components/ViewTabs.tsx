@@ -18,6 +18,15 @@ export function ViewTabs({ left }: { left: number }) {
           {label}
         </button>
       ))}
+      <button className="arrange-switch" onClick={() => useStore.getState().arrangeWall()} title="Arrange the wall in reading order (A)" aria-label="Arrange the wall">
+        <svg viewBox="0 0 18 14" aria-hidden>
+          <rect x="1" y="1" width="4" height="5" rx="0.6" />
+          <rect x="7" y="1" width="4" height="5" rx="0.6" />
+          <rect x="13" y="1" width="4" height="5" rx="0.6" />
+          <rect x="1" y="8" width="4" height="5" rx="0.6" />
+          <rect x="7" y="8" width="4" height="5" rx="0.6" />
+        </svg>
+      </button>
       <SoundSwitch />
     </div>
   );

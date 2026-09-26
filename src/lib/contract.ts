@@ -14,8 +14,8 @@ import {
   type Stamp,
 } from "./types.ts";
 
-export const MAX_NOTES_PER_TURN = 4;
-export const MAX_LINKS_PER_TURN = 4;
+export const MAX_NOTES_PER_TURN = 6;
+export const MAX_LINKS_PER_TURN = 6;
 
 export interface ProposedNote {
   ref: string;
@@ -179,9 +179,8 @@ export const UPDATE_WALL_SCHEMA = {
     },
     phases: {
       type: "array",
-      maxItems: MAX_PHASES,
       description:
-        "Optional: the stages the case's dated events fall into, in order, as timeline chapters (e.g. the crime, the manhunt, the trial, the reopening). Each has a short title and the date it starts from. The full list replaces any chapters named before; leave it out if they still fit.",
+        "Optional, at most 6: the stages the case's dated events fall into, in order, as timeline chapters (e.g. the crime, the manhunt, the trial, the reopening). Each has a short title and the date it starts from. The full list replaces any chapters named before; leave it out if they still fit.",
       items: {
         type: "object",
         additionalProperties: false,
@@ -194,23 +193,21 @@ export const UPDATE_WALL_SCHEMA = {
     },
     moments: {
       type: "array",
-      maxItems: MAX_MOMENTS,
       description:
-        "Key moments in the story: mark a note (a new note's ref, or the id of one on the wall) as where the case began, escalated, broke open, turned, hit a dead end, was resolved, or where it stands now. Use beat null to unmark. 'origin', 'resolved' and 'latest' each belong to one note, so marking one moves it.",
+        "At most 12. Key moments in the story: mark a note (a new note's ref, or the id of one on the wall) as where the case began, escalated, broke open, turned, hit a dead end, was resolved, or where it stands now. Use beat 'none' to unmark. 'origin', 'resolved' and 'latest' each belong to one note, so marking one moves it.",
       items: {
         type: "object",
         additionalProperties: false,
         required: ["note", "beat"],
         properties: {
           note: { type: "string" },
-          beat: { type: ["string", "null"], enum: [...BEATS, null] },
+          beat: { type: "string", enum: [...BEATS, "none"] },
         },
       },
     },
     dates: {
       type: "array",
-      maxItems: MAX_DATES,
-      description: "Dates for notes already on the wall that have none, by id, so they take their place on the timeline.",
+      description: "At most 20. Dates for notes already on the wall that have none, by id, so they take their place on the timeline.",
       items: {
         type: "object",
         additionalProperties: false,
@@ -343,7 +340,7 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
     for (const m of raw.moments.slice(0, MAX_MOMENTS * 2)) {
       if (!m || typeof m !== "object") continue;
       const { note, beat } = m as Record<string, unknown>;
-      const b = beat === null ? null : oneOf(beat, BEATS);
+      const b = beat === null || beat === "none" ? null : oneOf(beat, BEATS);
       if (!resolvable(note) || b === undefined || moments.some((x) => x.note === note)) continue;
       moments.push({ note, beat: b });
     }

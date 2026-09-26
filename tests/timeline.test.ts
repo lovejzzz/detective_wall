@@ -120,7 +120,7 @@ describe("timeline layout", () => {
     expect(t.chapters.map((ch) => ch.title)).toEqual(c.phases!.map((p) => p.title));
     expect(t.chapters[0].range).toBe("29 Sep – 1 Oct 1982");
     expect(t.chapters[0].after).toBeNull();
-    expect(t.chapters[3].after).toBe("23 years later");
+    expect(t.chapters[3].after).toBe("19 years later");
     // each chapter sits below the one before, under the heading, with its cord inside its band
     expect(t.heading!.y).toBeLessThan(t.chapters[0].y);
     t.chapters.forEach((ch, i) => {
@@ -128,10 +128,16 @@ describe("timeline layout", () => {
       expect(ch.cordY).toBeGreaterThan(ch.y);
       expect(ch.cordY).toBeLessThan(ch.y + ch.h);
     });
-    // a letter known only as "October 1982" belongs with the recall that began on the 5th
-    const letter = c.notes.find((n) => n.when === "1982-10")!;
-    expect(t.slots.get(letter.id)!.anchor.y).toBe(t.chapters[1].cordY);
     expect(overlaps(t, c.notes)).toEqual([]);
+    // an event known only as "October 1982" belongs with a stage that began on the 5th
+    const m = layoutTimeline([note("early", "1982-10-01"), note("month", "1982-10"), note("later", "1982-10-06")], [], {
+      phases: [
+        { title: "A", from: "1982-09-29" },
+        { title: "B", from: "1982-10-05" },
+      ],
+    });
+    expect(m.slots.get("month")!.anchor.y).toBe(m.chapters[1].cordY);
+    expect(m.slots.get("early")!.anchor.y).toBe(m.chapters[0].cordY);
   });
 
   it("hangs a photo strung to an event with that event, away from the cord", () => {
@@ -252,7 +258,7 @@ describe("key moments", () => {
   it("puts the story's key moments in time order for the heading, and makes room for them", () => {
     const c = tylenolCase();
     const t = layoutTimeline(c.notes, c.links, { title: c.title, phases: c.phases });
-    expect(t.moments.map((m) => m.beat)).toEqual(["origin", "breakthrough", "escalation", "dead_end", "twist", "latest"]);
+    expect(t.moments.map((m) => m.beat)).toEqual(["origin", "breakthrough", "escalation", "twist", "dead_end", "latest"]);
     for (const m of t.moments) expect(m.anchor).not.toBeNull();
     const plain = layoutTimeline(c.notes.map(({ beat: _b, ...n }) => n), c.links, { title: c.title, phases: c.phases });
     expect(t.heading!.y).toBeLessThan(plain.heading!.y);
