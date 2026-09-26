@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPE } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPE } from "react";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import { markWallDrawn } from "../lib/boot.ts";
 import { livePose } from "../scene/live.ts";
@@ -248,10 +248,12 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     if (focusChanged && focusNote) {
       const reply = [...c.messages].reverse().find((m) => m.role === "assistant")?.id;
       const waiting = placed.filter((n) => n.status === "proposed" && reply && n.origin.messageId === reply);
-      const group = [focusNote, ...waiting.filter((n) => n.id !== focusNote.id)];
+      // Cards it proposes taking down are part of what it's asking: keep their slips in view too.
+      const doubted = placed.filter((n) => n.retire && n.status !== "proposed");
+      const group = [focusNote, ...[...waiting, ...doubted].filter((n) => n.id !== focusNote.id)];
       if (group.every((n) => inView(n, k))) return;
       const f = framing(group, k.zoom);
-      if (group.length > 1 && f.zoom >= Math.min(k.zoom, 0.45)) flyTo(f);
+      if (group.length > 1 && f.zoom >= Math.min(k.zoom, LABEL_Z)) flyTo(f);
       else if (!inView(focusNote, k)) flyTo({ x: focusNote.x, y: focusNote.y, zoom: k.zoom });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -853,23 +855,33 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
           .filter((n) => n.retire && n.status !== "proposed")
           .map(live)
           .map((n) => {
-            // The partner thinks this card no longer earns its place: a red-pencil slip over it says
-            // why, and the user takes it down or keeps it.
-            const p = toScreen({ x: n.x, y: n.y + NOTE_SIZE[n.type].h / 2 });
+            // The partner thinks this card no longer earns its place: struck through in red pencil,
+            // with a slip over its lower half saying why, and the user takes it down or keeps it.
+            // Both stay within the card, so they never cover its neighbours.
+            const { w, h } = NOTE_SIZE[n.type];
+            const mid = toScreen(n);
+            const p = toScreen({ x: n.x, y: n.y + h * 0.2 });
             return (
-              <div key={`retire-${n.id}`} className="proposal-anchor" style={{ left: p.x, top: p.y + 10 * cam.zoom }}>
-                <div className="retire-slip" style={{ transform: `scale(${tabScale})`, transformOrigin: "50% 0" }}>
-                  <span className="retire-why">{n.retire}</span>
-                  <span className="retire-actions">
-                    <button className="retire-down" onClick={() => onToss(n.id)} title={t("Take this card down")}>
-                      {t("Take it down")}
-                    </button>
-                    <button className="retire-keep" onClick={() => store().keepNote(n.id)} title={t("Keep it on the wall")}>
-                      {t("Keep")}
-                    </button>
-                  </span>
+              <Fragment key={`retire-${n.id}`}>
+                <div
+                  className="retire-strike"
+                  aria-hidden
+                  style={{ left: mid.x, top: mid.y, width: w * cam.zoom, height: h * cam.zoom, transform: `translate(-50%, -50%) rotate(${n.rotation}deg)` }}
+                />
+                <div className="proposal-anchor" style={{ left: p.x, top: p.y }}>
+                  <div className="retire-slip" style={{ transform: `scale(${tabScale})`, transformOrigin: "50% 0" }}>
+                    <span className="retire-why">{n.retire}</span>
+                    <span className="retire-actions">
+                      <button className="retire-down" onClick={() => onToss(n.id)} title={t("Take this card down")}>
+                        {t("Take it down")}
+                      </button>
+                      <button className="retire-keep" onClick={() => store().keepNote(n.id)} title={t("Keep it on the wall")}>
+                        {t("Keep")}
+                      </button>
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </Fragment>
             );
           })}
         {farOpacity > 0 &&

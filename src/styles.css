@@ -3387,8 +3387,8 @@ kbd {
 .retire-slip {
   display: grid;
   gap: 6px;
-  max-width: 260px;
-  padding: 8px 10px 8px;
+  width: max-content;
+  padding: 7px 9px 8px;
   color: #6e1a12;
   background: #f4ecd8 var(--grain);
   box-shadow:
@@ -3398,7 +3398,17 @@ kbd {
   pointer-events: auto;
   rotate: -1.2deg;
 }
+/* The red-pencil stroke across a card the partner proposes taking down: drawn corner to corner,
+   a little uneven, the way it's done by hand. */
+.retire-strike {
+  position: absolute;
+  pointer-events: none;
+  background:
+    linear-gradient(to top right, transparent calc(50% - 2px), rgba(150, 28, 18, 0.8) calc(50% - 1.2px), rgba(150, 28, 18, 0.66) calc(50% + 1.4px), transparent calc(50% + 2.2px));
+  mix-blend-mode: multiply;
+}
 .retire-why {
+  max-width: 172px;
   font: 600 17px/1.15 var(--hand);
 }
 .retire-actions {
@@ -3411,6 +3421,7 @@ kbd {
   border-radius: 2px;
   font: 12.5px/1 var(--typed);
   letter-spacing: 0.04em;
+  white-space: nowrap;
   cursor: pointer;
 }
 .retire-down {

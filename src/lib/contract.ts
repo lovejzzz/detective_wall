@@ -19,6 +19,9 @@ import {
 } from "./types.ts";
 
 export const MAX_NOTES_PER_TURN = 9;
+/** Places in a turn kept for the answer: evidence can't take them, only a conclusion or a subject file. */
+export const ANSWER_ROOM = 2;
+export const isAnswer = (type: unknown) => type === "conclusion" || type === "subject";
 export const MAX_LINKS_PER_TURN = 9;
 
 export interface ProposedNote {

@@ -5,7 +5,7 @@
 // ```wall block (CLI) or the update_wall tool (API) for the strings and any notes not sent yet.
 // ReplyStream keeps those fenced blocks out of the prose as text streams in; it also accepts a
 // find written as a fenced ```lead block, in case the partner writes one instead of calling.
-import { MAX_NOTES_PER_TURN, sanitizeWallUpdate, type ProposedNote, type WallUpdate } from "../src/lib/contract.ts";
+import { ANSWER_ROOM, MAX_NOTES_PER_TURN, isAnswer, sanitizeWallUpdate, type ProposedNote, type WallUpdate } from "../src/lib/contract.ts";
 
 type Kind = "lead" | "wall";
 const MARKERS: Record<Kind, string> = { lead: "```lead", wall: "```wall" };
@@ -155,6 +155,8 @@ export function sanitizeLead(input: unknown, knownIds: Set<string>, sent: Propos
   // Earlier leads count as known, so a lead can be placed near one.
   const note = sanitizeWallUpdate({ notes: [raw], links: [] }, new Set([...knownIds, ...refs])).notes[0];
   if (!note) return null;
+  // Evidence streamed as it's found can't use up the turn: the last places are kept for the answer.
+  if (!isAnswer(note.type) && sent.filter((n) => !isAnswer(n.type)).length >= MAX_NOTES_PER_TURN - ANSWER_ROOM) return null;
   return verified(note, seen) ? note : null;
 }
 
@@ -175,7 +177,11 @@ export function mergeTurn(leads: ProposedNote[], final: unknown, knownIds: Set<s
   const links = (Array.isArray(f.links) ? f.links : []).map((l) =>
     l && typeof l === "object" ? { ...(l as object), from: alias((l as { from?: unknown }).from), to: alias((l as { to?: unknown }).to) } : l,
   );
-  const notes = [...leads, ...extra].map((n) => (n && typeof n === "object" && "near" in n ? { ...(n as object), near: alias((n as { near?: unknown }).near) } : n));
+  // Over the limit, the answer (conclusion, subject files) stays and the last evidence goes.
+  const kept = [...extra];
+  for (let i = kept.length - 1; i >= 0 && leads.length + kept.length > MAX_NOTES_PER_TURN; i--)
+    if (!isAnswer((kept[i] as { type?: unknown }).type)) kept.splice(i, 1);
+  const notes = [...leads, ...kept].map((n) => (n && typeof n === "object" && "near" in n ? { ...(n as object), near: alias((n as { near?: unknown }).near) } : n));
   return sanitizeWallUpdate({ ...f, notes, links, focus: alias(f.focus) }, knownIds);
 }
 

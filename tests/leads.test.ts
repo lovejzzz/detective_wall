@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ReplyStream, duplicateOf, mergeTurn, sanitizeLead, type Seen } from "../server/leads.ts";
 import { searchCommonsPhotos } from "../server/commons-search.mjs";
 import { sanitizeWallUpdate } from "../src/lib/contract.ts";
-import { MAX_NOTES_PER_TURN } from "../src/lib/contract.ts";
+import { ANSWER_ROOM, MAX_NOTES_PER_TURN } from "../src/lib/contract.ts";
 
 const nothing = (): Seen => ({ pages: null, photos: new Set() });
 
@@ -69,8 +69,10 @@ describe("leads", () => {
       const n = sanitizeLead(fact(ref), new Set(), sent, nothing());
       if (n) sent.push(n);
     }
-    // the repeat is refused, and the turn stops at the cap
-    expect(sent.map((n) => n.ref)).toEqual(["n1", ...Array.from({ length: MAX_NOTES_PER_TURN - 1 }, (_, i) => `n${i + 2}`)]);
+    // the repeat is refused, and evidence stops short of the cap: the last places are for the answer
+    expect(sent.map((n) => n.ref)).toEqual(["n1", ...Array.from({ length: MAX_NOTES_PER_TURN - ANSWER_ROOM - 1 }, (_, i) => `n${i + 2}`)]);
+    const answer = sanitizeLead(JSON.stringify({ ref: "c", type: "conclusion", title: "Most likely", body: "b", stamp: "OPEN" }), new Set(), sent, nothing());
+    expect(answer?.type).toBe("conclusion");
     expect(sanitizeLead("not json", new Set(), [], nothing())).toBeNull();
   });
 
@@ -103,6 +105,18 @@ describe("leads", () => {
     expect(out.links).toHaveLength(1);
     expect(out.case_title).toBe("Name");
     expect(mergeTurn(leads, null, new Set()).notes).toHaveLength(1);
+  });
+
+  it("keeps the answer when a full turn of evidence would crowd it out", () => {
+    const leads = Array.from({ length: MAX_NOTES_PER_TURN - 1 }, (_, i) => JSON.parse(fact(`e${i}`)));
+    const final = {
+      notes: [JSON.parse(fact("late")), { ref: "c", type: "conclusion", title: "Most likely", body: "b", stamp: "OPEN" }],
+      links: [],
+    };
+    const out = mergeTurn(leads, final, new Set());
+    expect(out.notes).toHaveLength(MAX_NOTES_PER_TURN);
+    expect(out.notes.at(-1)?.type).toBe("conclusion");
+    expect(out.notes.some((n) => n.ref === "late")).toBe(false);
   });
 });
 
