@@ -35,6 +35,8 @@ export interface ProposedNote {
   approx?: boolean;
   /** Photo notes: a Wikimedia Commons file name (from find_photos), e.g. "DBCooper.jpg". */
   image?: string;
+  /** Photo notes, instead of image: the https page that publishes the picture as its lead image. */
+  photoPage?: string;
   /** Subject notes: the person of interest's file, or the unknown offender's profile. */
   subject?: SubjectFile;
 }
@@ -183,6 +185,11 @@ export const UPDATE_WALL_SCHEMA = {
           image: {
             type: "string",
             description: "Photo notes only: a Wikimedia Commons file name exactly as find_photos returned it this turn, e.g. 'DBCooper.jpg'. The title says what the photo shows according to its source.",
+          },
+          photo_page: {
+            type: "string",
+            description:
+              "Photo notes only, instead of image: the https URL of a page you read this turn whose own lead picture is the thing (a police appeal page, an archive record, a newspaper's single-photo page). The wall shows that page's lead image, credited to the page.",
           },
         },
       },
@@ -335,7 +342,8 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
     if (!type || !isStr(r.ref) || !isStr(r.title) || refs.has(r.ref) || knownIds.has(r.ref)) continue;
     if (type === "web" && !isHttpUrl(r.url)) continue;
     const image = type === "photo" ? commonsFile(r.image) : null;
-    if (type === "photo" && !image) continue; // a photo note is nothing without its photo
+    const photoPage = type === "photo" && !image && isHttpUrl(r.photo_page) && r.photo_page.startsWith("https://") && r.photo_page.length <= 2000 ? r.photo_page : null;
+    if (type === "photo" && !image && !photoPage) continue; // a photo note is nothing without its photo
     const note: ProposedNote = {
       ref: r.ref,
       type,
@@ -351,6 +359,7 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
       if (diagram) note.diagram = diagram;
     }
     if (image) note.image = image;
+    if (photoPage) note.photoPage = photoPage;
     if (type === "subject") {
       const subject = sanitizeSubject(r.subject);
       if (!subject) continue; // a subject card is its evidence

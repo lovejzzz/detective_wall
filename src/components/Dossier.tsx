@@ -3,6 +3,7 @@ import type { Case, Note, NoteType, Relation, SubjectFile } from "../lib/types.t
 import { parseWhenInput, whenLabel } from "../lib/when.ts";
 import { photoIdOf, photoURL } from "../lib/images.ts";
 import { commonsFileOf, resolveCommons, type CommonsPhoto } from "../lib/commons.ts";
+import { pagePhotoOf, pagePhotoSrc, publisherOf } from "../lib/pagephoto.ts";
 import { ask } from "../ai/partner.ts";
 import { BEATS, BEAT_LABEL, NOTE_TYPES, RELATIONS, STAMPS, STICKY_COLORS } from "../lib/types.ts";
 import { typeLabel, useStore } from "../store.ts";
@@ -97,6 +98,7 @@ function WhenField({ note }: { note: Note }) {
 function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
   const id = photoIdOf(note.imageUrl);
   const commons = commonsFileOf(note.imageUrl);
+  const page = pagePhotoOf(note.imageUrl);
   const sketch = note.imageUrl?.startsWith("sketch:");
   const [url, setUrl] = useState<string | null>(null);
   const [credit, setCredit] = useState<CommonsPhoto | null>(null);
@@ -107,13 +109,14 @@ function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
     setCredit(null);
     setFailed(false);
     if (id) void photoURL(id).then(setUrl);
+    else if (page) setUrl(pagePhotoSrc(page));
     else if (commons)
       void resolveCommons(commons, 1400).then((p) => {
         if (!p) return setFailed(true);
         setCredit(p);
         setUrl(p.src);
       });
-  }, [id, commons]);
+  }, [id, commons, page]);
 
   if (sketch)
     return (
@@ -121,7 +124,7 @@ function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
         Illustration. No freely licensed photograph of this piece of evidence is available, so it is drawn rather than shown.
       </p>
     );
-  if (!id && !commons) return null;
+  if (!id && !commons && !page) return null;
   return (
     <figure className="d-photo">
       {url ? (
@@ -130,6 +133,15 @@ function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
         <div className="d-photo-empty">{failed ? "The print couldn't be loaded (offline?)" : "Developing…"}</div>
       )}
       <figcaption>
+        {page && (
+          <span className="d-credit">
+            Photo as published by{" "}
+            <a href={page} target="_blank" rel="noreferrer">
+              {publisherOf(page)}
+            </a>{" "}
+            · shown for research; rights stay with the publisher
+          </span>
+        )}
         {credit && (
           <span className="d-credit">
             Photo: {credit.author} · {credit.license} ·{" "}

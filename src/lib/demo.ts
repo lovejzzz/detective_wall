@@ -20,6 +20,11 @@ export interface DemoNote {
   url?: string;
   /** Photo notes: a file on Wikimedia Commons, credited from its own metadata. */
   photo?: string;
+  /**
+   * Photo notes: the page that publishes the picture (a police appeal page, a newspaper's photo
+   * page, an archive record), whose own lead image is shown and which is the credit.
+   */
+  photoPage?: string;
   /** Photo notes with no free photo: a drawn illustration ("sketch:<kind>"). */
   image?: string;
   /** What to show if the Commons photo can't load: a drawn illustration. */
@@ -61,6 +66,8 @@ export function buildDemo(spec: DemoSpec, now = Date.now()): Case {
         ? { kind: "user", excerpt: spec.messages.find((m) => m.role === "user")?.text }
         : d.photo
           ? { kind: "web", url: commonsPage(d.photo) }
+          : d.photoPage
+            ? { kind: "web", url: d.photoPage }
           : d.type === "web"
             ? { kind: "web", url: d.url }
             : { kind: "ai", ...(d.url ? { url: d.url } : {}) };
@@ -78,7 +85,7 @@ export function buildDemo(spec: DemoSpec, now = Date.now()): Case {
       ...(d.when ? { when: d.when } : {}),
       ...(d.approx ? { approx: true } : {}),
       ...(d.beat ? { beat: d.beat } : {}),
-      ...(d.photo ? { imageUrl: `commons:${d.photo}` } : d.image ? { imageUrl: d.image } : {}),
+      ...(d.photo ? { imageUrl: `commons:${d.photo}` } : d.photoPage ? { imageUrl: `page:${d.photoPage}` } : d.image ? { imageUrl: d.image } : {}),
       ...(d.fallback ? { imageFallback: d.fallback } : {}),
       ...(d.confidence ? { confidence: d.confidence } : d.type === "fact" ? { confidence: "high" as const } : {}),
       ...(d.stamp ? { stamp: d.stamp } : d.type === "conclusion" ? { stamp: "OPEN" as const } : {}),

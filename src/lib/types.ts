@@ -89,7 +89,8 @@ export interface Note {
   diagram?: DiagramSpec;
   /**
    * Photo notes: "idb:<id>" (a photo stored in this browser), "commons:<File name.jpg>"
-   * (a real photo on Wikimedia Commons, credited from its own metadata), or "sketch:<kind>"
+   * (a real photo on Wikimedia Commons, credited from its own metadata), "page:<https URL>"
+   * (the lead picture of the page that publishes it, credited to that page), or "sketch:<kind>"
    * (a drawn illustration).
    */
   imageUrl?: string;

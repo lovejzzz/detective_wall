@@ -897,7 +897,7 @@ function paintPhoto(g: Ctx, n: Note, w: number, h: number, rand: Rand, image?: H
     grd.addColorStop(1, "#191816");
     g.fillStyle = grd;
     g.fillRect(px, px, pw, ph);
-    if (n.imageUrl?.startsWith("commons:")) {
+    if (n.imageUrl?.startsWith("commons:") || n.imageUrl?.startsWith("page:")) {
       g.fillStyle = "rgba(235,228,212,0.55)";
       g.font = `${10 * u}px ${TYPED}`;
       g.textAlign = "center";

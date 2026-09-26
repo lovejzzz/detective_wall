@@ -6,6 +6,7 @@ import { NOTE_SIZE } from "../lib/geometry.ts";
 import { reducedMotion } from "../lib/motion.ts";
 import { photoIdOf, photoURL } from "../lib/images.ts";
 import { commonsFileOf, loadCommonsImage } from "../lib/commons.ts";
+import { loadPagePhoto, pagePhotoOf } from "../lib/pagephoto.ts";
 import { paintKey, paintNote } from "./paint.ts";
 import { PUSHPIN, TACK, binderClip, contactShadow, liftAtPin, paperGeometry, pinMaterials, sharedTextures, tapeMaterial } from "./objects.ts";
 
@@ -27,12 +28,13 @@ interface Props extends NoteHandlers {
 }
 
 /**
- * Loads a photo note's picture: from this browser's IndexedDB, or a real case photo from
- * Wikimedia Commons. Painting doesn't wait: the sheet shows its fallback, then repaints.
+ * Loads a photo note's picture: from this browser's IndexedDB, a real case photo from
+ * Wikimedia Commons, or the lead picture of the page that published it. Painting doesn't wait: the sheet shows its fallback, then repaints.
  */
 function usePhoto(note: Note): HTMLImageElement | undefined {
   const id = photoIdOf(note.imageUrl);
   const commons = commonsFileOf(note.imageUrl);
+  const page = pagePhotoOf(note.imageUrl);
   const [img, setImg] = useState<HTMLImageElement | undefined>(undefined);
   useEffect(() => {
     setImg(undefined);
@@ -46,12 +48,14 @@ function usePhoto(note: Note): HTMLImageElement | undefined {
       });
     } else if (commons) {
       void loadCommonsImage(commons).then((r) => alive && r && setImg(r.img));
+    } else if (page) {
+      void loadPagePhoto(page).then((el) => alive && el && setImg(el));
     }
     return () => {
       alive = false;
     };
-  }, [id, commons]);
-  return id || commons ? img : undefined;
+  }, [id, commons, page]);
+  return id || commons || page ? img : undefined;
 }
 
 function useNoteTexture(note: Note, fontsVersion: number) {

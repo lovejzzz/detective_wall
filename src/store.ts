@@ -180,10 +180,18 @@ function proposeNote(c: Case, p: ProposedNote, nearId: string | undefined, messa
     ...(p.when ? { when: p.when, ...(p.approx ? { approx: true } : {}) } : {}),
     // A photo the partner found on Wikimedia Commons: loaded and credited from the file itself.
     ...(p.image ? { imageUrl: `commons:${p.image}` } : {}),
+    // A picture published elsewhere: the lead image of the page that publishes it, credited to it.
+    ...(p.photoPage ? { imageUrl: `page:${p.photoPage}` } : {}),
     origin: {
-      kind: p.type === "web" || p.url || p.image ? "web" : "ai",
+      kind: p.type === "web" || p.url || p.image || p.photoPage ? "web" : "ai",
       messageId,
-      ...(p.url ? { url: p.url } : p.image ? { url: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(p.image.replace(/ /g, "_"))}` } : {}),
+      ...(p.photoPage
+        ? { url: p.photoPage }
+        : p.url
+          ? { url: p.url }
+          : p.image
+            ? { url: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(p.image.replace(/ /g, "_"))}` }
+            : {}),
       excerpt,
     },
     createdAt: Date.now(),

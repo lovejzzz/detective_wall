@@ -45,12 +45,16 @@ describe.each([
     expect(c.notes.some((n) => n.status === "proposed")).toBe(true);
   });
 
-  it("illustrates its evidence: every photo is a real Commons file (or a drawing) strung to what it shows", () => {
+  it("illustrates its evidence: every photo is a real Commons file, a published picture or a drawing, strung to what it shows", () => {
     const photos = c.notes.filter((n) => n.type === "photo");
     expect(photos.length).toBeGreaterThanOrEqual(8);
     for (const p of photos) {
       if (p.imageUrl?.startsWith("commons:")) expect(commonsFile(p.imageUrl.slice(8))).toBe(p.imageUrl.slice(8));
-      else expect(p.imageUrl).toMatch(/^sketch:/);
+      else if (p.imageUrl?.startsWith("page:")) {
+        // a picture published elsewhere: the page that publishes it is the photo and its credit
+        expect(p.imageUrl).toMatch(/^page:https:\/\/\S+$/);
+        expect(p.origin.url, title(p)).toBe(p.imageUrl.slice(5));
+      } else expect(p.imageUrl).toMatch(/^sketch:/);
       expect(c.links.some((l) => l.from === p.id || l.to === p.id), title(p)).toBe(true);
     }
   });

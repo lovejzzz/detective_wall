@@ -15,6 +15,7 @@ import {
 } from "../src/lib/contract.ts";
 import { ReplyStream, duplicateOf, mergeTurn, sanitizeLead, verified, type Seen } from "./leads.ts";
 import { FIND_PHOTOS, searchCommonsPhotos } from "./commons-search.mjs";
+import { pageImage } from "./pageimage.ts";
 
 const MODEL = () => process.env.DW_MODEL || "claude-opus-5";
 const WEB_SEARCH = () => (process.env.DW_WEB_SEARCH ?? "on") !== "off";
@@ -342,6 +343,15 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse): Prom
         model: via === "claude-cli" ? `${CLI_MODEL()} · ${CLI_EFFORT()} effort` : MODEL(),
         webSearch: WEB_SEARCH(),
       });
+    }
+    if (req.method === "GET" && url.pathname === "/api/page-image") {
+      const page = url.searchParams.get("u") ?? "";
+      if (!/^https:\/\/[^\s]+$/.test(page) || page.length > 2000) throw new HttpError(400, "Give an https page URL.");
+      const img = await pageImage(page);
+      if (!img) return send(res, 404, { error: "no_image", message: "That page has no picture we could fetch." });
+      res.writeHead(200, { "content-type": img.type, "cache-control": "public, max-age=86400", "x-image-source": encodeURI(img.src) });
+      res.end(Buffer.from(img.bytes));
+      return;
     }
     if (req.method === "POST" && url.pathname === "/api/investigate") {
       const via = await provider();
