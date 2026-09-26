@@ -13,7 +13,7 @@ import {
   type PartnerEvent,
   type ProposedNote,
 } from "../src/lib/contract.ts";
-import { ReplyStream, mergeTurn, sanitizeLead, verified, type Seen } from "./leads.ts";
+import { ReplyStream, duplicateOf, mergeTurn, sanitizeLead, verified, type Seen } from "./leads.ts";
 import { FIND_PHOTOS, searchCommonsPhotos } from "./commons-search.mjs";
 
 const MODEL = () => process.env.DW_MODEL || "claude-opus-5";
@@ -109,10 +109,14 @@ async function investigate(req: InvestigateRequest, emit: (e: PartnerEvent) => v
   const seen = (): Seen => ({ pages: sources.size ? sources : null, photos });
   const knownIds = new Set(req.notes.map((n) => n.id));
   const leads: ProposedNote[] = [];
+  const aliases = new Map<string, string>(); // refs of repeats → the wall notes they repeat
   // A find goes up the moment it's made. Web leads must cite a page search returned (when it ran).
   const putUp = (input: unknown) => {
     const note = sanitizeLead(input, knownIds, leads, seen());
     if (!note) return;
+    // Already on the wall: don't pin it twice; its strings will go to the note that's there.
+    const dup = duplicateOf(note, req.notes);
+    if (dup) return void aliases.set(note.ref, dup);
     leads.push(note);
     emit({ type: "lead", note });
   };
@@ -161,7 +165,12 @@ async function investigate(req: InvestigateRequest, emit: (e: PartnerEvent) => v
         const b = event.content_block;
         // Separate text blocks that are split by searches with a paragraph break.
         if (b.type === "text" && textBlocks++ > 0) reply.push("\n\n");
-        else if (b.type === "server_tool_use") emit({ type: "status", kind: "searching" });
+        else if (b.type === "server_tool_use" || (b.type === "tool_use" && b.name === "find_photos")) {
+          // Prose written before more research was a working note, not the answer.
+          const aside = reply.retract();
+          if (aside) emit({ type: "aside", text: aside });
+          if (b.type === "server_tool_use") emit({ type: "status", kind: "searching" });
+        }
         else if (b.type === "tool_use" && b.name === "update_wall") emit({ type: "status", kind: "writing" });
       } else if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
         reply.push(event.delta.text);
@@ -216,7 +225,7 @@ async function investigate(req: InvestigateRequest, emit: (e: PartnerEvent) => v
   reply.end();
 
   // A truncated tool input may parse to a partial object: keep the leads, drop the rest.
-  const update = mergeTurn(leads, truncated ? null : toolInput, knownIds);
+  const update = mergeTurn(leads, truncated ? null : toolInput, knownIds, req.notes, aliases);
   update.notes = update.notes.filter((n) => verified(n, seen()));
 
   emit({

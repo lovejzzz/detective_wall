@@ -400,7 +400,11 @@ A real, unsolved case makes the best demo: it has hard facts, open questions, co
 - With no API key, the offline partner runs three scripted, fact-checked leads for this case (the missing parachutes, the "Cooper vane", the 1972 copycat wave), then falls back to the generic partner.
 - **Real case photos** come from Wikimedia Commons: the aircraft (N467US), the FBI composite sketch, and the recovered Tena Bar bills. The browser loads them at runtime; the Commons API and media server allow cross-origin use, so the photos can be painted into WebGL textures. Each photo's author and licence are read from the file's own Commons metadata and shown in its file. Commons photos are sent to Claude by URL (only `upload.wikimedia.org` URLs are accepted). When a photo can't load (offline), the aircraft falls back to a drawn illustration and the others say "print loads online". No freely licensed photo of the tie was found, so it stays a drawing and its file says so.
 
-### 14.2 Second case: "Vazen M43 lens → Panasonic S9?"
+### 14.2 Demo case: the Chicago Tylenol murders (1982)
+
+Seven people died between 29 September and 1 October 1982 after taking Extra-Strength Tylenol capsules laced with potassium cyanide; no one has ever been charged. The wall reads like a book, row by row: the question and the deaths; the places and things, as real photos from Wikimedia Commons (credited from each file); the response (the recall, triple-seal packaging, the extortion letter); the investigation (Lewis's extortion conviction, the 1986 Yonkers death, the 2009 search, Lewis's death in 2023); and the newest turn, the September 2026 identification of Boise's "Unknown Wanderer", reported as a possible tie, not a named suspect. Seventeen dated items put the case's development on the timeline, 1982 to 2026. It arrives once on every wall, opens framed to the whole wall on any screen, and stays gone if shredded.
+
+### 14.3 Second case: "Vazen M43 lens → Panasonic S9?"
 
 The question: *can a Vazen 1.8× anamorphic lens made for Micro Four Thirds be used on a Panasonic Lumix S9 (full-frame, L-mount)?*
 

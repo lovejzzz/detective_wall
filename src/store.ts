@@ -5,6 +5,7 @@ import type { ProposedNote, WallUpdate } from "./lib/contract.ts";
 import { findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
 import { seedCase } from "./lib/seed.ts";
 import { COMMONS, COOPER_DATES, COOPER_DEMO, coldCase } from "./lib/coldcase.ts";
+import { TYLENOL_DEMO, tylenolCase } from "./lib/tylenolcase.ts";
 
 export type PartnerMode = "unknown" | "live" | "offline";
 
@@ -70,6 +71,8 @@ interface Actions {
   addAssistantNote(caseId: string, text: string): void;
 
   setCamera(caseId: string, camera: Camera): void;
+  /** The case has been framed on opening; don't do it again. */
+  framed(caseId: string): void;
   setFocus(noteId: string | null): void;
   moveNote(noteId: string, x: number, y: number): void;
   updateNote(noteId: string, patch: Partial<Pick<Note, "title" | "body" | "type" | "color" | "stamp" | "rotation" | "when" | "approx">>): void;
@@ -410,6 +413,13 @@ export const useStore = create<Store>()(
           mutateCase(caseId, (c) => void c.messages.push({ id: uid(), role: "assistant", text, createdAt: Date.now(), offline: true }));
         },
 
+        framed(caseId) {
+          const c = get().cases[caseId];
+          if (!c?.frameOnOpen) return;
+          const { frameOnOpen: _done, ...rest } = c;
+          void _done;
+          set({ cases: { ...get().cases, [caseId]: rest } });
+        },
         setCamera(caseId, camera) {
           const c = get().cases[caseId];
           if (!c) return;
@@ -681,6 +691,20 @@ export function ensureCases() {
     localStorage.setItem("detective-wall/demo-cooper", "1");
   } catch {
     /* storage unavailable */
+  }
+  // The Tylenol case arrives once on every wall, new or old, and opens in front.
+  // Shredding it keeps it gone.
+  let tylenolSeeded = false;
+  try {
+    tylenolSeeded = localStorage.getItem("detective-wall/demo-tylenol") === "1";
+    localStorage.setItem("detective-wall/demo-tylenol", "1");
+  } catch {
+    /* storage unavailable */
+  }
+  const cur = useStore.getState();
+  if (!tylenolSeeded && !Object.values(cur.cases).some((c) => c.demo === TYLENOL_DEMO)) {
+    const ty = tylenolCase();
+    useStore.setState({ cases: { ...cur.cases, [ty.id]: ty }, order: [ty.id, ...cur.order], activeId: ty.id });
   }
   const active = useStore.getState().activeId;
   if (active) markOpened(active);

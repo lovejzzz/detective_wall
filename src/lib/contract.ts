@@ -85,6 +85,8 @@ export type PartnerEvent =
   | { type: "status"; kind: "searching" | "reading" | "writing"; detail?: string }
   /** A find, sent to the wall while the partner is still researching. */
   | { type: "lead"; note: ProposedNote }
+  /** What was just written was a working note before more research, not the answer. */
+  | { type: "aside"; text: string }
   | { type: "done"; result: InvestigateResponse }
   | { type: "error"; message: string; offline?: boolean };
 

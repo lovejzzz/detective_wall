@@ -178,6 +178,9 @@ export async function ask(caseId: string, text: string, opts: { photoNoteIds?: s
       }
       else if (e.type === "status") s.setLive((p) => ({ text: p?.text ?? "", status: statusLine(e), trail: extendTrail(p?.trail ?? [], e) }));
       else if (e.type === "lead") putUp(turn, c, e.note);
+      else if (e.type === "aside")
+        // Thinking out loud between searches: it moves into the pencilled trail, off the reply.
+        s.setLive((p) => ({ ...p, text: "", trail: [...(p?.trail ?? []), { kind: "note" as const, detail: e.text.slice(0, 220) }] }));
       else if (e.type === "error") {
         if (e.offline) s.setPartner({ mode: "offline" });
         s.addAssistantNote(caseId, `(The line went quiet: ${e.message})`);

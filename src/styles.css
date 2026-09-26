@@ -503,6 +503,16 @@ kbd {
 .trail-read {
   color: #7d7568;
 }
+/* a working note the partner wrote between searches: wraps, in pencil */
+.trail li.trail-note {
+  white-space: normal;
+  line-height: 24px;
+  padding: 2px 0;
+}
+.trail-note em {
+  font-style: normal;
+  color: #5d574d;
+}
 /* a find going up on the wall: in red pen, with a pin */
 .trail-lead,
 .trail-lead q {
@@ -622,6 +632,10 @@ kbd {
 .entry-sources a {
   color: #5a4a2c;
 }
+.source-count {
+  font: 600 14px/1 var(--hand);
+  color: #8a7a5a;
+}
 .caret {
   display: inline-block;
   width: 8px;
@@ -730,6 +744,15 @@ kbd {
 }
 .tw-return-key.is-idle .tw-legend {
   fill: #8a8373;
+}
+/* the partner is typing: the key waits, glowing faintly */
+.tw-legend.is-busy {
+  animation: tw-wait 1.6s ease-in-out infinite;
+}
+@keyframes tw-wait {
+  50% {
+    fill: #d9c79a;
+  }
 }
 
 /* ───────────────────────── Case folders ───────────────────────── */

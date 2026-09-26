@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ReplyStream, mergeTurn, sanitizeLead, type Seen } from "../server/leads.ts";
+import { ReplyStream, duplicateOf, mergeTurn, sanitizeLead, type Seen } from "../server/leads.ts";
 import { searchCommonsPhotos } from "../server/commons-search.mjs";
 import { sanitizeWallUpdate } from "../src/lib/contract.ts";
 
@@ -29,6 +29,21 @@ describe("ReplyStream", () => {
     ]);
     expect(opened).toEqual(["lead", "wall"]);
     expect(r.wall).toEqual({ notes: [], links: [] });
+  });
+
+  it("takes back thinking-out-loud written before more research, keeping the final answer", () => {
+    const r = new ReplyStream({ prose: () => {}, block: () => {} });
+    r.push("Fetches are refused, so I'll search instead.");
+    expect(r.retract()).toBe("Fetches are refused, so I'll search instead.");
+    r.push("The answer is yes.\n\nNext lead: check X.");
+    r.end();
+    expect(r.reply).toBe("The answer is yes.\n\nNext lead: check X.");
+    // if nothing follows the last search, the last working note is better than nothing
+    const q = new ReplyStream({ prose: () => {}, block: () => {} });
+    q.push("Only this.");
+    q.retract();
+    q.end();
+    expect(q.reply).toBe("Only this.");
   });
 
   it("leaves other code fences in the prose", () => {
@@ -149,5 +164,47 @@ describe("photos", () => {
         page: "https://commons.wikimedia.org/wiki/File:Richard_Floyd_McCoy.jpg",
       },
     ]);
+  });
+});
+
+describe("repeats of the wall", () => {
+  const wall = [
+    {
+      id: "w-idaho",
+      title: "Identified after 44 years",
+      body: "Ada County investigators named him Dr. Mathew Francis Betkouski, an organic chemist whose co-workers recalled talk of cyanide and poisoned capsules.",
+      url: "https://abcnews.com/idaho",
+      when: "2026-09-23",
+    },
+    { id: "w-recall", title: "The recall", body: "Johnson & Johnson recalled Extra-Strength Tylenol capsules nationwide: about 31 million bottles.", when: "1982-10-05" },
+  ];
+
+  it("recognises the same finding said again, the same source, and lets new findings through", () => {
+    // what the partner actually proposed in a test run
+    const again = { type: "fact" as const, title: "Announced: the Unknown Wanderer has a name", body: "On 23 September 2026 Ada County identified the man as Dr. Mathew Francis Betkouski, an organic chemist.", when: "2026-09-23" };
+    expect(duplicateOf(again, wall)).toBe("w-idaho");
+    expect(duplicateOf({ type: "web", title: "Another headline", body: "Different words entirely here", url: "https://abcnews.com/idaho" }, wall)).toBe("w-idaho");
+    const fresh = { type: "fact" as const, title: "What the ID rests on: wallet DNA and a brother", body: "DNA from his wallet was compared with a sample from his brother.", when: "2026-09-23" };
+    expect(duplicateOf(fresh, wall)).toBeNull();
+  });
+
+  it("turns a repeat into the note on the wall, strings and all", () => {
+    const aliases = new Map<string, string>();
+    const out = mergeTurn(
+      [],
+      {
+        notes: [
+          { ref: "n1", type: "fact", title: "Recall of 31 million bottles", body: "Johnson & Johnson recalled Extra-Strength Tylenol capsules nationwide, 31 million bottles.", when: "1982-10-05" },
+          { ref: "n2", type: "hypothesis", title: "Did the recall cost evidence?", body: "Pulling bottles fast may have lost chain of custody." },
+        ],
+        links: [{ from: "n2", to: "n1", relation: "references", reason: "about the recall" }],
+      },
+      new Set(["w-recall", "w-idaho"]),
+      wall,
+      aliases,
+    );
+    expect(out.notes.map((n) => n.ref)).toEqual(["n2"]);
+    expect(aliases.get("n1")).toBe("w-recall");
+    expect(out.links).toEqual([{ from: "n2", to: "w-recall", relation: "references", reason: "about the recall" }]);
   });
 });

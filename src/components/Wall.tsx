@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as RPE } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPE } from "react";
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Camera, Case, Note } from "../lib/types.ts";
@@ -141,6 +141,18 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     },
     [toScreen, stage],
   );
+  // A case that asks to be framed (a new demo) opens on its whole wall, for whatever screen this is.
+  // A layout effect, so the camera is set before the first paint and before the focus check below.
+  const justFramed = useRef(false);
+  useLayoutEffect(() => {
+    if (!c.frameOnOpen || !placed.length) return;
+    const f = framing(placed, 0.9);
+    camRef.current = f;
+    setCam(f);
+    justFramed.current = true; // the whole wall is the point: don't re-centre on the focused note
+    store().framed(c.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c.id]);
   const seen = useRef<{ caseId: string; ids: Set<string> }>({ caseId: c.id, ids: new Set(c.notes.map((n) => n.id)) });
   useEffect(() => {
     if (seen.current.caseId !== c.id) {
@@ -156,6 +168,10 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
         const f = framing(fresh, Math.max(k.zoom, 0.7));
         flyTo({ ...f, zoom: Math.max(f.zoom, Math.min(k.zoom, 0.6)) }, 900);
       }
+      return;
+    }
+    if (justFramed.current) {
+      justFramed.current = false;
       return;
     }
     if (focusNote && !inView(focusNote, k)) flyTo({ x: focusNote.x, y: focusNote.y, zoom: k.zoom });
@@ -608,7 +624,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
         {farOpacity > 0 &&
           !settling &&
           placed.map((n) => {
-            const p = toScreen(n);
+            // On a photo the label goes on the polaroid's caption strip, so the picture stays visible.
+            const p = toScreen(n.type === "photo" ? { x: n.x, y: n.y + NOTE_SIZE.photo.h / 2 - 26 } : n);
             const w = Math.max(96, NOTE_SIZE[n.type].w * cam.zoom * 1.1);
             return (
               <div

@@ -32,6 +32,8 @@ function Trail({ trail, live = false }: { trail: TrailStep[]; live?: boolean }) 
             <>
               looked up <q>{t.detail}</q>
             </>
+          ) : t.kind === "note" ? (
+            <em>{t.detail}</em>
           ) : t.kind === "lead" ? (
             <>
               put up <q>{t.detail}</q>
@@ -88,6 +90,19 @@ function TurnNotes({ c, noteIds }: { c: Case; noteIds: string[] }) {
 
 function timeOf(ts: number) {
   return new Date(ts).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+/** Sources grouped by site, so two pages from one paper read as one name, ×2. */
+function bySite(sources: { url: string; title: string }[]) {
+  const sites = new Map<string, { host: string; first: string; count: number; titles: string[] }>();
+  for (const s of sources) {
+    const host = hostOf(s.url);
+    const site = sites.get(host) ?? { host, first: s.url, count: 0, titles: [] };
+    site.count++;
+    site.titles.push(s.title);
+    sites.set(host, site);
+  }
+  return [...sites.values()];
 }
 
 function hostOf(url: string) {
@@ -297,11 +312,12 @@ export function Notepad({ c }: { c: Case }) {
               {m.noteIds && m.noteIds.length > 0 && m.role === "assistant" && <TurnNotes c={c} noteIds={m.noteIds} />}
               {m.sources && m.sources.length > 0 && (
                 <ul className="entry-sources">
-                  {m.sources.slice(0, 4).map((s) => (
-                    <li key={s.url}>
-                      <a href={s.url} target="_blank" rel="noreferrer" title={s.title}>
-                        {hostOf(s.url)}
+                  {bySite(m.sources).slice(0, 4).map(({ host, first, count, titles }) => (
+                    <li key={host}>
+                      <a href={first} target="_blank" rel="noreferrer" title={titles.join("\n")}>
+                        {host}
                       </a>
+                      {count > 1 && <span className="source-count"> ×{count}</span>}
                     </li>
                   ))}
                 </ul>

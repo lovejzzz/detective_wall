@@ -75,8 +75,8 @@ export interface Message {
 }
 
 export interface TrailStep {
-  /** A search, a page opened, or a find put up on the wall. */
-  kind: "search" | "read" | "lead";
+  /** A search, a page opened, a find put up on the wall, or a working note written along the way. */
+  kind: "search" | "read" | "lead" | "note";
   detail: string;
 }
 
@@ -100,4 +100,6 @@ export interface Case {
   demo?: string;
   /** When the case was last opened, for the "picking this back up" line. */
   lastOpenedAt?: number;
+  /** Open on the whole wall, framed for whatever screen it's on (then cleared). New demo cases set it. */
+  frameOnOpen?: boolean;
 }

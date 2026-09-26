@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { NOTE_SCHEMA, type InvestigateRequest, type PartnerEvent, type ProposedNote } from "../src/lib/contract.ts";
-import { ReplyStream, mergeTurn, sanitizeLead, verified, type Seen } from "./leads.ts";
+import { ReplyStream, duplicateOf, mergeTurn, sanitizeLead, verified, type Seen } from "./leads.ts";
 import { CLI_SYSTEM_PROMPT, renderWallState } from "./prompt.ts";
 
 type Emit = (e: PartnerEvent) => void;
@@ -166,6 +166,7 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
   const seen: Seen = { pages: sources, photos: new Set() };
   const knownIds = new Set(req.notes.map((n) => n.id));
   const leads: ProposedNote[] = [];
+  const aliases = new Map<string, string>(); // refs of repeats → the wall notes they repeat
   let blocks = 0;
   const reply = new ReplyStream({
     prose: (delta) => emit({ type: "text", delta }),
@@ -176,6 +177,9 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
   const putUp = (input: unknown) => {
     const note = sanitizeLead(input, knownIds, leads, seen);
     if (!note) return;
+    // Already on the wall: don't pin it twice; its strings will go to the note that's there.
+    const dup = duplicateOf(note, req.notes);
+    if (dup) return void aliases.set(note.ref, dup);
     leads.push(note);
     emit({ type: "lead", note });
   };
@@ -205,6 +209,11 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
       } else if (e.type === "assistant") {
         for (const b of e.message?.content ?? []) {
           if (b.type !== "tool_use") continue;
+          // Prose written before more research was a working note, not the answer.
+          if (b.name === "WebSearch" || b.name === "WebFetch" || b.name === FIND_PHOTOS) {
+            const aside = reply.retract();
+            if (aside) emit({ type: "aside", text: aside });
+          }
           if (b.name === PIN_LEAD) putUp(b.input);
           if (b.name === FIND_PHOTOS) emit({ type: "status", kind: "searching", detail: `photos of ${String(b.input?.query ?? "")}` });
           if (b.name === "WebSearch") emit({ type: "status", kind: "searching", detail: String(b.input?.query ?? "") });
@@ -266,7 +275,7 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
 
   if (!blocks && r.result) reply.push(r.result);
   reply.end();
-  const update = mergeTurn(leads, reply.wall, knownIds);
+  const update = mergeTurn(leads, reply.wall, knownIds, req.notes, aliases);
   // Web notes must cite a page the CLI actually searched or fetched this turn.
   update.notes = update.notes.filter((n) => verified(n, seen));
   emit({

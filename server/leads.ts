@@ -11,6 +11,8 @@ type Kind = "lead" | "wall";
 const MARKERS: Record<Kind, string> = { lead: "```lead", wall: "```wall" };
 const FENCE = "```";
 
+const tidy = (s: string) => s.replace(/\n{3,}/g, "\n\n").trim();
+
 export class ReplyStream {
   private raw = "";
   private pos = 0;
@@ -38,7 +40,19 @@ export class ReplyStream {
 
   /** The prose, with blocks removed and the gaps they leave tidied. */
   get reply(): string {
-    return this.prose.replace(/\n{3,}/g, "\n\n").trim();
+    return (tidy(this.prose) || this.lastAside).trim();
+  }
+
+  private lastAside = "";
+  /**
+   * The prose so far was thinking out loud before more research, not the answer: take it back.
+   * Returns it (for the research trail); the reply starts again from here.
+   */
+  retract(): string {
+    const text = tidy(this.prose);
+    this.prose = "";
+    if (text) this.lastAside = text;
+    return text;
   }
 
   get wall(): unknown {
@@ -145,9 +159,62 @@ export function sanitizeLead(input: unknown, knownIds: Set<string>, sent: Propos
 }
 
 /** The turn's final update: the leads already on the wall, then whatever else the end block adds. */
-export function mergeTurn(leads: ProposedNote[], final: unknown, knownIds: Set<string>): WallUpdate {
+export function mergeTurn(leads: ProposedNote[], final: unknown, knownIds: Set<string>, wall: WallNote[] = [], aliases = new Map<string, string>()): WallUpdate {
   const f = final && typeof final === "object" ? (final as Record<string, unknown>) : {};
   const leadRefs = new Set(leads.map((n) => n.ref));
-  const extra = (Array.isArray(f.notes) ? f.notes : []).filter((n) => !(n && typeof n === "object" && leadRefs.has((n as { ref?: unknown }).ref as string)));
-  return sanitizeWallUpdate({ ...f, notes: [...leads, ...extra], links: Array.isArray(f.links) ? f.links : [] }, knownIds);
+  const extra = (Array.isArray(f.notes) ? f.notes : []).filter((n) => {
+    if (!n || typeof n !== "object") return false;
+    const r = n as Record<string, unknown>;
+    if (leadRefs.has(r.ref as string)) return false;
+    // A note that repeats one already on the wall becomes that note: its strings go to it.
+    const dup = typeof r.ref === "string" ? duplicateOf(r as unknown as ProposedNote, wall) : null;
+    if (dup) aliases.set(r.ref as string, dup);
+    return !dup;
+  });
+  const alias = (v: unknown) => (typeof v === "string" && aliases.has(v) ? aliases.get(v) : v);
+  const links = (Array.isArray(f.links) ? f.links : []).map((l) =>
+    l && typeof l === "object" ? { ...(l as object), from: alias((l as { from?: unknown }).from), to: alias((l as { to?: unknown }).to) } : l,
+  );
+  const notes = [...leads, ...extra].map((n) => (n && typeof n === "object" && "near" in n ? { ...(n as object), near: alias((n as { near?: unknown }).near) } : n));
+  return sanitizeWallUpdate({ ...f, notes, links, focus: alias(f.focus) }, knownIds);
+}
+
+/** A note already on the wall, as the request describes it. */
+export interface WallNote {
+  id: string;
+  title: string;
+  body: string;
+  url?: string;
+  when?: string;
+}
+
+const words = (s: string) => new Set(s.toLowerCase().match(/[a-z0-9]{4,}/g) ?? []);
+
+/**
+ * The wall note this proposal repeats, if any: the same source URL, or much the same words
+ * (a lower bar when both are about the same day). Photos are told apart by their files, not words.
+ */
+export function duplicateOf(n: Pick<ProposedNote, "type" | "title" | "body" | "url" | "when">, wall: WallNote[]): string | null {
+  if (n.type === "photo") return null;
+  if (n.url) {
+    const same = wall.find((w) => w.url === n.url);
+    if (same) return same.id;
+  }
+  const a = words(`${n.title} ${n.body ?? ""}`);
+  if (a.size < 4) return null;
+  let best: string | null = null;
+  let bestScore = 0;
+  for (const w of wall) {
+    const b = words(`${w.title} ${w.body}`);
+    if (b.size < 4) continue;
+    let shared = 0;
+    for (const x of a) if (b.has(x)) shared++;
+    const score = shared / Math.min(a.size, b.size);
+    const sameDay = !!n.when && !!w.when && n.when.slice(0, 10) === w.when.slice(0, 10);
+    if (score >= (sameDay ? 0.35 : 0.6) && score > bestScore) {
+      best = w.id;
+      bestScore = score;
+    }
+  }
+  return best;
 }

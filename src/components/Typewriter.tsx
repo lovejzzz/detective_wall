@@ -167,8 +167,8 @@ export function Typewriter({ onReturn, canSend, busy }: { onReturn(): void; canS
         <g className="tw-key-cap">
           <rect x={-34} y={-12} width={68} height={24} rx={12} fill="url(#tw-chrome)" />
           <rect x={-31.8} y={-9.8} width={63.6} height={19.6} rx={9.8} fill="url(#tw-glass)" />
-          <text y={3.2} textAnchor="middle" className="tw-legend tw-legend-return">
-            {busy ? "· · ·" : "RETURN"}
+          <text y={3.2} textAnchor="middle" className={`tw-legend tw-legend-return ${busy ? "is-busy" : ""}`}>
+            RETURN
           </text>
           <ellipse cx={-14} cy={-5} rx={12} ry={2} fill="rgba(255,255,255,0.18)" />
         </g>
