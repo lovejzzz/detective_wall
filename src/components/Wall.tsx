@@ -14,7 +14,9 @@ import { RELATION_INFO } from "../lib/relations.ts";
 import { CameraRig, Cork, Dust, LITE, Lens, Lights, type LightRig, type View } from "../scene/Room.tsx";
 import { rustle } from "../lib/sound.ts";
 import { Wastebasket } from "./Wastebasket.tsx";
-import { fontsReady } from "../scene/paint.ts";
+import { fontsReady, paintedWords } from "../scene/paint.ts";
+import { t } from "../lib/i18n.ts";
+import { caseTitle } from "../lib/cases.ts";
 import { Timeline3D } from "../scene/Timeline3D.tsx";
 import { layoutTimeline } from "../lib/timeline.ts";
 import { importPhoto, isPhotoFile } from "../lib/images.ts";
@@ -75,7 +77,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   // Chinese glyphs arrive piece by piece: when the wall holds characters not fetched yet, fetch
   // them and repaint the sheets once they're here.
   const cjkText = useMemo(() => {
-    const all = [c.title, ...c.notes.map((n) => `${n.title}${n.body}${JSON.stringify(n.subject ?? "")}${JSON.stringify(n.diagram ?? "")}`)].join("");
+    // the words the painter adds to the cards (headers, stamps, statuses) are in the page's language too
+    const all = [paintedWords(), c.title, ...c.notes.map((n) => `${n.title}${n.body}${JSON.stringify(n.subject ?? "")}${JSON.stringify(n.diagram ?? "")}`)].join("");
     return [...new Set(all.match(/[\u2e80-\u9fff\uf900-\ufaff\uff00-\uffef\u3000-\u303f]/g) ?? [])].filter((ch) => !cjkFetched.has(ch)).join("");
   }, [c.title, c.notes]);
   const [cjkDone, setCjkDone] = useState("");
@@ -118,7 +121,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   // ---- Wall or timeline: where each note sits right now ----
   const mode = useStore((s) => s.view);
   // The layout is kept even on the wall, so the timeline's 3D stays mounted (see below).
-  const timelineLayout = useMemo(() => layoutTimeline(c.notes, c.links, { title: c.title, phases: c.phases }), [c.notes, c.links, c.title, c.phases]);
+  const timelineLayout = useMemo(() => layoutTimeline(c.notes, c.links, { title: caseTitle(c.title), phases: c.phases }), [c.notes, c.links, c.title, c.phases]);
   const timeline = mode === "timeline" ? timelineLayout : null;
   const timelineBounds = useRef(timelineLayout.bounds);
   timelineBounds.current = timelineLayout.bounds;
@@ -318,7 +321,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       for (const [i, f] of photos.entries()) {
         try {
           const { id } = await importPhoto(f);
-          const title = f.name.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").slice(0, 40) || "Photo";
+          const title = f.name.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").slice(0, 40) || t("Photo");
           store().addPhotoNote(caseIdRef.current, { imageId: id, title, x: at.x + i * 60, y: at.y + i * 40 });
         } catch {
           /* unreadable image: skip it */
@@ -797,16 +800,16 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             return (
               <div key={n.id} className="proposal-anchor" style={{ left: p.x, top: above ? p.y - 40 * tabScale : p.y + 10 * cam.zoom }}>
                 <div className="proposal-tabs" style={{ transform: `scale(${tabScale})`, transformOrigin: "50% 0" }}>
-                  <button className="tab-pin" onClick={() => onPin(n.id)} title="Pin it (P), or press and hold the note">
+                  <button className="tab-pin" onClick={() => onPin(n.id)} title={t("Pin it (P), or press and hold the note")}>
                     <svg viewBox="0 0 16 16" aria-hidden>
                       <circle cx="8" cy="6" r="4.2" fill="#c62828" />
                       <circle cx="6.8" cy="4.8" r="1.3" fill="#ff9e96" />
                       <path d="M8 10 L8 15" stroke="#555" strokeWidth="1.4" strokeLinecap="round" />
                     </svg>
-                    Pin it
+                    {t("Pin it")}
                   </button>
-                  <button className="tab-toss" onClick={() => onToss(n.id)} title="Toss it (X), or drag the note into the bin">
-                    Toss
+                  <button className="tab-toss" onClick={() => onToss(n.id)} title={t("Toss it (X), or drag the note into the bin")}>
+                    {t("Toss")}
                   </button>
                 </div>
               </div>
@@ -846,7 +849,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                   style={{ left: p.x, top: p.y, transform: `rotate(${n.rotation - 4}deg) scale(${tagScale}) translate(-14px, ${low ? "-38%" : "-62%"})` }}
                   aria-hidden
                 >
-                  {BEAT_LABEL[n.beat!]}
+                  {t(BEAT_LABEL[n.beat!])}
                 </div>
               );
             })}
@@ -865,11 +868,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             return (
               <div key={l.id} className="tag-anchor" style={{ left: p.x, top: p.y }}>
                 <div className={`tag3d is-proposed rel-${l.relation}`} style={{ transform: `rotate(${-tilt}rad) scale(${Math.max(0.85, tagScale)})` }}>
-                  <span className="tag-q">{info.name.toLowerCase()}?</span>
-                  <button onClick={() => onPinLink(l.id)} aria-label="Accept string" title={`Tie it: ${a.title} ${info.blurb} ${b.title}`}>
+                  <span className="tag-q">{t("{relation}?", { relation: t(info.name).toLowerCase() })}</span>
+                  <button onClick={() => onPinLink(l.id)} aria-label={t("Accept string")} title={t("Tie it: {a} {relation} {b}", { a: a.title, relation: t(info.blurb), b: b.title })}>
                     ✓
                   </button>
-                  <button onClick={() => onTossLink(l.id)} aria-label="Reject string" title="Toss this string">
+                  <button onClick={() => onTossLink(l.id)} aria-label={t("Reject string")} title={t("Toss this string")}>
                     ✕
                   </button>
                   {l.reason && <div className="tag-reason">{l.reason}</div>}
@@ -879,10 +882,10 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
           }
           return (
             <div key={l.id} className="tag-anchor" style={{ left: p.x, top: p.y + 22 }}>
-              <div className="tag-pop" role="dialog" aria-label={`${info.name} string`}>
-                <b>{info.name}</b>
+              <div className="tag-pop" role="dialog" aria-label={t("{relation} string", { relation: t(info.name) })}>
+                <b>{t(info.name)}</b>
                 <span>
-                  “{a.title}” {info.blurb} “{b.title}”
+                  “{a.title}” {t(info.blurb)} “{b.title}”
                 </span>
                 {l.reason && <em>{l.reason}</em>}
                 <button
@@ -891,9 +894,9 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                     setOpenTag(null);
                   }}
                 >
-                  Cut string
+                  {t("Cut string")}
                 </button>
-                <button className="tag-close" onClick={() => setOpenTag(null)} aria-label="Close">
+                <button className="tag-close" onClick={() => setOpenTag(null)} aria-label={t("Close")}>
                   ×
                 </button>
               </div>
@@ -906,20 +909,20 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               <div className="tl-heading" style={{ left: toScreen(timeline.heading).x, top: toScreen(timeline.heading).y, transform: `scale(${cam.zoom})` }}>
                 <h2>{timeline.heading.title}</h2>
                 <p>
-                  <span>Chronology</span>
+                  <span>{t("Chronology")}</span>
                   <span>{timeline.heading.range}</span>
                   <span>
-                    {timeline.chapters.filter((ch) => !ch.continued).length} {timeline.chapters.filter((ch) => !ch.continued).length === 1 ? "chapter" : "chapters"}
+                    {t(timeline.chapters.filter((ch) => !ch.continued).length === 1 ? "1 chapter" : "{n} chapters", { n: timeline.chapters.filter((ch) => !ch.continued).length })}
                   </span>
-                  <span>{timeline.heading.count} dated</span>
+                  <span>{t("{n} dated", { n: timeline.heading.count })}</span>
                 </p>
                 {story.length > 0 && (
-                  <ol className="tl-story" aria-label="Key moments">
+                  <ol className="tl-story" aria-label={t("Key moments")}>
                     {story.map((m) => (
                       // the moments share the page's width, so the heading never runs past it
                       <li key={m.id} className={`beat-${m.beat}`} style={{ width: timeline.heading?.step }}>
-                        <button onClick={() => goToMoment(m.id)} title={`${BEAT_LABEL[m.beat]}: ${m.title}`}>
-                          <b>{BEAT_LABEL[m.beat]}</b>
+                        <button onClick={() => goToMoment(m.id)} title={`${t(BEAT_LABEL[m.beat])}: ${m.title}`}>
+                          <b>{t(BEAT_LABEL[m.beat])}</b>
                           <i aria-hidden />
                           <span className="when">{whenLabel(m.when!)}</span>
                           <span className="what">{m.title}</span>
@@ -931,7 +934,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               </div>
             )}
             {chapterStarts.length > 1 && (
-              <nav className="tl-rail" style={{ left: stage.cx + stage.w / 2 - 18, top: stage.cy }} aria-label="Chapters">
+              <nav className="tl-rail" style={{ left: stage.cx + stage.w / 2 - 18, top: stage.cy }} aria-label={t("Chapters")}>
                 {chapterStarts.map((ch) => (
                   <button key={ch.n} className={ch.n === readingChapter ? "is-on" : ""} onClick={() => goToChapter(ch.n)} title={`${ch.title ?? ch.range} · ${ch.range}`}>
                     <b>{roman(ch.n)}</b>
@@ -945,7 +948,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               return (
                 <div key={`ch-${i}`} className={`tl-chapter ${ch.continued ? "is-continued" : ""}`} style={{ left: p.x, top: p.y, transform: `scale(${cam.zoom})` }}>
                   <div className="tl-ch-no">
-                    <small>{ch.continued ? "cont." : "Chapter"}</small>
+                    <small>{ch.continued ? t("cont.") : t("Chapter")}</small>
                     <b>{roman(ch.n)}</b>
                   </div>
                   <div className="tl-ch-text">
@@ -953,7 +956,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                     <p>
                       {ch.title && <span>{ch.range}</span>}
                       <span>
-                        {ch.count} {ch.count === 1 ? "event" : "events"}
+                        {t(ch.count === 1 ? "1 event" : "{n} events", { n: ch.count })}
                       </span>
                       {ch.after && <em>{ch.after}</em>}
                     </p>
@@ -970,11 +973,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                 </div>
               );
             })}
-            {timeline.times.map((t, i) => {
-              const p = toScreen(t);
+            {timeline.times.map((tm, i) => {
+              const p = toScreen(tm);
               return (
-                <div key={`time-${i}`} className={`tl-time ${t.above ? "is-above" : ""}`} style={{ left: p.x, top: p.y, transform: `translate(-50%, ${t.above ? "-190%" : "95%"}) scale(${tagScale})` }}>
-                  {t.label}
+                <div key={`time-${i}`} className={`tl-time ${tm.above ? "is-above" : ""}`} style={{ left: p.x, top: p.y, transform: `translate(-50%, ${tm.above ? "-190%" : "95%"}) scale(${tagScale})` }}>
+                  {tm.label}
                 </div>
               );
             })}
@@ -994,23 +997,21 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                 style={{ left: toScreen({ x: timeline.aside.x + 70, y: timeline.aside.y + 44 }).x, top: toScreen({ x: 0, y: timeline.aside.y + 44 }).y, transform: `scale(${cam.zoom})` }}
               >
                 <div className="tl-ch-no">
-                  <small>No date</small>
+                  <small>{t("No date")}</small>
                   <b>?</b>
                 </div>
                 <div className="tl-ch-text">
-                  <h3>Undated evidence</h3>
+                  <h3>{t("Undated evidence")}</h3>
                   <p>
-                    <span>
-                      {timeline.aside.count} {timeline.aside.count === 1 ? "exhibit" : "exhibits"}
-                    </span>
-                    <span>give one a “When” in its file to put it on the line</span>
+                    <span>{t(timeline.aside.count === 1 ? "1 exhibit" : "{n} exhibits", { n: timeline.aside.count })}</span>
+                    <span>{t("give one a “When” in its file to put it on the line")}</span>
                   </p>
                 </div>
               </div>
             )}
             {timeline.stops.length === 0 && (
               <div className="tag-anchor" style={{ left: stage.cx, top: stage.cy * 0.35 }}>
-                <div className="tl-empty">Nothing on this wall has a date yet. Open a note's file and give it a “When”.</div>
+                <div className="tl-empty">{t("Nothing on this wall has a date yet. Open a note's file and give it a “When”.")}</div>
               </div>
             )}
           </>
@@ -1025,15 +1026,15 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
         {!timeline && <Wastebasket ref={binRef} shown={!!draggingId || crumples.length > 0} hot={binHot} gulps={crumples} left={stage.cx} carrying={draggingId ? placedById.get(draggingId)?.title : undefined} />}
         {dropping && (
           <div className="drop-hint" aria-hidden>
-            <span>Drop to pin the photo here</span>
+            <span>{t("Drop to pin the photo here")}</span>
           </div>
         )}
         {c.notes.length === 0 && (
           <div className="tag-anchor" style={{ left: toScreen({ x: 0, y: 0 }).x, top: toScreen({ x: 0, y: 0 }).y }}>
             <div className="empty-card">
               <span className="pinhead red" />
-              <p>What's the question?</p>
-              <small>Type it on the typewriter. It becomes the first note on this wall.</small>
+              <p>{t("What's the question?")}</p>
+              <small>{t("Type it on the typewriter. It becomes the first note on this wall.")}</small>
             </div>
           </div>
         )}

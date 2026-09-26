@@ -2,6 +2,7 @@
 // lit from the lamp up and to the left. It's drawn as two layers, the back of the basket and the
 // front of it, so a tossed note balls up and drops *into* it, between the two.
 import { forwardRef } from "react";
+import { t } from "../lib/i18n.ts";
 
 const CX = 60;
 const TOP = { y: 20, rx: 50, ry: 10 };
@@ -124,7 +125,7 @@ export const Wastebasket = forwardRef<HTMLDivElement, { shown: boolean; hot: boo
   const what = carrying && carrying.length > 30 ? `${carrying.slice(0, 29)}…` : carrying;
   return (
     <div ref={ref} className={`bin ${shown ? "is-shown" : ""} ${hot ? "is-hot" : ""} ${gulps.length ? "is-gulping" : ""}`} style={{ left }} aria-hidden>
-      <span className="bin-label">{hot ? (what ? `let go to toss “${what}”` : "let go to toss") : "toss"}</span>
+      <span className="bin-label">{hot ? (what ? t("let go to toss “{what}”", { what }) : t("let go to toss")) : t("toss")}</span>
       <Back />
       {gulps.map((k) => (
         <span key={k} className="crumple" />

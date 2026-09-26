@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { useStore } from "../store.ts";
 import { reducedMotion } from "../lib/motion.ts";
 import { useBooted } from "../lib/boot.ts";
-import { caseNumbers, caseStats, fileNo } from "../lib/cases.ts";
+import { caseNumbers, caseStats, caseTitle, fileNo } from "../lib/cases.ts";
+import { t } from "../lib/i18n.ts";
 
 const HOLD_MS = 1500;
 const OUT_MS = 700;
@@ -43,9 +44,9 @@ export function TitleCard() {
     setLeaving(false);
     setCard({
       key: `${c.id}-${Date.now()}`,
-      no: `Case file ${fileNo(caseNumbers(s.cases).get(c.id))}`,
-      title: c.title,
-      meta: [st.span, `${st.exhibits} ${st.exhibits === 1 ? "exhibit" : "exhibits"}`, st.verdict].filter(Boolean).join("  ·  "),
+      no: t("Case file {no}", { no: fileNo(caseNumbers(s.cases).get(c.id)) }),
+      title: caseTitle(c.title),
+      meta: [st.span, t(st.exhibits === 1 ? "1 exhibit" : "{n} exhibits", { n: st.exhibits }), st.verdict && t(st.verdict)].filter(Boolean).join("  ·  "),
     });
   }, [activeId]);
   useEffect(() => {

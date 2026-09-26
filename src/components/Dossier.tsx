@@ -8,9 +8,10 @@ import { ask } from "../ai/partner.ts";
 import { BEATS, BEAT_LABEL, NOTE_TYPES, RELATIONS, STAMPS, STICKY_COLORS } from "../lib/types.ts";
 import { typeLabel, useStore } from "../store.ts";
 import { RELATION_INFO } from "../lib/relations.ts";
+import { getLang, t } from "../lib/i18n.ts";
 
 function when(ts: number) {
-  return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return new Date(ts).toLocaleString(getLang() === "zh" ? "zh-CN" : undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 /** A subject's file, as the record has it: status, the evidence each way, and what would settle it. */
@@ -18,7 +19,7 @@ function SubjectSections({ file }: { file: SubjectFile }) {
   const list = (label: string, cls: string, items?: string[]) =>
     items?.length ? (
       <div className={`d-subject-list ${cls}`}>
-        <h5>{label}</h5>
+        <h5>{t(label)}</h5>
         <ul>
           {items.map((x, i) => (
             <li key={i}>{x}</li>
@@ -29,10 +30,10 @@ function SubjectSections({ file }: { file: SubjectFile }) {
   return (
     <section className="d-section d-subject">
       <h4>
-        Subject file
+        {t("Subject file")}
         {file.status.map((st) => (
           <span key={st} className={`d-subject-status st-${st.replace(/[^a-z]+/g, "-")}`}>
-            {st}
+            {t(st)}
           </span>
         ))}
       </h4>
@@ -41,7 +42,7 @@ function SubjectSections({ file }: { file: SubjectFile }) {
       {list("Against", "is-against", file.against)}
       {file.settle && (
         <p className="d-subject-settle">
-          <b>Settle it:</b> {file.settle}
+          <b>{t("Settle it:")}</b> {file.settle}
         </p>
       )}
     </section>
@@ -70,14 +71,14 @@ function WhenField({ note }: { note: Note }) {
   };
   return (
     <div className="d-row d-when">
-      <span className="d-label">When</span>
+      <span className="d-label">{t("When")}</span>
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-        placeholder="e.g. 24 Nov 1971, 1971-11-24 20:13, 1980"
-        aria-label="When this happened"
+        placeholder={t("e.g. 24 Nov 1971, 1971-11-24 20:13, 1980")}
+        aria-label={t("When this happened")}
         aria-invalid={bad}
       />
       <label className="d-approx">
@@ -87,9 +88,9 @@ function WhenField({ note }: { note: Note }) {
           disabled={!note.when}
           onChange={(e) => useStore.getState().updateNote(note.id, { approx: e.target.checked })}
         />
-        approximate
+        {t("approximate")}
       </label>
-      {bad && <span className="d-bad">Try a year, “24 Nov 1971”, or “1971-11-24 20:13”.</span>}
+      {bad && <span className="d-bad">{t("Try a year, “24 Nov 1971”, or “1971-11-24 20:13”.")}</span>}
     </div>
   );
 }
@@ -121,7 +122,7 @@ function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
   if (sketch)
     return (
       <p className="d-illustration">
-        Illustration. No freely licensed photograph of this piece of evidence is available, so it is drawn rather than shown.
+        {t("Illustration. No freely licensed photograph of this piece of evidence is available, so it is drawn rather than shown.")}
       </p>
     );
   if (!id && !commons && !page) return null;
@@ -130,21 +131,21 @@ function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
       {url ? (
         <img src={url} alt={note.title} onError={() => setFailed(true)} />
       ) : (
-        <div className="d-photo-empty">{failed ? "The print couldn't be loaded (offline?)" : "Developing…"}</div>
+        <div className="d-photo-empty">{failed ? t("The print couldn't be loaded (offline?)") : t("Developing…")}</div>
       )}
       <figcaption>
         {page && (
           <span className="d-credit">
-            Photo as published by{" "}
+            {t("Photo as published by")}{" "}
             <a href={page} target="_blank" rel="noreferrer">
               {publisherOf(page)}
             </a>{" "}
-            · shown for research; rights stay with the publisher
+            {t("· shown for research; rights stay with the publisher")}
           </span>
         )}
         {credit && (
           <span className="d-credit">
-            Photo: {credit.author} · {credit.license} ·{" "}
+            {t("Photo: {author}", { author: credit.author })} · {credit.license} ·{" "}
             <a href={credit.page} target="_blank" rel="noreferrer">
               Wikimedia Commons
             </a>
@@ -155,10 +156,10 @@ function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
           disabled={busy || failed}
           onClick={() => {
             useStore.getState().openDossier(null);
-            void ask(caseId, `What can you tell from the photo “${note.title}”?`, { photoNoteIds: [note.id] });
+            void ask(caseId, t("What can you tell from the photo “{title}”?", { title: note.title }), { photoNoteIds: [note.id] });
           }}
         >
-          Ask the partner about this photo
+          {t("Ask the partner about this photo")}
         </button>
       </figcaption>
     </figure>
@@ -197,29 +198,29 @@ export function Dossier({ c }: { c: Case }) {
     .filter((x) => x.other);
 
   const originWho =
-    note.origin.kind === "user" ? "You" : seeded ? "Case file" : note.origin.kind === "web" ? "Partner, from the web" : "Partner";
+    note.origin.kind === "user" ? t("You") : seeded ? t("Case file") : note.origin.kind === "web" ? t("Partner, from the web") : t("Partner");
 
   return (
     <div className="dossier-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
-      <div className="dossier" role="dialog" aria-modal="true" aria-label={`Exhibit ${exhibitNo}: ${note.title}`} tabIndex={-1} ref={panel}>
+      <div className="dossier" role="dialog" aria-modal="true" aria-label={t("Exhibit {n}: {title}", { n: exhibitNo, title: note.title })} tabIndex={-1} ref={panel}>
         <div className="dossier-tab">
-          Exhibit {String(exhibitNo).padStart(2, "0")} · {typeLabel(note.type)}
+          {t("Exhibit {n}", { n: String(exhibitNo).padStart(2, "0") })} · {typeLabel(note.type)}
         </div>
-        <button className="dossier-close" onClick={close} aria-label="Close (Esc)">
+        <button className="dossier-close" onClick={close} aria-label={t("Close (Esc)")}>
           ×
         </button>
 
         <div className="dossier-sheet">
-          <div className="type-tabs" role="radiogroup" aria-label="Note type">
-            {NOTE_TYPES.map((t: NoteType) => (
+          <div className="type-tabs" role="radiogroup" aria-label={t("Note type")}>
+            {NOTE_TYPES.map((type: NoteType) => (
               <button
-                key={t}
+                key={type}
                 role="radio"
-                aria-checked={note.type === t}
-                className={note.type === t ? "is-on" : ""}
-                onClick={() => s.updateNote(note.id, { type: t })}
+                aria-checked={note.type === type}
+                className={note.type === type ? "is-on" : ""}
+                onClick={() => s.updateNote(note.id, { type })}
               >
-                {typeLabel(t)}
+                {typeLabel(type)}
               </button>
             ))}
           </div>
@@ -233,7 +234,7 @@ export function Dossier({ c }: { c: Case }) {
             onChange={(e) => s.updateNote(note.id, { title: e.target.value.replace(/\n/g, " ") })}
             onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
             onFocus={() => s.checkpoint("Edited a note")}
-            aria-label="Title"
+            aria-label={t("Title")}
           />
           <textarea
             className="d-body"
@@ -242,33 +243,33 @@ export function Dossier({ c }: { c: Case }) {
             maxLength={600}
             rows={5}
             onChange={(e) => s.updateNote(note.id, { body: e.target.value })}
-            aria-label="Body"
-            placeholder="Notes, figures, what it means…"
+            aria-label={t("Body")}
+            placeholder={t("Notes, figures, what it means…")}
           />
 
           {note.type === "hypothesis" && (
             <div className="d-row">
-              <span className="d-label">Paper</span>
+              <span className="d-label">{t("Paper")}</span>
               {STICKY_COLORS.map((col) => (
                 <button
                   key={col}
                   className={`swatch sticky-${col} ${note.color === col ? "is-on" : ""}`}
                   onClick={() => s.updateNote(note.id, { color: col })}
-                  aria-label={`${col} sticky`}
+                  aria-label={t("{color} sticky", { color: t(col) })}
                 />
               ))}
             </div>
           )}
           {note.type === "conclusion" && (
             <div className="d-row">
-              <span className="d-label">Stamp</span>
+              <span className="d-label">{t("Stamp")}</span>
               {STAMPS.map((st) => (
                 <button
                   key={st}
                   className={`mini-stamp stamp-${st.replace(" ", "-").toLowerCase()} ${note.stamp === st ? "is-on" : ""}`}
                   onClick={() => s.updateNote(note.id, { stamp: st })}
                 >
-                  {st}
+                  {t(st)}
                 </button>
               ))}
             </div>
@@ -278,8 +279,8 @@ export function Dossier({ c }: { c: Case }) {
 
           <WhenField note={note} />
 
-          <div className="d-row d-beats" role="group" aria-label="Key moment">
-            <span className="d-label">Moment</span>
+          <div className="d-row d-beats" role="group" aria-label={t("Key moment")}>
+            <span className="d-label">{t("Moment")}</span>
             {BEATS.map((b) => (
               <button
                 key={b}
@@ -287,17 +288,17 @@ export function Dossier({ c }: { c: Case }) {
                 aria-pressed={note.beat === b}
                 onClick={() => s.updateNote(note.id, { beat: note.beat === b ? undefined : b })}
               >
-                {BEAT_LABEL[b]}
+                {t(BEAT_LABEL[b])}
               </button>
             ))}
           </div>
 
           <section className="d-section">
-            <h4>Origin</h4>
+            <h4>{t("Origin")}</h4>
             <p className="d-origin">
               <b>{originWho}</b>
               {!(seeded || (c.demo && !note.origin.messageId)) && <> · {when(note.createdAt)}</>}
-              {note.confidence && <> · confidence {note.confidence}</>}
+              {note.confidence && <> · {t("confidence {level}", { level: t(note.confidence) })}</>}
             </p>
             {(note.origin.excerpt || msg) && <blockquote>{note.origin.excerpt ?? msg?.text}</blockquote>}
             {note.origin.url && (
@@ -308,28 +309,28 @@ export function Dossier({ c }: { c: Case }) {
           </section>
 
           <section className="d-section">
-            <h4>Connections</h4>
-            {connections.length === 0 && <p className="d-muted">No strings yet. Drag from this note's pin to another note to tie one.</p>}
+            <h4>{t("Connections")}</h4>
+            {connections.length === 0 && <p className="d-muted">{t("No strings yet. Drag from this note's pin to another note to tie one.")}</p>}
             <ul className="d-links">
               {connections.map(({ l, other, outgoing }) => (
                 <li key={l.id} className={`rel-${l.relation}`}>
                   <span className="d-glyph">{RELATION_INFO[l.relation].glyph}</span>
                   <span>
-                    {outgoing ? <>{RELATION_INFO[l.relation].blurb} </> : null}
+                    {outgoing ? <>{t(RELATION_INFO[l.relation].blurb)} </> : null}
                     <button className="d-jump" onClick={() => s.openDossier(other!.id)}>
                       {other!.title}
                     </button>
-                    {!outgoing && <> {RELATION_INFO[l.relation].blurb} this</>}
-                    {l.status === "proposed" && <em className="d-proposed"> · proposed</em>}
+                    {!outgoing && <> {t("{relation} this", { relation: t(RELATION_INFO[l.relation].blurb) })}</>}
+                    {l.status === "proposed" && <em className="d-proposed"> · {t("proposed")}</em>}
                   </span>
                   <select
                     value={l.relation}
-                    aria-label="Change relation"
+                    aria-label={t("Change relation")}
                     onChange={(e) => s.addLink(l.from, l.to, e.target.value as Relation)}
                   >
                     {RELATIONS.map((r) => (
                       <option key={r} value={r}>
-                        {RELATION_INFO[r].name}
+                        {t(RELATION_INFO[r].name)}
                       </option>
                     ))}
                   </select>
@@ -341,13 +342,13 @@ export function Dossier({ c }: { c: Case }) {
           <div className="d-actions">
             {note.status === "proposed" ? (
               <button className="d-pin" onClick={() => s.pinNote(note.id)}>
-                Pin it to the wall
+                {t("Pin it to the wall")}
               </button>
             ) : (
-              <span className="d-muted">Edits save as you type.</span>
+              <span className="d-muted">{t("Edits save as you type.")}</span>
             )}
             <button className="d-remove" onClick={() => s.removeNote(note.id)}>
-              Take it down
+              {t("Take it down")}
             </button>
           </div>
         </div>
@@ -377,8 +378,8 @@ export function LinkPicker() {
   const y = Math.min(window.innerHeight - 220, Math.max(12, pending.y + 12));
   return (
     <div className="link-picker-backdrop" onPointerDown={() => useStore.getState().setPendingLink(null)}>
-      <div className="link-picker" style={{ left: x, top: y }} onPointerDown={(e) => e.stopPropagation()} role="menu" aria-label="Choose a string">
-        <div className="lp-title">Tie a string…</div>
+      <div className="link-picker" style={{ left: x, top: y }} onPointerDown={(e) => e.stopPropagation()} role="menu" aria-label={t("Choose a string")}>
+        <div className="lp-title">{t("Tie a string…")}</div>
         {RELATIONS.map((r, i) => (
           <button
             key={r}
@@ -391,7 +392,7 @@ export function LinkPicker() {
           >
             <span className="lp-swatch" />
             <span className="lp-glyph">{RELATION_INFO[r].glyph}</span>
-            {RELATION_INFO[r].name}
+            {t(RELATION_INFO[r].name)}
             <kbd>{i + 1}</kbd>
           </button>
         ))}

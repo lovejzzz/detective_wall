@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { Link, Note, Relation } from "../lib/types.ts";
 import { pinPoint } from "../lib/geometry.ts";
 import { paintTag } from "./paint.ts";
+import { getLang } from "../lib/i18n.ts";
 import { sharedTextures, stringCurve, toThree } from "./objects.ts";
 
 const PIN_Z = 9; // strings loop around the pin's waist
@@ -59,7 +60,7 @@ function StringTube({ from, to, relation, proposed, lit }: { from: THREE.Vector3
 
 const tagCache = new Map<string, THREE.CanvasTexture>();
 function tagTexture(relation: Relation, flipped: boolean) {
-  const k = `${relation}:${flipped}`;
+  const k = `${getLang()}:${relation}:${flipped}`;
   let t = tagCache.get(k);
   if (!t) {
     t = new THREE.CanvasTexture(paintTag(relation, flipped));

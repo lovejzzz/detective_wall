@@ -7,6 +7,8 @@ import { carriage, key as typeKey } from "../lib/sound.ts";
 import { Typewriter, pressKey } from "./Typewriter.tsx";
 import { importPhoto, isPhotoFile, photoIdOf, photoURL } from "../lib/images.ts";
 import { findFreeSpot } from "../lib/geometry.ts";
+import { getLang, t } from "../lib/i18n.ts";
+import { caseTitle } from "../lib/cases.ts";
 
 /** A small print of a stored photo, for the transcript and the attachment tray. */
 export function PhotoThumb({ note, size = 44 }: { note: Note; size?: number }) {
@@ -26,20 +28,20 @@ export function PhotoThumb({ note, size = 44 }: { note: Note; size?: number }) {
 function Trail({ trail, live = false }: { trail: TrailStep[]; live?: boolean }) {
   return (
     <ol className={`trail ${live ? "is-live" : ""}`}>
-      {trail.map((t, i) => (
-        <li key={i} className={`trail-${t.kind}`}>
-          {t.kind === "search" ? (
+      {trail.map((step, i) => (
+        <li key={i} className={`trail-${step.kind}`}>
+          {step.kind === "search" ? (
             <>
-              looked up <q>{t.detail}</q>
+              {t("looked up")} <q>{step.detail}</q>
             </>
-          ) : t.kind === "note" ? (
-            <em>{t.detail}</em>
-          ) : t.kind === "lead" ? (
+          ) : step.kind === "note" ? (
+            <em>{step.detail}</em>
+          ) : step.kind === "lead" ? (
             <>
-              put up <q>{t.detail}</q>
+              {t("put up")} <q>{step.detail}</q>
             </>
           ) : (
-            <>read {t.detail}</>
+            <>{t("read {page}", { page: step.detail })}</>
           )}
         </li>
       ))}
@@ -48,13 +50,13 @@ function Trail({ trail, live = false }: { trail: TrailStep[]; live?: boolean }) 
 }
 
 function TrailFold({ trail }: { trail: TrailStep[] }) {
-  const searches = trail.filter((t) => t.kind === "search").length;
-  const pages = trail.filter((t) => t.kind === "read").length;
+  const searches = trail.filter((s) => s.kind === "search").length;
+  const pages = trail.filter((s) => s.kind === "read").length;
   if (!searches && !pages) return null;
-  const parts = [searches && `${searches} ${searches === 1 ? "search" : "searches"}`, pages && `${pages} ${pages === 1 ? "page" : "pages"}`].filter(Boolean);
+  const parts = [searches && t(searches === 1 ? "1 search" : "{n} searches", { n: searches }), pages && t(pages === 1 ? "1 page" : "{n} pages", { n: pages })].filter(Boolean);
   return (
     <details className="trail-fold">
-      <summary>how I got here · {parts.join(", ")}</summary>
+      <summary>{t("how I got here")} · {parts.join(t(", "))}</summary>
       <Trail trail={trail} />
     </details>
   );
@@ -73,23 +75,23 @@ function TurnNotes({ c, noteIds }: { c: Case; noteIds: string[] }) {
           const first = (waiting[0] ?? notes[0])?.id;
           if (first) useStore.getState().setFocus(first);
         }}
-        title="Show them on the wall"
+        title={t("Show them on the wall")}
       >
-        ↳ {n} {n === 1 ? "note" : "notes"} for the wall
+        ↳ {t(n === 1 ? "1 note for the wall" : "{n} notes for the wall", { n })}
       </button>
       {waiting.length > 0 ? (
-        <button className="entry-pinall" onClick={() => useStore.getState().pinAll(waiting.map((x) => x.id))} title="Pin every lead from this reply, with the strings between them">
-          pin {waiting.length === n ? (n === 1 ? "it" : n === 2 ? "both" : `all ${n}`) : `the other ${waiting.length}`}
+        <button className="entry-pinall" onClick={() => useStore.getState().pinAll(waiting.map((x) => x.id))} title={t("Pin every lead from this reply, with the strings between them")}>
+          {waiting.length === n ? (n === 1 ? t("pin it") : n === 2 ? t("pin both") : t("pin all {n}", { n })) : t("pin the other {n}", { n: waiting.length })}
         </button>
       ) : notes.length > 0 ? (
-        <span className="entry-settled">{notes.length === n ? "all on the wall" : `${notes.length} kept`}</span>
+        <span className="entry-settled">{notes.length === n ? t("all on the wall") : t("{n} kept", { n: notes.length })}</span>
       ) : null}
     </div>
   );
 }
 
 function timeOf(ts: number) {
-  return new Date(ts).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return new Date(ts).toLocaleTimeString(getLang() === "zh" ? "zh-CN" : undefined, { hour: "numeric", minute: "2-digit" });
 }
 
 /** Sources grouped by site, so two pages from one paper read as one name, ×2. */
@@ -179,7 +181,7 @@ export function Notepad({ c }: { c: Case }) {
         const cur = useStore.getState().cases[c.id];
         const anchor = cur?.notes.find((n) => n.id === cur.focusNoteId) ?? cur?.notes[0] ?? { x: 0, y: 0 };
         const spot = findFreeSpot("photo", anchor, cur?.notes ?? [], Math.random() * 6);
-        const title = f.name.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").slice(0, 40) || "Photo";
+        const title = f.name.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").slice(0, 40) || t("Photo");
         ids.push(useStore.getState().addPhotoNote(c.id, { imageId: id, title, x: spot.x, y: spot.y }));
       } catch {
         /* unreadable image: skip it */
@@ -203,7 +205,7 @@ export function Notepad({ c }: { c: Case }) {
     const notes = useStore.getState().cases[c.id]?.notes ?? [];
     const photoNoteIds = attachedRef.current.filter((id) => notes.some((n) => n.id === id));
     if (!typed && !photoNoteIds.length) return;
-    const text = typed || (photoNoteIds.length === 1 ? "Here's a photo for the case. What can you tell from it?" : "Here are some photos for the case. What can you tell from them?");
+    const text = typed || (photoNoteIds.length === 1 ? t("Here's a photo for the case. What can you tell from it?") : t("Here are some photos for the case. What can you tell from them?"));
     setDraft("");
     attachedRef.current = [];
     setAttached([]);
@@ -247,27 +249,27 @@ export function Notepad({ c }: { c: Case }) {
   const resumeLine = busy || spokeThisVisit
     ? null
     : firstVisit && c.demo
-      ? "This is a real, unsolved case, set up as a demo. Ask me anything on the typewriter below. Drag from a pin to tie a string. Click a note to open its file."
+      ? t("This is a real, unsolved case, set up as a demo. Ask me anything on the typewriter below. Drag from a pin to tie a string. Click a note to open its file.")
       : !firstVisit && c.messages.length > 0 && latestPinned && Date.now() - (previousOpen ?? 0) > 10 * 60_000
-        ? `Picking this back up. Last we had: “${latestPinned.title}”.`
+        ? t("Picking this back up. Last we had: “{title}”.", { title: latestPinned.title })
         : null;
 
   const proposals = c.notes.filter((n) => n.status === "proposed").sort((a, b) => a.createdAt - b.createdAt);
 
   const partnerLabel =
-    partner.mode === "live" ? (partner.provider === "claude-cli" ? "Claude · your subscription" : "Claude · on the line") : partner.mode === "offline" ? "offline partner (demo)" : "dialing…";
+    partner.mode === "live" ? (partner.provider === "claude-cli" ? t("Claude · your subscription") : t("Claude · on the line")) : partner.mode === "offline" ? t("offline partner (demo)") : t("dialing…");
 
   return (
-    <aside className={`notepad ${open ? "is-open" : "is-folded"}`} aria-label="Case notes and conversation">
-      <button className="fold-tab" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Fold the notepad away" : "Open the notepad"}>
-        <span>Notes</span>
+    <aside className={`notepad ${open ? "is-open" : "is-folded"}`} aria-label={t("Case notes and conversation")}>
+      <button className="fold-tab" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? t("Fold the notepad away") : t("Open the notepad")}>
+        <span>{t("Notes")}</span>
         <b aria-hidden>{open ? "›" : "‹"}</b>
       </button>
 
       <div className="pad">
         <div className="pad-binding" />
         <header className="pad-head">
-          <h2 title={c.title}>{c.title}</h2>
+          <h2 title={caseTitle(c.title)}>{caseTitle(c.title)}</h2>
           <div className={`partner-line mode-${partner.mode}`} title={partner.model}>
             <span className="dot" /> {partnerLabel}
           </div>
@@ -279,21 +281,21 @@ export function Notepad({ c }: { c: Case }) {
                 const i = proposals.findIndex((n) => n.id === c.focusNoteId);
                 useStore.getState().setFocus(proposals[(i + 1) % proposals.length].id);
               }}
-              title="Show the next lead on the wall"
+              title={t("Show the next lead on the wall")}
             >
-              {proposals.length} {proposals.length === 1 ? "lead" : "leads"} waiting on the wall: pin what holds up, toss the rest →
+              {t(proposals.length === 1 ? "1 lead waiting on the wall: pin what holds up, toss the rest →" : "{n} leads waiting on the wall: pin what holds up, toss the rest →", { n: proposals.length })}
             </button>
           )}
         </header>
 
         <div className="pad-lines" ref={scroller}>
           {c.messages.length === 0 && !busy && (
-            <p className="pad-hint">Every question becomes a case. Ask it below and your partner will start pinning evidence to the wall.</p>
+            <p className="pad-hint">{t("Every question becomes a case. Ask it below and your partner will start pinning evidence to the wall.")}</p>
           )}
           {c.messages.map((m) => (
             <div key={m.id} className={`entry entry-${m.role}`}>
               <div className="entry-meta">
-                {m.role === "user" ? "you" : m.offline ? "partner (offline)" : "partner"} · {timeOf(m.createdAt)}
+                {m.role === "user" ? t("you") : m.offline ? t("partner (offline)") : t("partner")} · {timeOf(m.createdAt)}
               </div>
               {m.role === "user" && m.noteIds?.some((id) => c.notes.find((n) => n.id === id)?.type === "photo") && (
                 <div className="entry-photos">
@@ -301,7 +303,7 @@ export function Notepad({ c }: { c: Case }) {
                     .map((id) => c.notes.find((n) => n.id === id))
                     .filter((n): n is Note => n?.type === "photo")
                     .map((n) => (
-                      <button key={n.id} onClick={() => useStore.getState().setFocus(n.id)} title={`Show “${n.title}” on the wall`}>
+                      <button key={n.id} onClick={() => useStore.getState().setFocus(n.id)} title={t("Show “{title}” on the wall", { title: n.title })}>
                         <PhotoThumb note={n} size={52} />
                       </button>
                     ))}
@@ -326,13 +328,13 @@ export function Notepad({ c }: { c: Case }) {
           ))}
           {resumeLine && (
             <div className="entry entry-assistant is-resume">
-              <div className="entry-meta">partner · just now</div>
+              <div className="entry-meta">{t("partner")} · {t("just now")}</div>
               <div className="entry-text">{resumeLine}</div>
             </div>
           )}
           {busy && (
             <div className="entry entry-assistant is-live" aria-live="polite">
-              <div className="entry-meta">partner · {live?.status ?? "thinking"}</div>
+              <div className="entry-meta">{t("partner")} · {live?.status ?? t("thinking")}</div>
               {live?.trail && live.trail.length > 0 && <Trail trail={live.trail} live />}
               <div className="entry-text">
                 {live?.text && <Typed text={live.text} />}
@@ -353,13 +355,13 @@ export function Notepad({ c }: { c: Case }) {
                 return (
                   <span key={id} className="tw-chip">
                     <PhotoThumb note={n} size={34} />
-                    <button onClick={() => setAttached((a) => a.filter((x) => x !== id))} aria-label={`Don't send “${n.title}”`} title="Don't send this one (it stays on the wall)">
+                    <button onClick={() => setAttached((a) => a.filter((x) => x !== id))} aria-label={t("Don't send “{title}”", { title: n.title })} title={t("Don't send this one (it stays on the wall)")}>
                       ×
                     </button>
                   </span>
                 );
               })}
-              <span className="tw-attached-note">{attached.length === 1 ? "goes with your next message" : "go with your next message"}</span>
+              <span className="tw-attached-note">{attached.length === 1 ? t("goes with your next message") : t("go with your next message")}</span>
             </div>
           )}
           <textarea
@@ -375,16 +377,16 @@ export function Notepad({ c }: { c: Case }) {
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
             rows={2}
-            placeholder={c.notes.length === 0 ? "What's the question?" : "Ask, add a lead, or push back…"}
-            aria-label="Message your research partner"
+            placeholder={c.notes.length === 0 ? t("What's the question?") : t("Ask, add a lead, or push back…")}
+            aria-label={t("Message your research partner")}
             maxLength={2000}
           />
           <button
             className="tw-clip"
             onClick={() => fileInput.current?.click()}
             disabled={importing || attached.length >= 3}
-            title="Attach a photo (it's pinned to the wall and sent with your message)"
-            aria-label="Attach a photo"
+            title={t("Attach a photo (it's pinned to the wall and sent with your message)")}
+            aria-label={t("Attach a photo")}
           >
             <svg viewBox="0 0 24 24" aria-hidden>
               <path d="M8 12.5 L14.2 6.3 a3 3 0 0 1 4.2 4.2 L10.6 18.3 a4.6 4.6 0 0 1 -6.5 -6.5 L11.6 4.3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />

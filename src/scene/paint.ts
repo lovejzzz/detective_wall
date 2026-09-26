@@ -3,6 +3,7 @@
 import type { DiagramItem, DiagramSpec, Note, Relation, SubjectStatus } from "../lib/types.ts";
 import { NOTE_SIZE } from "../lib/geometry.ts";
 import { hashString, mulberry32, paperGrain } from "./textures.ts";
+import { getLang, t } from "../lib/i18n.ts";
 
 export const TEXEL = 3; // canvas pixels per world px
 
@@ -39,6 +40,45 @@ export async function fontsReady(text = "") {
     `400 40px ${MONO}`,
   ];
   await Promise.all(faces.map((f) => document.fonts.load(f).catch(() => undefined)));
+}
+
+/** Every word the painter itself puts on a card, in the page's language (so its glyphs can be fetched first). */
+export function paintedWords(): string {
+  if (getLang() !== "zh") return "";
+  return [
+    "EXHIBIT  ·  FACT",
+    "CONCLUSION",
+    "UNSUB PROFILE",
+    "SUBJECT FILE",
+    "WHAT THE EVIDENCE SAYS",
+    "FOR",
+    "AGAINST",
+    "Settle it: {test}",
+    "HIGH",
+    "MEDIUM",
+    "LOW",
+    "LIKELY",
+    "CONFIRMED",
+    "RULED OUT",
+    "OPEN",
+    "UNIDENTIFIED",
+    "PERSON OF INTEREST",
+    "CLEARED",
+    "NEVER CHARGED",
+    "CONVICTED (RELATED)",
+    "DECEASED",
+    "CLIPPING",
+    "print loads online",
+  ]
+    .map((w) => t(w))
+    .join("") + "年月日0123456789";
+}
+
+/** A clipping's dateline: "Sep 26, 2026", or "2026年9月26日". */
+function datelineOf(ts: number): string {
+  const d = new Date(ts);
+  if (getLang() === "zh") return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 const gauss = (rand: Rand) => (rand() + rand() + rand() - 1.5) / 1.5;
@@ -425,12 +465,12 @@ function paintFact(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
   const m = w * 0.085;
   const u = w / 248;
   // the header sits under the tack, not beneath it
-  typewrite(g, "EXHIBIT  ·  FACT", m, 38 * u, { size: 10.5 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#4d463c", letterSpacing: 2.2 * u });
+  typewrite(g, t("EXHIBIT  ·  FACT"), m, 38 * u, { size: 10.5 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#4d463c", letterSpacing: 2.2 * u });
   g.fillStyle = "rgba(40,34,28,0.55)";
   g.fillRect(m, 45 * u, w - m * 2, 1.1 * u);
   if (n.confidence) {
     const col = { high: "#2c6a33", medium: "#8a6412", low: "#9b3325" }[n.confidence];
-    stamp(g, n.confidence.toUpperCase(), w - m - 26 * u, 34 * u, 8.5 * u, col, -0.06, rand);
+    stamp(g, t(n.confidence.toUpperCase()), w - m - 26 * u, 34 * u, 8.5 * u, col, -0.06, rand);
   }
   const tl = typewrite(g, n.title, m, 69 * u, { size: 17 * u, lineH: 21 * u, maxW: w - m * 2, maxLines: 2, rand });
   typewrite(g, n.body, m, 69 * u + tl * 21 * u + 12 * u, {
@@ -453,7 +493,7 @@ function paintConclusion(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
   g.fillStyle = "rgba(80,125,180,0.32)";
   for (let y = top + rule; y < h - 4 * u; y += rule) g.fillRect(0, y, w, 1 * u);
   const m = 20 * u;
-  typewrite(g, "CONCLUSION", m, 26 * u, { size: 10.5 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#5a5245", letterSpacing: 2.6 * u });
+  typewrite(g, t("CONCLUSION"), m, 26 * u, { size: 10.5 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#5a5245", letterSpacing: 2.6 * u });
   const tl = typewrite(g, n.title, m, top + rule - 5 * u, { size: 16.5 * u, lineH: rule, maxW: w - m * 2, maxLines: 2, rand });
   // as many ruled lines as the card has room for
   const rows = Math.floor((h - top - 8 * u) / rule);
@@ -461,7 +501,7 @@ function paintConclusion(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
   if (n.stamp) {
     const col = { "RULED OUT": "#b3261e", CONFIRMED: "#2e7d32", LIKELY: "#1f5aa0", OPEN: "#80601c" }[n.stamp];
     // Stamped in the header band, clear of the typed title.
-    stamp(g, n.stamp, w - 62 * u, 21 * u, 10.5 * u, col, -0.08 + gauss(rand) * 0.03, rand);
+    stamp(g, t(n.stamp), w - 62 * u, 21 * u, 10.5 * u, col, -0.08 + gauss(rand) * 0.03, rand);
   }
 }
 
@@ -481,14 +521,17 @@ function paintSubject(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
   const m = 18 * u;
   const file = n.subject;
   const unsub = !!file?.profile?.length;
-  typewrite(g, unsub ? "UNSUB PROFILE" : "SUBJECT FILE", m, 26 * u, { size: 10 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#4a3b22", letterSpacing: 1.6 * u });
+  typewrite(g, t(unsub ? "UNSUB PROFILE" : "SUBJECT FILE"), m, 26 * u, { size: 10 * u, lineH: 14 * u, maxW: w, maxLines: 1, rand, color: "#4a3b22", letterSpacing: 1.6 * u });
   g.fillStyle = "rgba(60,40,16,0.5)";
   g.fillRect(m, 34 * u, w - m * 2, 1.2 * u);
   const status = file?.status?.[0];
   if (status) {
-    const label = status.toUpperCase();
+    const label = t(status.toUpperCase());
     const size = (label.length > 14 ? 7.4 : 9) * u;
-    stamp(g, label, w - m - label.length * size * 0.38 - 10 * u, 24 * u, size, SUBJECT_INK[status], -0.07 + gauss(rand) * 0.02, rand);
+    // about half the stamp's text width; Chinese characters are measured, being about twice a letter's width
+    g.font = `${size}px ${TYPED}`;
+    const half = CJK.test(label) ? (g.measureText(label).width + size * label.length * 0.12) / 2 : label.length * size * 0.38;
+    stamp(g, label, w - m - half - 10 * u, 24 * u, size, SUBJECT_INK[status], -0.07 + gauss(rand) * 0.02, rand);
   }
 
   let y = 58 * u;
@@ -521,16 +564,16 @@ function paintSubject(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
     }
   };
   const room = Math.floor((bottom - y) / lineH);
-  if (unsub) list("WHAT THE EVIDENCE SAYS", "#33408a", file!.profile!, room);
+  if (unsub) list(t("WHAT THE EVIDENCE SAYS"), "#33408a", file!.profile!, room);
   else {
     const forN = file?.for?.length ? Math.max(3, Math.ceil(room / 2)) : 0;
-    list("FOR", "#8f1d15", file?.for ?? [], forN);
-    list("AGAINST", "#2a4f8f", file?.against ?? [], Math.floor((bottom - y) / lineH));
+    list(t("FOR"), "#8f1d15", file?.for ?? [], forN);
+    list(t("AGAINST"), "#2a4f8f", file?.against ?? [], Math.floor((bottom - y) / lineH));
   }
   if (file?.settle) {
     const sy = h - 14 * u - settleH + 8 * u;
     penLine(g, [[m, sy], [w - m, sy - 1 * u]], { color: "rgba(140,30,20,0.55)", width: 1.1 * u, rand, wobble: 0.6 });
-    handwrite(g, `Settle it: ${file.settle}`, m, sy + 18 * u, { size: 15 * u, weight: 700, lineH: 16 * u, maxW: w - m * 2, maxLines: 2, color: "#8f1d15", rand });
+    handwrite(g, t("Settle it: {test}", { test: file.settle }), m, sy + 18 * u, { size: 15 * u, weight: 700, lineH: 16 * u, maxW: w - m * 2, maxLines: 2, color: "#8f1d15", rand });
   }
 }
 
@@ -873,14 +916,14 @@ function paintWeb(g: Ctx, n: Note, w: number, h: number, rand: Rand) {
   const m = 18 * u;
   g.fillStyle = "#4e4538";
   g.font = `${10.5 * u}px ${NEWS}`;
-  const host = hostOf(n.origin.url).toUpperCase() || "CLIPPING";
+  const host = hostOf(n.origin.url).toUpperCase() || t("CLIPPING");
   let hx = m;
   for (const ch of host.slice(0, 26)) {
     g.fillText(ch, hx, 28 * u);
     hx += g.measureText(ch).width + 1.6 * u;
   }
   g.font = `italic ${10.5 * u}px ${NEWS}`;
-  const date = new Date(n.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const date = datelineOf(n.createdAt);
   g.fillText(date, w - m - g.measureText(date).width, 28 * u);
   g.fillStyle = "rgba(50,42,32,0.7)";
   g.fillRect(m, 34 * u, w - m * 2, 1 * u);
@@ -942,7 +985,7 @@ function paintPhoto(g: Ctx, n: Note, w: number, h: number, rand: Rand, image?: H
       g.fillStyle = "rgba(235,228,212,0.55)";
       g.font = `${10 * u}px ${TYPED}`;
       g.textAlign = "center";
-      g.fillText("print loads online", px + pw / 2, px + ph / 2);
+      g.fillText(t("print loads online"), px + pw / 2, px + ph / 2);
       g.textAlign = "start";
     }
   }
@@ -1212,7 +1255,7 @@ export function paintNote(n: Note, texel = TEXEL, photo?: HTMLImageElement): HTM
 
 /** The content that affects how a note looks; used as a cache key. */
 export function paintKey(n: Note) {
-  return [n.type, n.title, n.body, n.color, n.stamp, n.confidence, n.origin.url, JSON.stringify(n.diagram ?? null), JSON.stringify(n.subject ?? null), n.imageUrl, n.imageFallback].join("|");
+  return [getLang(), n.type, n.title, n.body, n.color, n.stamp, n.confidence, n.origin.url, JSON.stringify(n.diagram ?? null), JSON.stringify(n.subject ?? null), n.imageUrl, n.imageFallback].join("|");
 }
 
 export const RELATION_STYLE: Record<Relation, { glyph: string; color: string; name: string }> = {

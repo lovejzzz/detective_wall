@@ -5,6 +5,7 @@
 // paper bail holding the sheet, three staggered rows of glass-topped keys in chrome rings, a
 // space bar, and a large RETURN key that sends.
 import { useEffect, useState } from "react";
+import { t } from "../lib/i18n.ts";
 
 const ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 const PITCH = 31;
@@ -150,7 +151,7 @@ export function Typewriter({ onReturn, canSend, busy }: { onReturn(): void; canS
         className={`tw-key tw-return-key ${down.has("return") ? "is-down" : ""} ${canSend ? "" : "is-idle"}`}
         role="button"
         tabIndex={0}
-        aria-label="Send (Enter)"
+        aria-label={t("Send (Enter)")}
         aria-disabled={!canSend}
         onClick={() => canSend && onReturn()}
         onKeyDown={(e) => {
@@ -161,7 +162,7 @@ export function Typewriter({ onReturn, canSend, busy }: { onReturn(): void; canS
         }}
         transform="translate(355 94)"
       >
-        <title>Send (Enter)</title>
+        <title>{t("Send (Enter)")}</title>
         <rect x={-1.5} y={4} width={3} height={16} fill="url(#tw-lever)" />
         <rect className="tw-key-shadow" x={-33} y={-8} width={68} height={26} rx={13} fill="rgba(0,0,0,0.55)" />
         <g className="tw-key-cap">

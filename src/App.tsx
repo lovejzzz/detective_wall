@@ -10,6 +10,8 @@ import { Dossier, LinkPicker } from "./components/Dossier.tsx";
 import { UndoSlip } from "./components/UndoSlip.tsx";
 import { useBooted } from "./lib/boot.ts";
 import { ViewTabs } from "./components/ViewTabs.tsx";
+import { t } from "./lib/i18n.ts";
+import { caseTitle } from "./lib/cases.ts";
 
 // The WebGL wall is the heavy part; load it separately so the room's paper objects appear first.
 const Wall = lazy(() => import("./components/Wall.tsx").then((m) => ({ default: m.Wall })));
@@ -96,7 +98,7 @@ export function App() {
 
   // Keep the tab title on the case, like a label on the folder.
   useEffect(() => {
-    document.title = c ? `${c.title} · Detective Wall` : "Detective Wall";
+    document.title = c ? `${caseTitle(c.title)} · ${t("Detective Wall")}` : t("Detective Wall");
   }, [c?.title]);
 
   if (!c) return null;
@@ -135,28 +137,28 @@ function KeyPlaque() {
     return () => clearTimeout(t);
   }, [booted]);
   const keys: [string, string][] = [
-    ["Tab", "next note"],
-    ["↵", "open"],
-    ["/", "type"],
-    ["0", "overview"],
-    ["T", view === "timeline" ? "wall" : "timeline"],
-    ...(view === "timeline" ? ([["[ ]", "chapters"]] as [string, string][]) : []),
-    ["A", "arrange"],
-    ["C", "cabinet"],
-    ["P / X", "pin / toss a lead"],
-    [/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘Z" : "Ctrl Z", "undo"],
+    ["Tab", t("next note")],
+    ["↵", t("open")],
+    ["/", t("type")],
+    ["0", t("overview")],
+    ["T", view === "timeline" ? t("wall") : t("timeline")],
+    ...(view === "timeline" ? ([["[ ]", t("chapters")]] as [string, string][]) : []),
+    ["A", t("arrange")],
+    ["C", t("cabinet")],
+    ["P / X", t("pin / toss a lead")],
+    [/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘Z" : "Ctrl Z", t("undo")],
   ];
   return (
     <div className={`plaque ${open ? "is-open" : ""}`} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} aria-hidden>
-      <b className="plaque-label">Keys</b>
+      <b className="plaque-label">{t("Keys")}</b>
       <span className="plaque-keys">
         {keys.map(([k, what]) => (
           <span key={k}>
             <kbd>{k}</kbd> {what}
           </span>
         ))}
-        <span>hold a lead to pin it</span>
-        <span>drag a pin to tie string</span>
+        <span>{t("hold a lead to pin it")}</span>
+        <span>{t("drag a pin to tie string")}</span>
       </span>
     </div>
   );

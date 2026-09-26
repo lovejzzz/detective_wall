@@ -8,18 +8,18 @@ export function ViewTabs({ left }: { left: number }) {
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
   return (
-    <div className="view-tabs" style={{ left }} role="tablist" aria-label="Layout">
+    <div className="view-tabs" style={{ left }} role="tablist" aria-label={t("Layout")}>
       {(
         [
-          ["wall", "Wall"],
-          ["timeline", "Timeline"],
+          ["wall", t("Wall")],
+          ["timeline", t("Timeline")],
         ] as const
       ).map(([v, label]) => (
         <button key={v} role="tab" aria-selected={view === v} className={view === v ? "is-on" : ""} onClick={() => setView(v)} title={`${label} (T)`}>
           {label}
         </button>
       ))}
-      <button className="arrange-switch" onClick={() => useStore.getState().arrangeWall()} title="Arrange the wall in reading order (A)" aria-label="Arrange the wall">
+      <button className="arrange-switch" onClick={() => useStore.getState().arrangeWall()} title={t("Arrange the wall in reading order (A)")} aria-label={t("Arrange the wall")}>
         <svg viewBox="0 0 18 14" aria-hidden>
           <rect x="1" y="1" width="4" height="5" rx="0.6" />
           <rect x="7" y="1" width="4" height="5" rx="0.6" />

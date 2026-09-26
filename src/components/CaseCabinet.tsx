@@ -4,7 +4,8 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { ensureCases, useStore } from "../store.ts";
 import type { Case, NoteType } from "../lib/types.ts";
-import { ago, caseNumbers, caseStats, fileNo } from "../lib/cases.ts";
+import { ago, caseNumbers, caseStats, caseTitle, fileNo } from "../lib/cases.ts";
+import { t } from "../lib/i18n.ts";
 
 type Sort = "recent" | "number" | "title";
 const SORTS: [Sort, string][] = [
@@ -17,7 +18,7 @@ const SORTS: [Sort, string][] = [
 function matchOf(c: Case, q: string): { hit: boolean; clue?: string } {
   if (!q) return { hit: true };
   const needle = q.toLowerCase();
-  if (c.title.toLowerCase().includes(needle)) return { hit: true };
+  if (c.title.toLowerCase().includes(needle) || caseTitle(c.title).toLowerCase().includes(needle)) return { hit: true };
   const byTitle = c.notes.find((x) => x.title.toLowerCase().includes(needle));
   if (byTitle) return { hit: true, clue: `“${byTitle.title}”` };
   const inBody = c.notes.find((x) => x.body.toLowerCase().includes(needle));
@@ -27,7 +28,7 @@ function matchOf(c: Case, q: string): { hit: boolean; clue?: string } {
   const from = Math.max(0, inBody.body.lastIndexOf(" ", Math.max(0, at - 24)) + 1);
   const to = Math.min(inBody.body.length, at + needle.length + 28);
   const snippet = `${from > 0 ? "…" : ""}${inBody.body.slice(from, to).trim()}${to < inBody.body.length ? "…" : ""}`;
-  return { hit: true, clue: `${snippet} (in “${inBody.title}”)` };
+  return { hit: true, clue: t("{snippet} (in “{title}”)", { snippet, title: inBody.title }) };
 }
 
 export function CaseCabinet() {
@@ -58,7 +59,7 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
   const files = useMemo(() => {
     const all = order.map((id) => cases[id]).filter((c): c is Case => !!c);
     if (sort === "number") all.sort((a, b) => (numbers.get(a.id) ?? 0) - (numbers.get(b.id) ?? 0));
-    if (sort === "title") all.sort((a, b) => a.title.localeCompare(b.title));
+    if (sort === "title") all.sort((a, b) => caseTitle(a.title).localeCompare(caseTitle(b.title)));
     // The drawer is read back to front: the first file stands at the back, the last at the front.
     return all.map((c) => ({ c, ...matchOf(c, q.trim()) })).filter((f) => f.hit);
   }, [order, cases, sort, q, numbers]);
@@ -95,7 +96,7 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
 
   return (
     <div className={`cabinet-backdrop ${closing ? "is-closing" : ""}`} onPointerDown={(e) => e.target === e.currentTarget && close()}>
-      <section className="cabinet" role="dialog" aria-modal="true" aria-label="Case files">
+      <section className="cabinet" role="dialog" aria-modal="true" aria-label={t("Case files")}>
         <div className="drawer">
           <div className="drawer-head">
             <input
@@ -110,13 +111,13 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
                 }
                 if (e.key === "Enter" && files[0]) openCase(files[0].c.id);
               }}
-              placeholder="Find a case, or a clue in one…"
-              aria-label="Find a case"
+              placeholder={t("Find a case, or a clue in one…")}
+              aria-label={t("Find a case")}
             />
-            <div className="drawer-sort" role="radiogroup" aria-label="Order">
+            <div className="drawer-sort" role="radiogroup" aria-label={t("Order")}>
               {SORTS.map(([k, label]) => (
                 <button key={k} role="radio" aria-checked={sort === k} className={sort === k ? "is-on" : ""} onClick={() => setSort(k)}>
-                  {label}
+                  {t(label)}
                 </button>
               ))}
             </div>
@@ -127,7 +128,7 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
                 close();
               }}
             >
-              + New case
+              + {t("New case")}
             </button>
           </div>
 
@@ -141,10 +142,10 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
                   className={`file ${c.id === activeId ? "is-active" : ""}`}
                   style={{ ["--tab" as string]: `${[3, 35, 67][(no ?? i) % 3]}%`, ["--k" as string]: i }}
                 >
-                  <button className="file-body" onClick={() => openCase(c.id)} title={c.title}>
+                  <button className="file-body" onClick={() => openCase(c.id)} title={caseTitle(c.title)}>
                     <span className="file-tab">
                       <span className="file-no">{fileNo(no)}</span>
-                      <span className="file-tab-title">{c.title}</span>
+                      <span className="file-tab-title">{caseTitle(c.title)}</span>
                     </span>
                     <span className="file-face">
                       <span className="file-row">
@@ -152,20 +153,20 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
                           <span className="file-clue">{clue}</span>
                         ) : (
                           <span className="file-meta">
-                            {st.exhibits} {st.exhibits === 1 ? "exhibit" : "exhibits"} · {st.strings} {st.strings === 1 ? "string" : "strings"}
-                            {st.waiting > 0 && ` · ${st.waiting} waiting`} · opened {ago(c.lastOpenedAt ?? c.updatedAt)}
+                            {t(st.exhibits === 1 ? "1 exhibit" : "{n} exhibits", { n: st.exhibits })} · {t(st.strings === 1 ? "1 string" : "{n} strings", { n: st.strings })}
+                            {st.waiting > 0 && ` · ${t("{n} waiting", { n: st.waiting })}`} · {t("opened {when}", { when: ago(c.lastOpenedAt ?? c.updatedAt) })}
                           </span>
                         )}
                         {st.span && <span className="file-span">{st.span}</span>}
-                        {st.verdict && <span className={`file-stamp stamp-${st.verdict.toLowerCase().replace(/\s+/g, "-")}`}>{st.verdict}</span>}
+                        {st.verdict && <span className={`file-stamp stamp-${st.verdict.toLowerCase().replace(/\s+/g, "-")}`}>{t(st.verdict)}</span>}
                       </span>
-                      {st.latest && <span className="file-latest">latest: {st.latest}</span>}
+                      {st.latest && <span className="file-latest">{t("latest: {title}", { title: st.latest })}</span>}
                       <WallThumb c={c} />
                     </span>
                   </button>
                   {shredding === c.id ? (
                     <span className="file-shred is-asking">
-                      Shred it?
+                      {t("Shred it?")}
                       <button
                         onClick={() => {
                           useStore.getState().deleteCase(c.id);
@@ -173,12 +174,12 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
                           ensureCases();
                         }}
                       >
-                        shred
+                        {t("shred")}
                       </button>
-                      <button onClick={() => setShredding(null)}>keep</button>
+                      <button onClick={() => setShredding(null)}>{t("keep")}</button>
                     </span>
                   ) : (
-                    <button className="file-shred" onClick={() => setShredding(c.id)} aria-label={`Shred ${c.title}`} title="Shred this case">
+                    <button className="file-shred" onClick={() => setShredding(c.id)} aria-label={t("Shred {title}", { title: caseTitle(c.title) })} title={t("Shred this case")}>
                       ×
                     </button>
                   )}
@@ -186,18 +187,18 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
               );
             })}
           </ol>
-          {files.length === 0 && <p className="files-empty">No file mentions “{q.trim()}”.</p>}
+          {files.length === 0 && <p className="files-empty">{t("No file mentions “{q}”.", { q: q.trim() })}</p>}
         </div>
 
         <div className="drawer-front">
           <div className="label-holder">
-            <span>Case files</span>
+            <span>{t("Case files")}</span>
             <small>
-              {total} {total === 1 ? "file" : "files"}
+              {t(total === 1 ? "1 file" : "{n} files", { n: total })}
               {years.length > 0 && ` · ${Math.min(...years)}–${Math.max(...years)}`}
             </small>
           </div>
-          <button className="drawer-handle" onClick={close} aria-label="Push the drawer shut" title="Close (Esc)" />
+          <button className="drawer-handle" onClick={close} aria-label={t("Push the drawer shut")} title={t("Close (Esc)")} />
         </div>
       </section>
     </div>

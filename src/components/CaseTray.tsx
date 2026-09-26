@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { ensureCases, useStore } from "../store.ts";
-import { caseNumbers, fileNo } from "../lib/cases.ts";
+import { caseNumbers, caseTitle, fileNo } from "../lib/cases.ts";
+import { t } from "../lib/i18n.ts";
 
 /** What's written on a case file's spine: the name people know it by, never a word cut in half. */
 const SPINES: Record<string, string> = {
@@ -14,8 +15,11 @@ const SPINES: Record<string, string> = {
   "leehyungho-1991": "Lee Hyung-ho",
 };
 export function spineOf(c: { title: string; demo?: string }): string {
-  if (c.demo && SPINES[c.demo]) return SPINES[c.demo];
-  const words = c.title.replace(/^(the|a|an)\s+/i, "").split(/\s+/);
+  if (c.demo && SPINES[c.demo]) return t(SPINES[c.demo]);
+  const title = caseTitle(c.title);
+  // Chinese has no spaces to break at, and each character is about two letters wide.
+  if (/[\u2e80-\u9fff]/.test(title)) return title.length > 8 ? `${title.slice(0, 7)}…` : title;
+  const words = title.replace(/^(the|a|an)\s+/i, "").split(/\s+/);
   let out = "";
   for (const w of words) {
     if ((out ? out.length + 1 : 0) + w.length > 15) break;
@@ -46,8 +50,8 @@ export function CaseTray() {
   const filed = order.length - atHand.length;
 
   return (
-    <nav className="tray" aria-label="Cases">
-      <div className="tray-label">Cases</div>
+    <nav className="tray" aria-label={t("Cases")}>
+      <div className="tray-label">{t("Cases")}</div>
       <ol>
         {atHand.map((id, i) => {
           const c = cases[id];
@@ -64,12 +68,12 @@ export function CaseTray() {
                   if (e.detail > 0) e.currentTarget.blur();
                 }}
                 aria-current={active ? "true" : undefined}
-                title={c.title}
+                title={caseTitle(c.title)}
               >
                 <span className="folder-no">{fileNo(numbers.get(id))}</span>
-                <span className="folder-title">{c.title}</span>
+                <span className="folder-title">{caseTitle(c.title)}</span>
                 <span className="folder-meta">
-                  {pinned} {pinned === 1 ? "exhibit" : "exhibits"}
+                  {t(pinned === 1 ? "1 exhibit" : "{n} exhibits", { n: pinned })}
                 </span>
                 <span className="folder-spine" aria-hidden>
                   {spineOf(c)}
@@ -77,7 +81,7 @@ export function CaseTray() {
               </button>
               {shredding === id ? (
                 <span className="shred-confirm">
-                  Shred this file?
+                  {t("Shred this file?")}
                   <button
                     onClick={() => {
                       useStore.getState().deleteCase(id);
@@ -85,12 +89,12 @@ export function CaseTray() {
                       ensureCases();
                     }}
                   >
-                    shred
+                    {t("shred")}
                   </button>
-                  <button onClick={() => setShredding(null)}>keep</button>
+                  <button onClick={() => setShredding(null)}>{t("keep")}</button>
                 </span>
               ) : (
-                <button className="folder-x" onClick={() => setShredding(id)} aria-label={`Delete case ${c.title}`} title="Shred this case">
+                <button className="folder-x" onClick={() => setShredding(id)} aria-label={t("Delete case {title}", { title: caseTitle(c.title) })} title={t("Shred this case")}>
                   ×
                 </button>
               )}
@@ -99,18 +103,18 @@ export function CaseTray() {
         })}
         <li className="folder is-new" style={{ ["--i" as string]: atHand.length }}>
           <button className="folder-body" onClick={newCase}>
-            <span className="folder-title">New case</span>
+            <span className="folder-title">{t("New case")}</span>
             <span className="folder-spine" aria-hidden>
               +
             </span>
           </button>
         </li>
       </ol>
-      <button className="cabinet-pull" onClick={() => useStore.getState().setCabinetOpen(true)} title="Open the filing cabinet (C)">
+      <button className="cabinet-pull" onClick={() => useStore.getState().setCabinetOpen(true)} title={t("Open the filing cabinet (C)")}>
         <span className="pull-handle" aria-hidden />
         <span className="pull-label">
-          All case files
-          <small>{filed > 0 ? `${filed} more filed away` : `${order.length} in the cabinet`}</small>
+          {t("All case files")}
+          <small>{filed > 0 ? t("{n} more filed away", { n: filed }) : t("{n} in the cabinet", { n: order.length })}</small>
         </span>
         <span className="pull-count" aria-hidden>
           {order.length}

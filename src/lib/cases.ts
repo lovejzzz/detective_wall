@@ -1,5 +1,9 @@
 // Facts about a case for its folder: its file number, what's on the wall, and what it spans.
 import type { Case } from "./types.ts";
+import { getLang, t } from "./i18n.ts";
+
+/** The title as shown: a blank new case reads "Untitled case" in the page's language. */
+export const caseTitle = (title: string) => (title === "Untitled case" ? t("Untitled case") : title);
 
 /** File numbers follow the order cases were opened, so a case keeps its number for life. */
 export function caseNumbers(cases: Record<string, Case>): Map<string, number> {
@@ -7,7 +11,7 @@ export function caseNumbers(cases: Record<string, Case>): Map<string, number> {
   return new Map(byAge.map((c, i) => [c.id, i + 1]));
 }
 
-export const fileNo = (n: number | undefined) => `No. ${String(n ?? 0).padStart(3, "0")}`;
+export const fileNo = (n: number | undefined) => t("No. {n}", { n: String(n ?? 0).padStart(3, "0") });
 
 export interface CaseStats {
   exhibits: number;
@@ -42,11 +46,15 @@ export function caseStats(c: Case): CaseStats {
 
 /** "today", "yesterday", "3 days ago", "Mar 2026". */
 export function ago(ts: number | undefined, now = Date.now()): string {
-  if (!ts) return "never opened";
+  if (!ts) return t("never opened");
   const days = Math.floor((now - ts) / 86_400_000);
-  if (days <= 0) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 14) return `${days} days ago`;
-  if (days < 60) return `${Math.round(days / 7)} weeks ago`;
+  if (days <= 0) return t("today");
+  if (days === 1) return t("yesterday");
+  if (days < 14) return t("{n} days ago", { n: days });
+  if (days < 60) return t("{n} weeks ago", { n: Math.round(days / 7) });
+  if (getLang() === "zh") {
+    const d = new Date(ts);
+    return `${d.getFullYear()}年${d.getMonth() + 1}月`;
+  }
   return new Date(ts).toLocaleDateString(undefined, { month: "short", year: "numeric" });
 }

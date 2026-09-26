@@ -3,6 +3,7 @@
 // makes sense on a typewritten page: emphasis as underlining, links as short underlined words,
 // list markers as dashes, headings as plain emphasised lines.
 import { Fragment, type ReactNode } from "react";
+import { t } from "../lib/i18n.ts";
 
 const INLINE = /\*\*([^*\n]+)\*\*|\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<>()[\]]+[^\s<>()[\].,;:!?'"])|(?<![\w*])\*([^*\n]+)\*(?!\w)/g;
 
@@ -46,6 +47,8 @@ function inline(text: string, key: string): ReactNode[] {
 
 /** "Next lead: …", "Second lead: …": the partner's suggestions for where to dig next. */
 const LEAD = /^\s*(?:[–-]\s*)?(?:\*\*)?((?:next|first|second|third|another|one more)\s+lead|lead(?:\s*\d)?)(?:\*\*)?\s*:\s*(?:\*\*)?\s*(.{8,})$/i;
+/** The same in Chinese: "下一条线索：…", "线索一：…", "另一条线索：…". */
+const LEAD_ZH = /^\s*(?:[–-]\s*)?(?:\*\*)?((?:下一条|下条|第[一二三]条|另一条|再一条)?线索[一二三123]?)(?:\*\*)?\s*[:：]\s*(?:\*\*)?\s*(.{4,})$/;
 
 /** Plain words for the typewriter: Markdown marks and link targets stripped. */
 const plainText = (s: string) => s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\*\*?([^*]+)\*\*?/g, "$1").trim();
@@ -66,15 +69,15 @@ export function Typed({ text, onLead }: { text: string; onLead?: (lead: string) 
         const bullet = /^\s*[*•-]\s+/.test(line);
         line = line.replace(/^(\s*)[*•-]\s+/, "$1– ");
         if (!line.trim()) inLeads = false;
-        let lead = onLead ? LEAD.exec(line)?.[2] : undefined;
+        let lead = onLead ? (LEAD.exec(line) ?? LEAD_ZH.exec(line))?.[2] : undefined;
         if (onLead && inLeads && bullet && !lead) lead = line.replace(/^\s*–\s+/, "");
-        if (/^\s*(?:\*\*)?(?:next\s+)?leads(?:\*\*)?:?(?:\*\*)?\s*$/i.test(line)) inLeads = true;
+        if (/^\s*(?:\*\*)?(?:next\s+)?leads(?:\*\*)?:?(?:\*\*)?\s*$/i.test(line) || /^\s*(?:\*\*)?(?:下一步)?线索(?:\*\*)?[:：]?(?:\*\*)?\s*$/.test(line)) inLeads = true;
         return (
           <Fragment key={i}>
             {heading ? <u className="t-em">{line}</u> : inline(line, String(i))}
             {lead && (
-              <button className="t-follow" onClick={() => onLead!(plainText(lead))} title="Put this lead on the typewriter">
-                follow&nbsp;↵
+              <button className="t-follow" onClick={() => onLead!(plainText(lead))} title={t("Put this lead on the typewriter")}>
+                {t("follow")}&nbsp;↵
               </button>
             )}
             {i < lines.length - 1 && "\n"}

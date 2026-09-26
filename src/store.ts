@@ -12,7 +12,7 @@ import { SETAGAYA_DEMO, SETAGAYA_VERSION, setagayaCase } from "./lib/setagayacas
 import { HACHIOJI_DEMO, HACHIOJI_VERSION, hachiojiCase } from "./lib/hachiojicase.ts";
 import { FROGBOYS_DEMO, FROGBOYS_VERSION, frogBoysCase } from "./lib/frogboyscase.ts";
 import { LEEHYUNGHO_DEMO, LEEHYUNGHO_VERSION, leeHyungHoCase } from "./lib/leehyunghocase.ts";
-import { getLang } from "./lib/i18n.ts";
+import { getLang, t } from "./lib/i18n.ts";
 
 export type PartnerMode = "unknown" | "live" | "offline";
 
@@ -616,7 +616,7 @@ export const useStore = create<Store>()(
               id,
               type: "photo",
               status: "pinned",
-              title: title.slice(0, 60) || "Photo",
+              title: title.slice(0, 60) || t("Photo"),
               body: "",
               x: Math.round(x),
               y: Math.round(y),
@@ -801,6 +801,6 @@ export function ensureCases() {
 
 export const useActiveCase = () => useStore((s) => (s.activeId ? s.cases[s.activeId] : undefined));
 
-export function typeLabel(t: NoteType): string {
-  return { hypothesis: "Hunch", fact: "Fact", diagram: "Sketch", web: "Clipping", photo: "Photo", conclusion: "Conclusion", subject: "Subject file" }[t];
+export function typeLabel(type: NoteType): string {
+  return t({ hypothesis: "Hunch", fact: "Fact", diagram: "Sketch", web: "Clipping", photo: "Photo", conclusion: "Conclusion", subject: "Subject file" }[type]);
 }

@@ -7,7 +7,7 @@ import { photoBase64, photoIdOf } from "../lib/images.ts";
 import { uid } from "../lib/geometry.ts";
 import { key as typeKey } from "../lib/sound.ts";
 import { commonsFileOf, resolveCommons } from "../lib/commons.ts";
-import { getLang } from "../lib/i18n.ts";
+import { getLang, t } from "../lib/i18n.ts";
 
 export async function checkPartner() {
   try {
@@ -21,9 +21,9 @@ export async function checkPartner() {
 }
 
 function statusLine(e: Extract<PartnerEvent, { type: "status" }>): string {
-  if (e.kind === "searching") return e.detail ? `searching “${e.detail}”` : "searching the web";
-  if (e.kind === "reading") return e.detail ? `reading ${e.detail}` : "reading sources";
-  return "pinning up evidence";
+  if (e.kind === "searching") return e.detail ? t("searching “{query}”", { query: e.detail }) : t("searching the web");
+  if (e.kind === "reading") return e.detail ? t("reading {page}", { page: e.detail }) : t("reading sources");
+  return t("pinning up evidence");
 }
 
 /** The research trail: each search and each page opened, once, in order. Result counts are noise. */
@@ -176,7 +176,7 @@ export async function ask(caseId: string, text: string, opts: { photoNoteIds?: s
     }
     if (!res.ok || !res.body) {
       const err = (await res.json().catch(() => ({}))) as { message?: string };
-      useStore.getState().addAssistantNote(caseId, `(The line went quiet: ${err.message ?? `error ${res.status}`}. Try again in a moment.)`);
+      useStore.getState().addAssistantNote(caseId, t("(The line went quiet: {why}. Try again in a moment.)", { why: err.message ?? t("error {code}", { code: res.status }) }));
       return;
     }
 
@@ -196,7 +196,7 @@ export async function ask(caseId: string, text: string, opts: { photoNoteIds?: s
         s.setLive((p) => ({ ...p, text: "", trail: [...(p?.trail ?? []), { kind: "note" as const, detail: e.text.slice(0, 220) }] }));
       else if (e.type === "error") {
         if (e.offline) s.setPartner({ mode: "offline" });
-        s.addAssistantNote(caseId, `(The line went quiet: ${e.message})`);
+        s.addAssistantNote(caseId, t("(The line went quiet: {why})", { why: e.message }));
         finished = true;
       } else if (e.type === "done") {
         // Re-validate on the client: the wall only ever accepts the contract.
@@ -205,9 +205,9 @@ export async function ask(caseId: string, text: string, opts: { photoNoteIds?: s
         finished = true;
       }
     }
-    if (!finished) useStore.getState().addAssistantNote(caseId, "(The line dropped mid-sentence. Ask again?)");
+    if (!finished) useStore.getState().addAssistantNote(caseId, t("(The line dropped mid-sentence. Ask again?)"));
   } catch {
-    useStore.getState().addAssistantNote(caseId, "(Couldn't reach the partner. Check the connection and try again.)");
+    useStore.getState().addAssistantNote(caseId, t("(Couldn't reach the partner. Check the connection and try again.)"));
   } finally {
     useStore.getState().setLive(null);
     useStore.getState().setBusy(null);

@@ -5,7 +5,7 @@
 import type { Beat, Link, Note, Phase } from "./types.ts";
 import { NOTE_SIZE } from "./geometry.ts";
 import { isWhen, precisionOf, whenDay, whenKey, whenLabel, whenYears } from "./when.ts";
-import { getLang } from "./i18n.ts";
+import { getLang, t } from "./i18n.ts";
 
 export interface TimelineSlot {
   x: number;
@@ -401,7 +401,7 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
           row.tagEnd = cx;
           row.tagYear = year;
         }
-        if (precisionOf(n.when!) === "time") row.times.push({ x: cx, y: 0, label: `${n.approx ? "c. " : ""}${n.when!.split("T")[1]}`, above: side === "above" });
+        if (precisionOf(n.when!) === "time") row.times.push({ x: cx, y: 0, label: `${n.approx ? (getLang() === "zh" ? "约 " : "c. ") : ""}${n.when!.split("T")[1]}`, above: side === "above" });
       });
       rowPrev = years;
       prevYears = years;
@@ -466,7 +466,7 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
   const storyN = moments.filter((m) => m.when).length;
   const step = storyN ? Math.max(STORY_MIN, Math.min(STORY_STEP, (right - left - 140) / storyN)) : STORY_STEP;
   const heading = dated.length
-    ? { title: opts.title?.trim() || "Chronology", range: rangeLabel(settledDated[0].when!, settledDated[settledDated.length - 1].when!), count: dated.length, x: left, y: -headingH, step }
+    ? { title: opts.title?.trim() || t("Chronology"), range: rangeLabel(settledDated[0].when!, settledDated[settledDated.length - 1].when!), count: dated.length, x: left, y: -headingH, step }
     : null;
   return {
     slots,
