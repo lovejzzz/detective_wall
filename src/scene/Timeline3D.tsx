@@ -5,53 +5,154 @@ import { TACK, pinMaterials, sharedTextures } from "./objects.ts";
 
 const CORD_Z = 7;
 
-/** The timeline as a physical thing: a taut cord across the cork, a tack per event, a thread to each note. */
+/** A soft-edged wash: darker in the middle, feathered to nothing at the edges, so a band has no hard line. */
+function bandTexture(): THREE.Texture {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 128;
+  const g = c.getContext("2d")!;
+  const img = g.createImageData(c.width, c.height);
+  const feather = (t: number, f: number) => Math.min(1, t / f, (1 - t) / f);
+  for (let y = 0; y < c.height; y++)
+    for (let x = 0; x < c.width; x++) {
+      const a = feather(x / (c.width - 1), 0.06) * feather(y / (c.height - 1), 0.12);
+      const i = (y * c.width + x) * 4;
+      img.data[i + 3] = Math.round(255 * a * a * (3 - 2 * a));
+    }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/** Masking tape: a little translucent, papery, with torn ends, for the line across the top of each chapter. */
+function tapeTexture(): THREE.Texture {
+  const c = document.createElement("canvas");
+  c.width = 1024;
+  c.height = 48;
+  const g = c.getContext("2d")!;
+  const img = g.createImageData(c.width, c.height);
+  let seed = 7;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const tear = Array.from({ length: c.height }, () => [4 + rand() * 12, 4 + rand() * 12]);
+  const streak = Array.from({ length: c.height }, () => rand() * 0.08);
+  for (let y = 0; y < c.height; y++)
+    for (let x = 0; x < c.width; x++) {
+      const i = (y * c.width + x) * 4;
+      const grain = rand() * 0.06 + streak[y];
+      img.data[i] = Math.round(226 * (1 - grain));
+      img.data[i + 1] = Math.round(209 * (1 - grain));
+      img.data[i + 2] = Math.round(163 * (1 - grain));
+      const inside = x > tear[y][0] && x < c.width - tear[y][1] && y > 1 && y < c.height - 2;
+      img.data[i + 3] = inside ? 222 : 0;
+    }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
+/**
+ * The timeline as a physical thing: a band of shade behind each chapter, a taut cord across it,
+ * a tack per event, a thread to each note, and short threads down to the photos hanging with them.
+ */
 export const Timeline3D = memo(function Timeline3D({ layout }: { layout: TimelineLayout }) {
   const { stringNormal } = sharedTextures();
-  const { x0, x1 } = layout.cord;
 
-  // One material for the life of the wall: rebuilding it on every layout change would recompile its shader.
+  // Materials live as long as the wall: rebuilding them on every layout change would recompile their shaders.
   const cordMat = useMemo(() => {
     const normalMap = stringNormal.clone();
     normalMap.needsUpdate = true;
+    normalMap.wrapS = THREE.RepeatWrapping;
     return new THREE.MeshStandardMaterial({ color: "#a01c14", roughness: 0.8, normalMap, normalScale: new THREE.Vector2(1.4, 1.4) });
   }, [stringNormal]);
-  useEffect(() => () => cordMat.dispose(), [cordMat]);
-  const cord = useMemo(() => {
-    const curve = new THREE.LineCurve3(new THREE.Vector3(x0, 0, CORD_Z), new THREE.Vector3(x1, 0, CORD_Z));
-    cordMat.normalMap!.repeat.set((x1 - x0) / 7, 1);
-    return { geometry: new THREE.TubeGeometry(curve, 8, 3.2, 12, false), material: cordMat };
-  }, [x0, x1, cordMat]);
-  useEffect(() => () => cord.geometry.dispose(), [cord]);
+  const threadMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#211b17", roughness: 0.6 }), []);
+  const bandMats = useMemo(() => {
+    const map = bandTexture();
+    return [0.3, 0.16].map((opacity) => new THREE.MeshBasicMaterial({ color: "#0c0704", map, transparent: true, opacity, depthWrite: false }));
+  }, []);
+  const tapeMat = useMemo(() => new THREE.MeshStandardMaterial({ map: tapeTexture(), transparent: true, roughness: 0.92, depthWrite: false }), []);
+  useEffect(
+    () => () => {
+      cordMat.dispose();
+      threadMat.dispose();
+      tapeMat.map?.dispose();
+      tapeMat.dispose();
+      bandMats.forEach((m) => {
+        m.map?.dispose();
+        m.dispose();
+      });
+    },
+    [cordMat, threadMat, tapeMat, bandMats],
+  );
+
+  const cords = useMemo(() => {
+    const longest = Math.max(1, ...layout.cords.map((c) => c.x1 - c.x0));
+    cordMat.normalMap!.repeat.set(longest / 7, 1);
+    return layout.cords.map(
+      (c) => new THREE.TubeGeometry(new THREE.LineCurve3(new THREE.Vector3(c.x0, -c.y, CORD_Z), new THREE.Vector3(c.x1, -c.y, CORD_Z)), 8, 3.2, 12, false),
+    );
+  }, [layout, cordMat]);
+  useEffect(() => () => cords.forEach((g) => g.dispose()), [cords]);
 
   const threads = useMemo(() => {
     const out: THREE.TubeGeometry[] = [];
+    const tube = (a: THREE.Vector3, b: THREE.Vector3, r: number) => out.push(new THREE.TubeGeometry(new THREE.LineCurve3(a, b), 2, r, 6, false));
     for (const s of layout.slots.values()) {
-      if (s.row === "aside") continue;
-      const a = new THREE.Vector3(s.anchor.x, 0, CORD_Z);
-      const b = new THREE.Vector3(s.attach.x, -s.attach.y, 9);
-      out.push(new THREE.TubeGeometry(new THREE.LineCurve3(a, b), 2, 0.9, 6, false));
+      if (s.row !== "above" && s.row !== "below") continue;
+      tube(new THREE.Vector3(s.anchor.x, -s.anchor.y, CORD_Z), new THREE.Vector3(s.attach.x, -s.attach.y, 9), 0.9);
     }
+    for (const t of layout.threads) tube(new THREE.Vector3(t.from.x, -t.from.y, 9), new THREE.Vector3(t.to.x, -t.to.y, 9), 0.75);
     return out;
   }, [layout]);
   useEffect(() => () => threads.forEach((g) => g.dispose()), [threads]);
-  const threadMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#211b17", roughness: 0.6 }), []);
 
   const anchors = useMemo(() => {
-    const xs = new Set<number>();
-    for (const s of layout.slots.values()) if (s.row !== "aside") xs.add(Math.round(s.anchor.x));
-    return [...xs];
+    const seen = new Set<string>();
+    const out: [number, number][] = [];
+    for (const s of layout.slots.values()) {
+      if (s.row !== "above" && s.row !== "below") continue;
+      const key = `${Math.round(s.anchor.x)}:${Math.round(s.anchor.y)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push([s.anchor.x, s.anchor.y]);
+      }
+    }
+    return out;
   }, [layout]);
 
   return (
     <group>
-      <mesh geometry={cord.geometry} material={cord.material} castShadow />
-      {/* big brass tacks hold each end of the cord */}
-      {[x0, x1].map((x) => (
-        <mesh key={x} geometry={TACK} material={pinMaterials.brass} position={[x, 0, 1]} scale={1.5} castShadow />
+      {layout.chapters.map((c, i) => (
+        <mesh key={`band-${i}`} position={[c.x + c.w / 2, -(c.y + c.h / 2), 0.6]} scale={[c.w, c.h, 1]} material={bandMats[i % 2]} renderOrder={-1}>
+          <planeGeometry />
+        </mesh>
       ))}
-      {anchors.map((x) => (
-        <mesh key={x} geometry={TACK} material={pinMaterials.brass} position={[x, 0, CORD_Z - 2.5]} scale={1.05} castShadow />
+      {/* a strip of masking tape across the top of each chapter, the way you'd section off a wall */}
+      {layout.chapters.map((c, i) =>
+        c.continued ? null : (
+          <mesh key={`tape-${i}`} position={[c.x + c.w / 2, -(c.y + 14), 1.4]} rotation={[0, 0, (i % 2 ? 1 : -1) * 0.0022]} scale={[c.w - 24, 30, 1]} material={tapeMat} receiveShadow>
+            <planeGeometry />
+          </mesh>
+        ),
+      )}
+      {layout.aside && (
+        <mesh position={[layout.aside.x + layout.aside.w / 2, -(layout.aside.y + 14), 1.4]} scale={[layout.aside.w - 24, 30, 1]} material={tapeMat} receiveShadow>
+          <planeGeometry />
+        </mesh>
+      )}
+      {cords.map((g, i) => (
+        <group key={`cord-${i}`}>
+          <mesh geometry={g} material={cordMat} castShadow />
+          {/* big brass tacks hold each end of the cord */}
+          {[layout.cords[i].x0, layout.cords[i].x1].map((x) => (
+            <mesh key={x} geometry={TACK} material={pinMaterials.brass} position={[x, -layout.cords[i].y, 1]} scale={1.5} castShadow />
+          ))}
+        </group>
+      ))}
+      {anchors.map(([x, y]) => (
+        <mesh key={`${x}:${y}`} geometry={TACK} material={pinMaterials.brass} position={[x, -y, CORD_Z - 2.5]} scale={1.05} castShadow />
       ))}
       {threads.map((g, i) => (
         <mesh key={i} geometry={g} material={threadMat} castShadow />

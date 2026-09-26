@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { isWhen, parseWhenInput, precisionOf, whenKey, whenLabel } from "../src/lib/when.ts";
-import { layoutTimeline } from "../src/lib/timeline.ts";
+import { layoutTimeline, rangeLabel } from "../src/lib/timeline.ts";
+import { tylenolCase } from "../src/lib/tylenolcase.ts";
+import { NOTE_SIZE } from "../src/lib/geometry.ts";
 import { sanitizeWallUpdate } from "../src/lib/contract.ts";
 import { coldCase } from "../src/lib/coldcase.ts";
-import type { Note } from "../src/lib/types.ts";
+import type { Link, Note } from "../src/lib/types.ts";
 
 describe("partial dates", () => {
   it("accepts year, month, day and time precision only", () => {
@@ -65,11 +67,12 @@ describe("timeline layout", () => {
     const t = layoutTimeline([note("a", "1971"), note("b", "1971")]);
     const above = t.slots.get("a")!;
     const below = t.slots.get("b")!;
-    expect(above.y).toBeLessThan(0);
-    expect(below.y).toBeGreaterThan(0);
-    expect(above.anchor.y).toBe(0);
-    expect(above.attach.y).toBeLessThan(0);
-    expect(below.attach.y).toBeGreaterThan(0);
+    const cordY = t.cords[0].y;
+    expect(above.anchor.y).toBe(cordY);
+    expect(above.y).toBeLessThan(cordY);
+    expect(below.y).toBeGreaterThan(cordY);
+    expect(above.attach.y).toBeLessThan(cordY);
+    expect(below.attach.y).toBeGreaterThan(cordY);
   });
 
   it("lays out the demo case with every dated note on the line", () => {
@@ -91,7 +94,104 @@ describe("timeline layout", () => {
     // every date tag gets its own room on the cord
     for (let i = 1; i < t.stops.length; i++) expect(t.stops[i].x - t.stops[i - 1].x).toBeGreaterThanOrEqual(170);
     // well short of hanging every note side by side (248 wide + 34 apart)
-    expect(t.cord.x1 - t.cord.x0).toBeLessThan(days.length * 282 * 0.85);
+    expect(t.cords[0].x1 - t.cords[0].x0).toBeLessThan(days.length * 282 * 0.85);
+  });
+
+  const overlaps = (t: ReturnType<typeof layoutTimeline>, notes: Note[]) => {
+    const boxes = notes.map((n) => {
+      const s = t.slots.get(n.id)!;
+      const { w, h } = NOTE_SIZE[n.type];
+      return { id: n.id, x0: s.x - w / 2, x1: s.x + w / 2, y0: s.y - h / 2, y1: s.y + h / 2 };
+    });
+    const out: string[] = [];
+    for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) {
+        const [a, b] = [boxes[i], boxes[j]];
+        if (a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1) out.push(`${a.id}/${b.id}`);
+      }
+    return out;
+  };
+
+  it("reads in named chapters, one row each, under the case's name", () => {
+    const c = tylenolCase();
+    const t = layoutTimeline(c.notes, c.links, { title: c.title, phases: c.phases });
+    expect(t.heading).toMatchObject({ title: "The Chicago Tylenol murders", range: "1982 – 2026" });
+    expect(t.chapters.map((ch) => ch.title)).toEqual(c.phases!.map((p) => p.title));
+    expect(t.chapters[0].range).toBe("29 Sep – 1 Oct 1982");
+    expect(t.chapters[0].after).toBeNull();
+    expect(t.chapters[3].after).toBe("23 years later");
+    // each chapter sits below the one before, under the heading, with its cord inside its band
+    expect(t.heading!.y).toBeLessThan(t.chapters[0].y);
+    t.chapters.forEach((ch, i) => {
+      if (i) expect(ch.y).toBeGreaterThanOrEqual(t.chapters[i - 1].y + t.chapters[i - 1].h);
+      expect(ch.cordY).toBeGreaterThan(ch.y);
+      expect(ch.cordY).toBeLessThan(ch.y + ch.h);
+    });
+    // a letter known only as "October 1982" belongs with the recall that began on the 5th
+    const letter = c.notes.find((n) => n.when === "1982-10")!;
+    expect(t.slots.get(letter.id)!.anchor.y).toBe(t.chapters[1].cordY);
+    expect(overlaps(t, c.notes)).toEqual([]);
+  });
+
+  it("hangs a photo strung to an event with that event, away from the cord", () => {
+    const photo = { ...note("p", undefined, "photo"), imageUrl: "commons:X.jpg" };
+    const links: Link[] = [{ id: "l", from: "p", to: "a", relation: "references", reason: "", status: "pinned", createdBy: "user", createdAt: 0 }];
+    const t = layoutTimeline([note("a", "1971-11-24"), photo, note("loose")], links);
+    const host = t.slots.get("a")!;
+    const hung = t.slots.get("p")!;
+    expect(hung.row).toBe("attached");
+    expect(hung.x).toBe(host.x);
+    // outward: above an event that hangs above the cord
+    expect(host.row).toBe("above");
+    expect(hung.y).toBeLessThan(host.y);
+    expect(t.threads).toHaveLength(1);
+    expect(t.slots.get("loose")!.row).toBe("aside");
+    expect(t.aside?.count).toBe(1);
+  });
+
+  it("splits an unnamed history into chapters at its long silences", () => {
+    const whens = ["1950-01-01", "1950-02-01", "1950-03-01", "1960-01-01", "1960-02-01", "1960-03-01", "1990-01-01", "1990-02-01", "1990-03-01"];
+    const t = layoutTimeline(whens.map((w, i) => note(`n${i}`, w)));
+    expect(t.chapters.map((ch) => [ch.title, ch.range, ch.count])).toEqual([
+      [null, "1 Jan – 1 Mar 1950", 3],
+      [null, "1 Jan – 1 Mar 1960", 3],
+      [null, "1 Jan – 1 Mar 1990", 3],
+    ]);
+    expect(t.chapters.map((ch) => ch.after)).toEqual([null, "10 years later", "30 years later"]);
+    // a lone event far off joins its neighbour rather than making a chapter of one
+    expect(layoutTimeline([...whens, "2020"].map((w, i) => note(`m${i}`, w))).chapters).toHaveLength(3);
+  });
+
+  it("says a span as briefly as it can", () => {
+    expect(rangeLabel("1982-09-29", "1982-10-01T09:00")).toBe("29 Sep – 1 Oct 1982");
+    expect(rangeLabel("1982-10", "1982-12")).toBe("Oct – Dec 1982");
+    expect(rangeLabel("1971-11-24T20:00", "1971-11-24T22:15")).toBe("24 Nov 1971");
+    expect(rangeLabel("1983", "2009-02")).toBe("1983 – 2009");
+  });
+});
+
+describe("chapters in the tool contract", () => {
+  it("keeps short titled phases with real start dates, in order", () => {
+    const out = sanitizeWallUpdate(
+      {
+        notes: [],
+        links: [],
+        phases: [
+          { title: "The trial", from: "1990-05" },
+          { title: "  The   crime ", from: "1989-12-02" },
+          { title: "No date", from: "later" },
+          { title: "Same start", from: "1990-05" },
+          { title: "x".repeat(60), from: "2001" },
+        ],
+      },
+      new Set(),
+    );
+    expect(out.phases).toEqual([
+      { title: "The crime", from: "1989-12-02" },
+      { title: "The trial", from: "1990-05" },
+      { title: "x".repeat(39) + "…", from: "2001" },
+    ]);
+    expect(sanitizeWallUpdate({ notes: [], links: [], phases: "soon" }, new Set()).phases).toBeUndefined();
   });
 });
 

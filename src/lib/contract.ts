@@ -38,6 +38,9 @@ export interface ProposedLink {
   reason: string;
 }
 
+/** At most this many named chapters on a timeline. */
+export const MAX_PHASES = 6;
+
 export interface WallUpdate {
   notes: ProposedNote[];
   links: ProposedLink[];
@@ -45,10 +48,14 @@ export interface WallUpdate {
   new_case?: { question: string };
   /** First turn only: a short name for the case folder. */
   case_title?: string;
+  /** The chapters the case's timeline reads in; replaces any named before. */
+  phases?: { title: string; from: string }[];
 }
 
 export interface InvestigateRequest {
   caseTitle: string;
+  /** The timeline's named chapters, if any. */
+  phases?: { title: string; from: string }[];
   notes: { id: string; type: NoteType; status: string; title: string; body: string; url?: string; when?: string }[];
   links: { from: string; to: string; relation: Relation; status: string }[];
   messages: { role: "user" | "assistant"; text: string }[];
@@ -160,6 +167,21 @@ export const UPDATE_WALL_SCHEMA = {
     case_title: {
       type: "string",
       description: "First turn of a case only: a short name for its folder, like a label on a case file (at most 40 characters, e.g. 'The Gardner Museum heist').",
+    },
+    phases: {
+      type: "array",
+      maxItems: MAX_PHASES,
+      description:
+        "Optional: the stages the case's dated events fall into, in order, as timeline chapters (e.g. the crime, the manhunt, the trial, the reopening). Each has a short title and the date it starts from. The full list replaces any chapters named before; leave it out if they still fit.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["title", "from"],
+        properties: {
+          title: { type: "string", description: "At most 40 characters, e.g. 'Seven deaths'." },
+          from: { type: "string", description: "When the stage begins: YYYY, YYYY-MM or YYYY-MM-DD." },
+        },
+      },
     },
     new_case: {
       type: "object",
@@ -275,5 +297,20 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
     if (isStr(q)) out.new_case = { question: clip(q.trim(), 120) };
   }
   if (isStr(raw.case_title)) out.case_title = clip(raw.case_title.trim().replace(/\s+/g, " "), 48);
+  const phases = sanitizePhases(raw.phases);
+  if (phases.length) out.phases = phases;
   return out;
+}
+
+/** Named timeline chapters: short titles, each with a real start date, in order, one per start. */
+export function sanitizePhases(raw: unknown): { title: string; from: string }[] {
+  if (!Array.isArray(raw)) return [];
+  const out: { title: string; from: string }[] = [];
+  for (const p of raw) {
+    if (!p || typeof p !== "object") continue;
+    const { title, from } = p as Record<string, unknown>;
+    if (!isStr(title) || !isWhen(from) || out.some((q) => q.from === from)) continue;
+    out.push({ title: clip(title.trim().replace(/\s+/g, " "), 40), from });
+  }
+  return out.sort((a, b) => a.from.localeCompare(b.from)).slice(0, MAX_PHASES);
 }

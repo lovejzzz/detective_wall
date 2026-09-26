@@ -27,7 +27,19 @@ export interface Stage {
 const MIN_Z = 0.35;
 const MAX_Z = 2.2;
 const TRAY_W = 70;
-const clampZ = (z: number) => Math.max(MIN_Z, Math.min(MAX_Z, z));
+/** Chapter numbers, the way a case file numbers its parts. */
+function roman(n: number): string {
+  let out = "";
+  for (const [v, r] of [[10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]] as const)
+    while (n >= v) {
+      out += r;
+      n -= v;
+    }
+  return out;
+}
+/** A phone can zoom further out: its screen holds much less of the wall at the same size. */
+const minZ = () => (typeof window !== "undefined" && window.innerWidth < 760 ? 0.2 : MIN_Z);
+const clampZ = (z: number) => Math.max(minZ(), Math.min(MAX_Z, z));
 
 type Grab =
   | { kind: "note"; id: string; px: number; py: number; x: number; y: number; moved: boolean; lastX: number; lastT: number; held?: boolean }
@@ -76,8 +88,10 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   // ---- Wall or timeline: where each note sits right now ----
   const mode = useStore((s) => s.view);
   // The layout is kept even on the wall, so the timeline's 3D stays mounted (see below).
-  const timelineLayout = useMemo(() => layoutTimeline(c.notes), [c.notes]);
+  const timelineLayout = useMemo(() => layoutTimeline(c.notes, c.links, { title: c.title, phases: c.phases }), [c.notes, c.links, c.title, c.phases]);
   const timeline = mode === "timeline" ? timelineLayout : null;
+  const timelineBounds = useRef(timelineLayout.bounds);
+  timelineBounds.current = timelineLayout.bounds;
   // Both layers stay mounted and only swap visibility: unmounting disposed their materials, and
   // recompiling those shaders on every switch was the stutter. The timeline also renders for its
   // first couple of frames at a scale too small to see, so its shaders are ready before first use.
@@ -191,18 +205,20 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     const t = setTimeout(() => setSettling(false), reducedMotion() ? 0 : 1100);
     if (mode === "timeline") {
       wallCam.current = { ...camRef.current };
-      // Frame the dated line (undated evidence waits below it). If it's too long to fit at
-      // reading distance, start at the beginning of the line, the way you'd read it.
-      const onLine = placed.filter((n) => timeline?.slots.get(n.id)?.row !== "aside");
-      const pts = onLine.length ? onLine : placed;
-      if (pts.length) {
-        // The cord's ends carry the date tags, so frame them too.
-        const ends = timeline ? [timeline.cord.x0 - 20, timeline.cord.x1 + 20] : [];
-        const f = framing(pts, 0.8, ends);
-        const zoom = Math.max(f.zoom, 0.46);
-        const left = Math.min(...pts.map((n) => n.x - NOTE_SIZE[n.type].w / 2), ...ends.slice(0, 1));
-        const fits = f.zoom >= 0.46;
-        flyTo({ zoom, y: f.y, x: fits ? f.x : left + (stage.w / 2 - 110) / zoom }, 900);
+      // Read it like a page: the case's name at the top, every chapter's width in view, from the top down.
+      if (timeline && (timeline.chapters.length || timeline.aside)) {
+        const b = timeline.bounds;
+        const room = stage.w - TRAY_W - 80;
+        // Enough to take in the title and the whole first chapter; the rest is a scroll away.
+        const first = timeline.chapters[0];
+        const opening = first ? first.y + first.h - b.y0 : b.y1 - b.y0;
+        // A phone can't hold a chapter's width at reading size: fit it anyway, the labels carry it.
+        const zoom = clampZ(Math.min(0.62, room / (b.x1 - b.x0), (stage.h - 150) / opening));
+        const fitsW = (b.x1 - b.x0) * zoom <= room;
+        const x = fitsW ? (b.x0 + b.x1) / 2 - TRAY_W / 2 / zoom : b.x0 + (stage.w / 2 - TRAY_W - 40) / zoom;
+        const fitsH = (b.y1 - b.y0) * zoom <= stage.h - 150;
+        const y = fitsH ? (b.y0 + b.y1) / 2 - 10 / zoom : b.y0 + (stage.h / 2 - 100) / zoom;
+        flyTo({ zoom, x, y }, 900);
       }
     } else if (wallCam.current) {
       flyTo(wallCam.current, 900);
@@ -315,7 +331,19 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       e.preventDefault();
       cancelFly.current();
       const mouseWheel = e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40 && Number.isInteger(e.deltaY));
-      if (e.ctrlKey || mouseWheel) {
+      // The timeline reads like a page, so a mouse wheel scrolls it; hold Ctrl to zoom.
+      const reading = useStore.getState().view === "timeline" && !e.ctrlKey;
+      if (reading && mouseWheel) {
+        const dy = e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? stage.h : 1);
+        // ...from its title down to the last of it, and no further into bare cork.
+        const b = timelineBounds.current;
+        setCam((k) => {
+          const top = b.y0 + (stage.cy - 110) / k.zoom;
+          const end = Math.max(top, b.y1 - (stage.cy - 110) / k.zoom);
+          const y = k.y + (dy * 1.2) / k.zoom;
+          return { ...k, y: dy > 0 ? Math.min(y, Math.max(k.y, end)) : Math.max(y, Math.min(k.y, top)) };
+        });
+      } else if (e.ctrlKey || mouseWheel) {
         zoomAt({ x: e.clientX, y: e.clientY }, clampZ(camRef.current.zoom * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015))));
       } else {
         setCam((k) => ({ ...k, x: k.x + e.deltaX / k.zoom, y: k.y + e.deltaY / k.zoom }));
@@ -323,7 +351,29 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [zoomAt]);
+  }, [zoomAt, stage.h, stage.cy]);
+
+  // ---- Reading the timeline chapter by chapter ----
+  const chapterStarts = useMemo(() => timelineLayout.chapters.filter((ch) => !ch.continued), [timelineLayout]);
+  /** The chapter under the upper part of the screen: the one being read. */
+  const readingChapter = useMemo(() => {
+    const y = cam.y + (stage.h * 0.4 - stage.cy) / cam.zoom;
+    let n = chapterStarts[0]?.n ?? 0;
+    for (const ch of chapterStarts) if (ch.y <= y) n = ch.n;
+    return n;
+  }, [cam.y, cam.zoom, stage.h, stage.cy, chapterStarts]);
+  // While the camera is still flying to a chapter, the next press counts on from that one.
+  const aimedChapter = useRef<{ n: number; until: number } | null>(null);
+  const goToChapter = useCallback(
+    (n: number) => {
+      const ch = chapterStarts.find((c2) => c2.n === n);
+      if (!ch) return;
+      aimedChapter.current = { n, until: performance.now() + 800 };
+      const k = camRef.current;
+      flyTo({ ...k, y: (n === chapterStarts[0].n && timelineLayout.heading ? timelineLayout.heading.y : ch.y) + (stage.cy - 110) / k.zoom }, 700);
+    },
+    [chapterStarts, timelineLayout, stage.cy, flyTo],
+  );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -331,12 +381,17 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       if (t.closest("input, textarea, [contenteditable=true]") || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === "0") flyTo(placed.length ? framing(placed, 1) : { x: 0, y: 0, zoom: 0.9 }, 600);
       else if (e.key === "t" || e.key === "T") store().setView(useStore.getState().view === "timeline" ? "wall" : "timeline");
+      else if ((e.key === "]" || e.key === "PageDown" || e.key === "[" || e.key === "PageUp") && useStore.getState().view === "timeline") {
+        e.preventDefault();
+        const aimed = aimedChapter.current && performance.now() < aimedChapter.current.until ? aimedChapter.current.n : readingChapter;
+        goToChapter(aimed + (e.key === "]" || e.key === "PageDown" ? 1 : -1));
+      }
       else if (e.key === "+" || e.key === "=") zoomAt({ x: stage.cx, y: stage.cy }, clampZ(camRef.current.zoom * 1.2));
       else if (e.key === "-") zoomAt({ x: stage.cx, y: stage.cy }, clampZ(camRef.current.zoom / 1.2));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [placed, stage, zoomAt, flyTo, framing, store]);
+  }, [placed, stage, zoomAt, flyTo, framing, store, goToChapter, readingChapter]);
 
   // ---- Grabbing notes and pins ----
   const [grab, setGrab] = useState<Grab | null>(null);
@@ -626,12 +681,14 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
           placed.map((n) => {
             // On a photo the label goes on the polaroid's caption strip, so the picture stays visible.
             const p = toScreen(n.type === "photo" ? { x: n.x, y: n.y + NOTE_SIZE.photo.h / 2 - 26 } : n);
-            const w = Math.max(96, NOTE_SIZE[n.type].w * cam.zoom * 1.1);
+            // Zoomed out past the wall's usual limit (a phone), the labels shrink with the notes.
+            const shrink = Math.min(1, cam.zoom / MIN_Z);
+            const w = Math.max(96 * shrink, NOTE_SIZE[n.type].w * cam.zoom * 1.1) / shrink;
             return (
               <div
                 key={`far-${n.id}`}
                 className={`far-label far-${n.type} ${n.status === "proposed" ? "is-proposed" : ""} ${n.id === c.focusNoteId ? "is-focus" : ""}`}
-                style={{ left: p.x, top: p.y, maxWidth: w, opacity: farOpacity, transform: `translate(-50%, -50%) rotate(${n.rotation}deg)` }}
+                style={{ left: p.x, top: p.y, maxWidth: w, opacity: farOpacity, transform: `translate(-50%, -50%) rotate(${n.rotation}deg) scale(${shrink})` }}
                 aria-hidden
               >
                 {n.title}
@@ -689,8 +746,52 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
         })}
         {timeline && !settling && (
           <>
+            {timeline.heading && (
+              <div className="tl-heading" style={{ left: toScreen(timeline.heading).x, top: toScreen(timeline.heading).y, transform: `scale(${cam.zoom})` }}>
+                <h2>{timeline.heading.title}</h2>
+                <p>
+                  <span>Chronology</span>
+                  <span>{timeline.heading.range}</span>
+                  <span>
+                    {timeline.chapters.filter((ch) => !ch.continued).length} {timeline.chapters.filter((ch) => !ch.continued).length === 1 ? "chapter" : "chapters"}
+                  </span>
+                  <span>{timeline.heading.count} dated</span>
+                </p>
+              </div>
+            )}
+            {chapterStarts.length > 1 && (
+              <nav className="tl-rail" style={{ left: stage.cx + stage.w / 2 - 18, top: stage.cy }} aria-label="Chapters">
+                {chapterStarts.map((ch) => (
+                  <button key={ch.n} className={ch.n === readingChapter ? "is-on" : ""} onClick={() => goToChapter(ch.n)} title={`${ch.title ?? ch.range} · ${ch.range}`}>
+                    <b>{roman(ch.n)}</b>
+                    <span>{ch.title ?? ch.range}</span>
+                  </button>
+                ))}
+              </nav>
+            )}
+            {timeline.chapters.map((ch, i) => {
+              const p = toScreen({ x: ch.x + 70, y: ch.y + 44 });
+              return (
+                <div key={`ch-${i}`} className={`tl-chapter ${ch.continued ? "is-continued" : ""}`} style={{ left: p.x, top: p.y, transform: `scale(${cam.zoom})` }}>
+                  <div className="tl-ch-no">
+                    <small>{ch.continued ? "cont." : "Chapter"}</small>
+                    <b>{roman(ch.n)}</b>
+                  </div>
+                  <div className="tl-ch-text">
+                    <h3>{ch.title ?? ch.range}</h3>
+                    <p>
+                      {ch.title && <span>{ch.range}</span>}
+                      <span>
+                        {ch.count} {ch.count === 1 ? "event" : "events"}
+                      </span>
+                      {ch.after && <em>{ch.after}</em>}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
             {timeline.stops.map((st, i) => {
-              const p = toScreen({ x: st.x, y: 0 });
+              const p = toScreen(st);
               return (
                 <div key={`stop-${i}`} className="tl-stop" style={{ left: p.x, top: p.y, transform: `scale(${tagScale}) translate(calc(-100% - 11px), -50%)` }}>
                   {st.label}
@@ -698,7 +799,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               );
             })}
             {timeline.times.map((t, i) => {
-              const p = toScreen({ x: t.x, y: 0 });
+              const p = toScreen(t);
               return (
                 <div key={`time-${i}`} className={`tl-time ${t.above ? "is-above" : ""}`} style={{ left: p.x, top: p.y, transform: `translate(-50%, ${t.above ? "-190%" : "95%"}) scale(${tagScale})` }}>
                   {t.label}
@@ -706,7 +807,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               );
             })}
             {timeline.gaps.map((g, i) => {
-              const p = toScreen({ x: g.x, y: 0 });
+              const p = toScreen(g);
               return (
                 <div key={`gap-${i}`} className="tl-gap" style={{ left: p.x, top: p.y, transform: `translate(-50%, -50%) scale(${tagScale})` }}>
                   <span aria-hidden>≈</span>
@@ -715,8 +816,23 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               );
             })}
             {timeline.aside && (
-              <div className="tl-aside" style={{ left: toScreen({ x: timeline.aside.x, y: timeline.aside.y }).x, top: toScreen({ x: 0, y: timeline.aside.y }).y, transform: `translate(0, -50%) scale(${tagScale})` }}>
-                {timeline.aside.label} · add a date in a note's file to put it on the line
+              <div
+                className="tl-chapter is-aside"
+                style={{ left: toScreen({ x: timeline.aside.x + 70, y: timeline.aside.y + 44 }).x, top: toScreen({ x: 0, y: timeline.aside.y + 44 }).y, transform: `scale(${cam.zoom})` }}
+              >
+                <div className="tl-ch-no">
+                  <small>No date</small>
+                  <b>?</b>
+                </div>
+                <div className="tl-ch-text">
+                  <h3>Undated evidence</h3>
+                  <p>
+                    <span>
+                      {timeline.aside.count} {timeline.aside.count === 1 ? "exhibit" : "exhibits"}
+                    </span>
+                    <span>give one a “When” in its file to put it on the line</span>
+                  </p>
+                </div>
               </div>
             )}
             {timeline.stops.length === 0 && (

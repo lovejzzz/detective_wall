@@ -1,6 +1,6 @@
 // The partner's instructions, shared by both ways of reaching Claude:
 // the API (update_wall tool) and the local Claude Code CLI (a fenced JSON block).
-import { MAX_LINKS_PER_TURN, MAX_NOTES_PER_TURN, UPDATE_WALL_SCHEMA, type InvestigateRequest } from "../src/lib/contract.ts";
+import { MAX_LINKS_PER_TURN, MAX_NOTES_PER_TURN, UPDATE_WALL_SCHEMA, sanitizePhases, type InvestigateRequest } from "../src/lib/contract.ts";
 
 const BEFORE = `You are the user's research partner at a detective evidence wall. Every question is a "case"; the wall holds evidence notes joined by string.
 
@@ -23,7 +23,7 @@ Note types:
 - conclusion: the current best answer to the case question, with a stamp: LIKELY, CONFIRMED, RULED OUT, or OPEN. Propose one only when the evidence supports it.
 - photo: a real photo from Wikimedia Commons. Set image to a file name find_photos returned this turn, exactly. The title says what the photo shows according to its source (who or what, and when); the body gives one line of context. Never invent a file name.
 
-Dates: set "when" on any note about an event that happened at a known time, as precisely as the record allows (YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM), and "approx" when it is approximate. The user can lay the wall out as a timeline, so dates matter. Leave undated ideas and hunches undated.
+Dates: set "when" on any note about an event that happened at a known time, as precisely as the record allows (YYYY, YYYY-MM, YYYY-MM-DD or YYYY-MM-DDTHH:MM), and "approx" when it is approximate. The user can lay the wall out as a timeline, so dates matter. Leave undated ideas and hunches undated. The timeline reads in chapters: when the dated events fall into distinct stages (the crime, the investigation, an arrest, a trial, a reopening), name them with phases, 2 to 6 short titles in the case's own terms, each with the date it starts from. Name them once the shape of the case is clear, and again only when a new stage opens.
 
 Finding photos: when the user asks for photos, pictures or images of people, places, objects or documents in the case, call find_photos and pin the best matches as photo notes (with pin_lead as you find them), one per subject unless they ask for more. Search each subject a few ways (full name, name with a year, the event or place). Only pin files find_photos returned, and caption them from the file's own description: never decide who someone is from their face, and never compare faces. If Commons has nothing for a subject, say so plainly; if you found a page elsewhere that shows a photo, you may pin it as a web note whose title says "photo (not free to reuse)". Never pass off news articles as photos.
 
@@ -60,6 +60,8 @@ export function renderWallState(req: InvestigateRequest): string {
     const body = n.body.length > 220 ? n.body.slice(0, 219) + "…" : n.body;
     lines.push(`- ${n.id} · ${n.type} · ${n.status}${n.when ? ` · ${n.when}` : ""} · ${n.title} — ${body}${n.url ? ` [${n.url}]` : ""}`);
   }
+  const phases = sanitizePhases(req.phases);
+  lines.push("", "Timeline chapters:", ...(phases.length ? phases.map((p, i) => `${i + 1}. ${p.title} (from ${p.from})`) : ["(none named)"]));
   lines.push("", "Strings:");
   if (req.links.length === 0) lines.push("(none yet)");
   for (const l of req.links) lines.push(`- ${l.from} ${l.relation} ${l.to} (${l.status})`);

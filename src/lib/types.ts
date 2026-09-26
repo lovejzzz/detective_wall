@@ -86,6 +86,12 @@ export interface Camera {
   zoom: number;
 }
 
+/** A named stretch of a case's history: a chapter on the timeline, starting at `from`. */
+export interface Phase {
+  title: string;
+  from: string;
+}
+
 export interface Case {
   id: string;
   title: string;
@@ -102,4 +108,6 @@ export interface Case {
   lastOpenedAt?: number;
   /** Open on the whole wall, framed for whatever screen it's on (then cleared). New demo cases set it. */
   frameOnOpen?: boolean;
+  /** The chapters its timeline reads in, when the case (or the partner) has named them. */
+  phases?: Phase[];
 }

@@ -4,8 +4,8 @@ import type { Camera, Case, Link, Message, Note, NoteType, Relation, StickyColor
 import type { ProposedNote, WallUpdate } from "./lib/contract.ts";
 import { findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
 import { seedCase } from "./lib/seed.ts";
-import { COMMONS, COOPER_DATES, COOPER_DEMO, coldCase } from "./lib/coldcase.ts";
-import { TYLENOL_DEMO, tylenolCase } from "./lib/tylenolcase.ts";
+import { COMMONS, COOPER_DATES, COOPER_DEMO, COOPER_PHASES, coldCase } from "./lib/coldcase.ts";
+import { TYLENOL_DEMO, TYLENOL_PHASES, tylenolCase } from "./lib/tylenolcase.ts";
 
 export type PartnerMode = "unknown" | "live" | "offline";
 
@@ -405,6 +405,7 @@ export const useStore = create<Store>()(
             // The partner names a new case once, on its first reply, unless the user already has.
             if (update.case_title && !c.messages.some((m) => m.role === "assistant" && m.id !== msgId) && isAutoTitle(c))
               c.title = update.case_title;
+            if (update.phases?.length) c.phases = update.phases;
           });
           if (newCaseQuestion) get().newCase(newCaseQuestion);
         },
@@ -705,6 +706,11 @@ export function ensureCases() {
   if (!tylenolSeeded && !Object.values(cur.cases).some((c) => c.demo === TYLENOL_DEMO)) {
     const ty = tylenolCase();
     useStore.setState({ cases: { ...cur.cases, [ty.id]: ty }, order: [ty.id, ...cur.order], activeId: ty.id });
+  }
+  // Walls saved before timelines had chapters: name the demos' chapters.
+  for (const c of Object.values(useStore.getState().cases)) {
+    const phases = c.demo === COOPER_DEMO ? COOPER_PHASES : c.demo === TYLENOL_DEMO ? TYLENOL_PHASES : null;
+    if (phases && !c.phases) useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...s2.cases[c.id], phases } } }));
   }
   const active = useStore.getState().activeId;
   if (active) markOpened(active);

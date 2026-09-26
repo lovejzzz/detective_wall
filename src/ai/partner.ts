@@ -78,6 +78,7 @@ async function runOffline(caseId: string, c: Case, text: string, photoNoteIds: s
 function toRequest(c: Case): InvestigateRequest {
   return {
     caseTitle: c.title,
+    ...(c.phases?.length ? { phases: c.phases } : {}),
     notes: c.notes.map((n) => ({
       id: n.id,
       type: n.type,

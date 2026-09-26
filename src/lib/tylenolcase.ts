@@ -6,10 +6,18 @@
 // James W. Lewis appears only as documented: convicted of extortion over a letter to Johnson &
 // Johnson, never charged with the poisonings, which he denied. The 2026 Idaho identification is
 // reported as the sheriff's office reported it: a possible tie, not a named suspect.
-import type { Case, Link, Message, Note } from "./types.ts";
+import type { Case, Link, Message, Note, Phase } from "./types.ts";
 import { uid } from "./geometry.ts";
 
 export const TYLENOL_DEMO = "tylenol-1982";
+
+/** The chapters its timeline reads in. */
+export const TYLENOL_PHASES: Phase[] = [
+  { title: "Seven deaths", from: "1982-09-29" },
+  { title: "Recall, a letter, an arrest", from: "1982-10-05" },
+  { title: "Years without a charge", from: "1983" },
+  { title: "The case reopens", from: "2009" },
+];
 
 /** Real photos on Wikimedia Commons (credit is read from each file's metadata at runtime). */
 export const TYLENOL_COMMONS = {
@@ -446,6 +454,7 @@ export function tylenolCase(now = Date.now()): Case {
     notes,
     links,
     demo: TYLENOL_DEMO,
+    phases: TYLENOL_PHASES,
     messages: [
       m("user", "The 1982 Chicago Tylenol murders: what happened, how did the case develop, and why is it still unsolved?", 240, [q.id]),
       m(

@@ -4,7 +4,7 @@
 // Every fact here is limited to what is widely documented (FBI summary, HistoryLink,
 // contemporary reporting, the Citizen Sleuths tie analysis). Suspects are deliberately
 // never named: this wall is about evidence, not accusing people.
-import type { Case, Link, Message, Note } from "./types.ts";
+import type { Case, Link, Message, Note, Phase } from "./types.ts";
 import { uid } from "./geometry.ts";
 
 export const COOPER_DEMO = "cooper-1971";
@@ -17,6 +17,12 @@ export const COMMONS = {
 };
 
 /** Dates for the demo's evidence, by title: also used to backfill walls saved before dates existed. */
+/** The chapters its timeline reads in. */
+export const COOPER_PHASES: Phase[] = [
+  { title: "The hijacking", from: "1971-11-24" },
+  { title: "What surfaced later", from: "1972" },
+];
+
 export const COOPER_DATES: Record<string, { when: string; approx?: boolean }> = {
   "Flight 305 · 24 Nov 1971": { when: "1971-11-24" },
   "The demands": { when: "1971-11-24" },
@@ -307,6 +313,7 @@ export function coldCase(now = Date.now()): Case {
     notes,
     links,
     demo: COOPER_DEMO,
+    phases: COOPER_PHASES,
     messages: [
       m("user", "Take the D. B. Cooper case. What do we actually know, and what's still open?", 95, [q.id]),
       m(

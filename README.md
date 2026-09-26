@@ -60,7 +60,7 @@ npm start                 # serves dist/ and the API on $PORT (default 8787)
 | Move around | Drag empty cork to pan. Scroll or pinch to zoom. `0` shows the whole wall. `Tab` moves through the notes. |
 | Undo | `⌘Z` / `Ctrl+Z` undoes the last change to the wall (take down, cut, tie, pin, move, edit, the partner's proposals); `⇧⌘Z` / `Ctrl+Y` redoes it. Anything taken down leaves a slip with an Undo button. |
 | Overview | Zoom out and each note gets a masking-tape label with its title, so the whole case stays readable from a distance. |
-| Timeline | The **Timeline** tab (or `T`) hangs every dated note in order from a cord across the wall. Long silences are marked ("≈ 8 years") and undated notes wait in a tray below. Give a note a date in its file ("24 Nov 1971", "1971-11-24 20:13", "c. 1972") and it takes its place. **Wall** puts everything back where it was. |
+| Timeline | The **Timeline** tab (or `T`) turns the wall into a chronology you read top to bottom: the case's name across the top, then one chapter per row, each with its own cord, a manila divider card (number, title, dates, how long since the last chapter) and a strip of masking tape across the wall. Dated notes hang above and below the cord in order, a photo strung to an event hangs with it, long silences are marked ("≈ 8 years"), and anything else undated waits in its own section at the end. The mouse wheel scrolls it like a page (Ctrl to zoom); `[` / `]` or the index on the right jump between chapters. Chapters come from the case (Claude names them as the story takes shape) or, failing that, from its long silences. Give a note a date in its file ("24 Nov 1971", "1971-11-24 20:13", "c. 1972") and it takes its place. **Wall** puts everything back where it was. |
 | Photos | Drop photos onto the wall, paste one, or use the paperclip on the typewriter to send photos with your next message so Claude can look at them. Each photo's file has a large print and "Ask the partner about this photo". Photos are downscaled and stored in this browser's IndexedDB. |
 | Sound | The attic is audible: typewriter keys and the carriage bell, pins pressed into cork, paper balled up, string pulled taut, the steel drawer, and a low room tone. As you type, the matching key on the typewriter goes down. It's all synthesised in the browser, starts on your first click or key, and the speaker by the view tabs (or `M`) mutes it. |
 | Cases | The five most recent cases are manila folders on the left; hover one to read it, click to open, "+" starts a new case. The steel pull below them (or `C`) opens the filing cabinet with every case: search titles and the evidence inside them, sort, open or shred. |
@@ -84,14 +84,14 @@ src/
     Room.tsx            camera rig, tungsten light + focus spotlight, cork, dust, post-processing
     NoteMesh.tsx        curled paper sheets, pins, tape, contact shadows, lift-and-settle motion
     Strings3D.tsx       thread tubes along a sagging curve, and relation tags
-    Timeline3D.tsx      the timeline cord, tacks and threads
+    Timeline3D.tsx      the timeline's cords, tacks, threads, chapter bands and tape
     paint.ts            typesets each sheet onto a canvas: typewriter jitter, handwriting, newsprint, stamps, sketches
     objects.ts          sheet curl geometry, lathe-turned pins, binder clip, tape
     textures.ts         procedural cork (albedo / normal / roughness), paper fibre, string twist
   ai/partner.ts         calls /api/investigate and reads the SSE stream
   ai/offline.ts         scripted partner for when there's no key
   lib/contract.ts       update_wall tool schema and validator (shared with the server)
-  lib/timeline.ts       timeline layout: date groups, gaps, undated tray
+  lib/timeline.ts       timeline layout: chapters, date groups, gaps, hung photos, undated tray
   lib/when.ts           partial dates ("1971", "1971-11-24T20:13"): parse, sort, label
   lib/images.ts         photo import (downscale), IndexedDB storage, base64 for Claude
   lib/commons.ts        real photos from Wikimedia Commons: URL + author/licence from file metadata
