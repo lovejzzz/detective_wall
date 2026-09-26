@@ -2,8 +2,8 @@ import { create } from "zustand";
 import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 import { SINGLE_BEATS, type Beat, type Camera, type Case, type Link, type Message, type Note, type NoteType, type Relation, type StickyColor, type TrailStep } from "./lib/types.ts";
 import type { ProposedNote, WallUpdate } from "./lib/contract.ts";
-import { findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
-import { arrangeWall } from "./lib/arrange.ts";
+import { NOTE_SIZE, findFreeSpot, naturalTilt, uid } from "./lib/geometry.ts";
+import { ARRANGE_COLS, arrangeWall } from "./lib/arrange.ts";
 import { COOPER_DEMO, COOPER_VERSION, coldCase } from "./lib/coldcase.ts";
 import { TYLENOL_DEMO, TYLENOL_VERSION, tylenolCase } from "./lib/tylenolcase.ts";
 import { GLICO_DEMO, GLICO_VERSION, glicoCase } from "./lib/glicocase.ts";
@@ -162,11 +162,28 @@ const debouncedStorage: StateStorage = (() => {
 
 const STICKY_CYCLE: StickyColor[] = ["yellow", "blue", "green", "pink"];
 
-/** A note the partner proposes, placed beside the note it relates to (or the focus). */
-function proposeNote(c: Case, p: ProposedNote, nearId: string | undefined, messageId: string, excerpt: string): Note {
-  const focusNote = c.notes.find((n) => n.id === c.focusNoteId) ?? c.notes[0];
-  const near = (nearId ? c.notes.find((n) => n.id === nearId) : undefined) ?? focusNote;
-  const spot = findFreeSpot(p.type, near ? { x: near.x, y: near.y } : { x: 0, y: 0 }, c.notes, Math.random() * 6);
+/**
+ * Where a turn's new cards go: in the order they arrive, in tidy rows under the wall, aligned to the
+ * same grid Arrange uses, so the board stays in order while the partner works (the strings show
+ * what each card relates to). If something already sits there, the nearest free spot.
+ */
+function incomingSpot(c: Case, type: NoteType, messageId: string): { x: number; y: number } {
+  const earlier = c.notes.filter((n) => n.origin.messageId !== messageId);
+  const batch = c.notes.filter((n) => n.origin.messageId === messageId).length;
+  const left = earlier.length ? Math.min(...earlier.map((n) => n.x - NOTE_SIZE[n.type].w / 2)) : -((ARRANGE_COLS - 1) / 2) * INCOMING_CELL - 150;
+  const bottom = earlier.length ? Math.max(...earlier.map((n) => n.y + NOTE_SIZE[n.type].h / 2)) : 0;
+  const col = batch % ARRANGE_COLS;
+  const row = Math.floor(batch / ARRANGE_COLS);
+  const spot = { x: Math.round(left + 150 + col * INCOMING_CELL), y: Math.round(bottom + 120 + row * 460 + NOTE_SIZE[type].h / 2) };
+  const { w, h } = NOTE_SIZE[type];
+  const clash = c.notes.some((n) => Math.abs(n.x - spot.x) < (NOTE_SIZE[n.type].w + w) / 2 && Math.abs(n.y - spot.y) < (NOTE_SIZE[n.type].h + h) / 2);
+  return clash ? findFreeSpot(type, spot, c.notes, Math.random() * 6) : spot;
+}
+const INCOMING_CELL = 316;
+
+/** A note the partner proposes: it joins the turn's row under the wall (see incomingSpot). */
+function proposeNote(c: Case, p: ProposedNote, _nearId: string | undefined, messageId: string, excerpt: string): Note {
+  const spot = incomingSpot(c, p.type, messageId);
   const stickies = c.notes.filter((n) => n.type === "hypothesis").length;
   return {
     id: uid(),
@@ -176,7 +193,7 @@ function proposeNote(c: Case, p: ProposedNote, nearId: string | undefined, messa
     body: p.body,
     x: spot.x,
     y: spot.y,
-    rotation: naturalTilt(8),
+    rotation: naturalTilt(2.5),
     ...(p.type === "hypothesis" ? { color: STICKY_CYCLE[stickies % STICKY_CYCLE.length] } : {}),
     ...(p.confidence ? { confidence: p.confidence } : {}),
     ...(p.stamp ? { stamp: p.stamp } : {}),

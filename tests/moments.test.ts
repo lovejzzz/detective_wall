@@ -145,3 +145,25 @@ describe("the partner tidying the board", async () => {
     expect(s().cases[s().activeId!].notes.some((n) => n.id === old)).toBe(false);
   });
 });
+
+describe("where the partner's new cards go", async () => {
+  const { useStore } = await import("../src/store.ts");
+  const { NOTE_SIZE } = await import("../src/lib/geometry.ts");
+  const s = () => useStore.getState();
+
+  it("in a tidy row under the wall, in the order they arrive", () => {
+    s().newCase("Rows");
+    s().applyTurn(s().activeId!, { reply: "ok", update: { notes: [fact("a", "First"), fact("b", "Second"), fact("c", "Third")], links: [] } });
+    const c = s().cases[s().activeId!];
+    const [a, b, cc] = c.notes;
+    const top = (n: Note) => n.y - NOTE_SIZE[n.type].h / 2;
+    // tops aligned, left to right on the grid
+    expect(new Set([a, b, cc].map((n) => Math.round(top(n)))).size).toBe(1);
+    expect(b.x - a.x).toBe(316);
+    expect(cc.x - b.x).toBe(316);
+    // a later turn starts a new row beneath this one
+    s().applyTurn(s().activeId!, { reply: "ok", update: { notes: [fact("d", "Fourth")], links: [] } });
+    const d = s().cases[s().activeId!].notes.at(-1)!;
+    expect(top(d)).toBeGreaterThan(a.y + NOTE_SIZE[a.type].h / 2);
+  });
+});
