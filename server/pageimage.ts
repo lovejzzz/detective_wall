@@ -166,3 +166,13 @@ export function pageImage(page: string): Promise<PageImage | null> {
   while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value!);
   return p;
 }
+
+/** Whether this server can fetch pages from the open web at all: the photo self-check asks. */
+export async function canReachWeb(): Promise<boolean> {
+  try {
+    const res = await get("https://en.wikipedia.org/wiki/Special:BlankPage", "text/html");
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

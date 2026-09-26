@@ -44,6 +44,16 @@ export const ZH: Record<string, string> = {
   "Close the find": "关闭查找",
   find: "查找",
   essentials: "要点",
+  // ── photo check ──
+  Photos: "照片",
+  "Checking…": "检查中…",
+  Reachable: "可以获取",
+  "Out of reach": "无法连接",
+  "Partly reachable": "部分可用",
+  "Neither Wikimedia Commons nor the pages that publish photos can be reached from here: photos show as labelled blanks.": "从这里连不上维基共享资源，也取不到发布照片的网页：照片会显示为带标签的空白。",
+  "Wikimedia Commons can't be reached from this browser: its photos show as labelled blanks.": "这个浏览器连不上维基共享资源：那里的照片会显示为带标签的空白。",
+  "The server can't fetch news and police pages: their pictures show as labelled blanks.": "服务器取不到新闻和警方网页：那里的配图会显示为带标签的空白。",
+  "Check again": "再查一次",
   // ── case files ──
   "Open a file…": "打开文件…",
   "Open a case file saved from this wall": "打开从侦探墙保存的案卷文件",

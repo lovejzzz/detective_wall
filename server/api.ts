@@ -15,7 +15,7 @@ import {
 } from "../src/lib/contract.ts";
 import { ReplyStream, duplicateOf, mergeTurn, sanitizeLead, verified, type Seen } from "./leads.ts";
 import { FIND_PHOTOS, searchCommonsPhotos } from "./commons-search.mjs";
-import { pageImage } from "./pageimage.ts";
+import { canReachWeb, pageImage } from "./pageimage.ts";
 
 const MODEL = () => process.env.DW_MODEL || "claude-opus-5";
 const WEB_SEARCH = () => (process.env.DW_WEB_SEARCH ?? "on") !== "off";
@@ -343,6 +343,9 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse): Prom
         model: via === "claude-cli" ? `${CLI_MODEL()} · ${CLI_EFFORT()} effort` : MODEL(),
         webSearch: WEB_SEARCH(),
       });
+    }
+    if (req.method === "GET" && url.pathname === "/api/photo-check") {
+      return send(res, 200, { pages: await canReachWeb() });
     }
     if (req.method === "GET" && url.pathname === "/api/page-image") {
       const page = url.searchParams.get("u") ?? "";

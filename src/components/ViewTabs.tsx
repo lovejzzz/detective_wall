@@ -3,6 +3,7 @@ import { LANGS, setLang, t, useLang } from "../lib/i18n.ts";
 import { useStore } from "../store.ts";
 import { onSoundChange, setSound, soundOn } from "../lib/sound.ts";
 import { setDepth, useDepth } from "../lib/depth.ts";
+import { checkPhotoSources, usePhotoReach } from "../lib/photocheck.ts";
 
 /** Two index-card tabs at the top of the wall: the free wall, or the evidence in time order. */
 export function ViewTabs({ left }: { left: number }) {
@@ -55,6 +56,44 @@ function FindSwitch() {
         <path d="M10.3 10.3 14 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       </svg>
     </button>
+  );
+}
+
+/** Whether the case photos can be fetched from here: checked when the settings open. */
+function PhotoRow() {
+  const reach = usePhotoReach();
+  useEffect(() => checkPhotoSources(), []);
+  const r = reach ?? { commons: "checking", pages: "checking" };
+  const states = [r.commons, r.pages];
+  const verdict = states.includes("checking")
+    ? { k: "checking", text: t("Checking…") }
+    : states.every((x) => x === "ok")
+      ? { k: "ok", text: t("Reachable") }
+      : states.every((x) => x === "blocked")
+        ? { k: "blocked", text: t("Out of reach") }
+        : { k: "partly", text: t("Partly reachable") };
+  return (
+    <>
+      <div className="settings-row">
+        <span className="settings-label">{t("Photos")}</span>
+        <span className={`photo-reach is-${verdict.k}`} role="status">
+          <i aria-hidden />
+          {verdict.text}
+        </span>
+      </div>
+      {(r.commons === "blocked" || r.pages === "blocked") && (
+        <p className="settings-hint">
+          {r.commons === "blocked" && r.pages === "blocked"
+            ? t("Neither Wikimedia Commons nor the pages that publish photos can be reached from here: photos show as labelled blanks.")
+            : r.commons === "blocked"
+              ? t("Wikimedia Commons can't be reached from this browser: its photos show as labelled blanks.")
+              : t("The server can't fetch news and police pages: their pictures show as labelled blanks.")}{" "}
+          <button className="settings-link" onClick={() => checkPhotoSources(true)}>
+            {t("Check again")}
+          </button>
+        </p>
+      )}
+    </>
   );
 }
 
@@ -126,6 +165,7 @@ function SettingsSwitch() {
             </div>
           </div>
           <p className="settings-hint">{t("M turns the sound on and off anywhere.")}</p>
+          <PhotoRow />
         </div>
       )}
     </div>

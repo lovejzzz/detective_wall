@@ -2252,6 +2252,50 @@ kbd {
   font: 11px/1.4 var(--typed);
   color: #7a6a4c;
 }
+/* the photo check: a small ink dot and a word */
+.photo-reach {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 12.5px/1 var(--typed);
+  letter-spacing: 0.04em;
+  color: #3b2d17;
+}
+.photo-reach i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a89a78;
+}
+.photo-reach.is-ok i {
+  background: #3f7a3a;
+}
+.photo-reach.is-partly i {
+  background: #c08a2a;
+}
+.photo-reach.is-blocked i {
+  background: #9b2a1c;
+}
+.photo-reach.is-checking i {
+  animation: reach-blink 1s ease-in-out infinite alternate;
+}
+@keyframes reach-blink {
+  to {
+    opacity: 0.25;
+  }
+}
+.view-tabs .settings-card .settings-link {
+  padding: 0;
+  letter-spacing: 0;
+  text-transform: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: #7d2418;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
 .settings-hint:last-child {
   margin-bottom: 0;
 }
