@@ -31,6 +31,11 @@ describe("find on the wall", () => {
     expect(findOnWall(notes, "fingerprints type").map((n) => n.id)).toEqual(["f2"]);
     expect(findOnWall(notes, "指纹").map((n) => n.id)).toEqual(["f4"]);
     expect(findOnWall(notes, "  ")).toEqual([]);
+    // a word matches from its start, so short words don't light up the whole wall
+    expect(findOnWall(notes, "sink").map((n) => n.id)).toEqual(["f1"]);
+    expect(findOnWall(notes, "ink")).toEqual([]);
+    expect(findOnWall(notes, "prints").map((n) => n.id)).toEqual([]);
+    expect(findOnWall(notes, "现场").map((n) => n.id)).toEqual(["f4"]);
   });
 });
 

@@ -24,10 +24,15 @@ function textOf(n: Note): string {
 export function findOnWall(notes: Note[], query: string): Note[] {
   const words = fold(query).split(/\s+/).filter(Boolean);
   if (!words.length) return [];
+  // a Latin word matches from the start of a word ("the" finds "then", not "other"); Chinese and
+  // Japanese have no spaces, so anywhere in the text
+  const tests = words.map((w) =>
+    /^[\p{Script=Latin}\p{N}]/u.test(w) ? (text: string) => new RegExp(`(^|[^\\p{L}\\p{N}])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "u").test(text) : (text: string) => text.includes(w),
+  );
   return notes
     .filter((n) => {
       const text = textOf(n);
-      return words.every((w) => text.includes(w));
+      return tests.every((test) => test(text));
     })
     .sort((a, b) => Math.round(a.y / 240) - Math.round(b.y / 240) || a.x - b.x);
 }

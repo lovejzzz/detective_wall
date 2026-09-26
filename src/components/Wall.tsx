@@ -63,7 +63,7 @@ const minZ = () => MIN_Z;
 const clampZ = (z: number) => Math.max(minZ(), Math.min(MAX_Z, z));
 
 type Grab =
-  | { kind: "note"; id: string; px: number; py: number; x: number; y: number; moved: boolean; lastX: number; lastT: number; held?: boolean }
+  | { kind: "note"; id: string; px: number; py: number; x: number; y: number; moved: boolean; lastX: number; lastT: number; held?: boolean; pan?: Camera }
   | { kind: "pin"; id: string };
 
 let fontsLoaded = false;
@@ -257,10 +257,13 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const shown = placed.filter((n) => lit.has(n.id));
       if (!shown.length) return;
       const onlyEssentials = !!essentialsRef.current && !useStore.getState().lens?.query.trim();
-      if (onlyEssentials) return flyTo(pageFrame(placed), 900);
+      // the essentials are an overview: all of them in view at once
+      if (onlyEssentials) return flyTo(pageFrame(placed, MIN_Z), 900);
       // finds close together are shown together; spread over the wall, the first one is brought up
       const f = framing(shown, 0.9);
       if (f.zoom >= FAR_NONE) return flyTo(f, 800);
+      // (only a find steps card by card; the essentials never get a "current card")
+      if (!useStore.getState().lens?.query.trim()) return flyTo(f, 800);
       const first = [...shown].sort((a, b) => Math.round(a.y / 240) - Math.round(b.y / 240) || a.x - b.x)[0];
       const l = useStore.getState().lens;
       if (l) store().setLens({ ...l, at: first.id });
@@ -285,9 +288,25 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   const lensAt = lens?.at ?? null;
   useEffect(() => {
     const n = lensAt ? placedById.get(lensAt) : null;
-    if (n) flyTo({ x: n.x, y: n.y + 20, zoom: Math.max(camRef.current.zoom, 0.9) }, 700);
+    if (!n) return;
+    const k = { x: n.x, y: n.y + 20, zoom: Math.max(camRef.current.zoom, 0.9) };
+    // a file under the most likely suspects' card is shown with the card above it, clear of the tabs
+    const plaqueTop = n.type === "subject" && wallSuspects && rankedSuspects(placed).some((r) => r.id === n.id) ? wallSuspects.at.y : null;
+    if (plaqueTop !== null) {
+      const top = plaqueTop - 20;
+      const bottom = n.y + NOTE_SIZE[n.type].h / 2 + 30;
+      const zoom = Math.min(k.zoom, (stage.h - 150) / (bottom - top));
+      return flyTo({ x: n.x, y: top + (stage.cy - 118) / zoom, zoom }, 700);
+    }
+    flyTo(k, 700);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lensAt]);
+  // a new view has no current card
+  useEffect(() => {
+    const l = useStore.getState().lens;
+    if (l?.at) store().setLens({ ...l, at: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
   // A case that asks to be framed (a new demo) opens on its whole wall, for whatever screen this is.
   // A layout effect, so the camera is set before the first paint and before the focus check below.
   const justFramed = useRef(false);
@@ -663,7 +682,14 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       if (grab.held) return;
       clearTimeout(holdTimer);
       setHold(null);
-      if (useStore.getState().view === "timeline" || essentialsRef.current) return; // the timeline (or the essentials) decides where notes go
+      if (useStore.getState().view === "timeline" || essentialsRef.current) {
+        // The timeline (or the essentials) decides where cards go: dragging one moves the view
+        // instead, and a drag is never taken for a click that opens the file.
+        grab.moved = true;
+        grab.pan ??= { ...camRef.current };
+        setCam({ ...grab.pan, x: grab.pan.x - dx / grab.pan.zoom, y: grab.pan.y - dy / grab.pan.zoom });
+        return;
+      }
       if (!grab.moved) {
         store().checkpoint("Moved a note");
         rustle(0.5); // lifted off the cork

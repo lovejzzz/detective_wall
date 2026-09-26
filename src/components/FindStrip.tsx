@@ -1,6 +1,7 @@
 // A find strip under the view tabs: type to light up the cards that mention something (the rest of
 // the wall dims), step through them, or keep only the essentials of the case.
 import { useEffect, useMemo, useRef, type KeyboardEvent } from "react";
+import { flushSync } from "react-dom";
 import { useActiveCase, useStore } from "../store.ts";
 import { essentialsOf, findOnWall } from "../lib/lens.ts";
 import { t } from "../lib/i18n.ts";
@@ -17,7 +18,8 @@ function useFindKeys(focus: () => void) {
       const k = e.key.toLowerCase();
       if (k === "f") {
         e.preventDefault();
-        if (!s.lens) s.setLens({ query: "", essentials: false });
+        // the strip is up and focused before the next key arrives, so no letter lands on the wall
+        if (!s.lens) flushSync(() => s.setLens({ query: "", essentials: false }));
         focus();
       } else if (k === "e") {
         const l = s.lens ?? { query: "", essentials: false };
@@ -35,7 +37,7 @@ export function FindStrip({ left }: { left: number }) {
   const lens = useStore((s) => s.lens);
   const setLens = useStore((s) => s.setLens);
   const input = useRef<HTMLInputElement>(null);
-  const focus = useMemo(() => () => requestAnimationFrame(() => input.current?.focus()), []);
+  const focus = useMemo(() => () => (input.current ? input.current.focus() : requestAnimationFrame(() => input.current?.focus())), []);
   useFindKeys(focus);
   // a lens belongs to the case it was opened on
   const caseId = c?.id;
@@ -46,9 +48,9 @@ export function FindStrip({ left }: { left: number }) {
     const keep = lens.essentials ? essentialsOf(c.notes, c.links) : null;
     return findOnWall(c.notes, lens.query).filter((n) => !keep || keep.has(n.id));
   }, [c, lens?.query, lens?.essentials]);
-  const essentialCount = useMemo(() => (c && lens?.essentials ? essentialsOf(c.notes, c.links).size : 0), [c, lens?.essentials]);
 
   if (!lens || !c) return null;
+  const narrow = window.innerWidth < 480;
   const at = matches.findIndex((n) => n.id === lens.at);
   const step = (by: number) => {
     if (!matches.length) return;
@@ -70,12 +72,11 @@ export function FindStrip({ left }: { left: number }) {
     }
   };
   const query = lens.query.trim();
+  // a count only answers a search; with no query the pressed chip already says what's shown
   const count = !query
-    ? lens.essentials
-      ? t(essentialCount === 1 ? "1 card" : "{n} cards", { n: essentialCount })
-      : ""
+    ? ""
     : !matches.length
-      ? t("none")
+      ? t("No match")
       : at >= 0
         ? t("{i} of {n}", { i: at + 1, n: matches.length })
         : t(matches.length === 1 ? "1 card" : "{n} cards", { n: matches.length });
@@ -92,7 +93,7 @@ export function FindStrip({ left }: { left: number }) {
           value={lens.query}
           onChange={(e) => setLens({ ...lens, query: e.target.value, at: undefined })}
           onKeyDown={onKey}
-          placeholder={lens.essentials ? t("Find among the essentials…") : t("Find on the wall…")}
+          placeholder={narrow ? t("Find…") : lens.essentials ? t("Find among the essentials…") : t("Find on the wall…")}
           aria-label={t("Find on the wall")}
           spellCheck={false}
         />

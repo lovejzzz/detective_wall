@@ -630,6 +630,8 @@ export const useStore = create<Store>()(
           });
         },
         arrangeWall() {
+          // the essentials lay out only part of the wall: arranging then would tidy cards the user can't see
+          if (get().lens?.essentials) return;
           const c = get().activeId ? get().cases[get().activeId!] : null;
           if (!c?.notes.length) return;
           act("Arranged the wall", (c2) => {

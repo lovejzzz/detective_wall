@@ -11,6 +11,7 @@ import { RELATION_INFO } from "../lib/relations.ts";
 import { plainText, withoutRefs } from "./Typed.tsx";
 import { paintKey, paintNote } from "../scene/paint.ts";
 import { isSettled } from "../lib/suspects.ts";
+import { litBy } from "../lib/lens.ts";
 import { getLang, t } from "../lib/i18n.ts";
 
 function when(ts: number) {
@@ -216,8 +217,13 @@ export function Dossier({ c }: { c: Case }) {
   // The exhibits in their numbered order: the file pages through them without going back to the wall.
   const order = [...c.notes].sort((a, b) => a.createdAt - b.createdAt);
   const at = note ? order.findIndex((n) => n.id === note.id) : -1;
-  const prevId = at > 0 ? order[at - 1].id : null;
-  const nextId = at >= 0 && at < order.length - 1 ? order[at + 1].id : null;
+  // With a find or the essentials on, the pages turn through what the wall is showing, not the cards it hid.
+  const lens = useStore((s) => s.lens);
+  const lit = useMemo(() => litBy(lens, c.notes, c.links), [lens, c.notes, c.links]);
+  const pages = lit && note && lit.has(note.id) ? order.filter((n) => lit.has(n.id)) : order;
+  const page = note ? pages.findIndex((n) => n.id === note.id) : -1;
+  const prevId = page > 0 ? pages[page - 1].id : null;
+  const nextId = page >= 0 && page < pages.length - 1 ? pages[page + 1].id : null;
   /** Which way the last page turned, so the new sheet comes in from that side. */
   const turned = useRef<"prev" | "next" | null>(null);
   const go = (dir: "prev" | "next") => {
@@ -281,7 +287,7 @@ export function Dossier({ c }: { c: Case }) {
       <div className="dossier" role="dialog" aria-modal="true" aria-label={t("Exhibit {n}: {title}", { n: exhibitNo, title: note.title })} tabIndex={-1} ref={panel}>
         <div className="dossier-tab">
           {t("Exhibit {n}", { n: String(exhibitNo).padStart(2, "0") })}
-          <span className="dossier-count"> / {String(order.length).padStart(2, "0")}</span> · {typeLabel(note.type)}
+          <span className="dossier-count">{pages === order ? ` / ${String(order.length).padStart(2, "0")}` : ` · ${t("{i} of {n} shown", { i: page + 1, n: pages.length })}`}</span> · {typeLabel(note.type)}
         </div>
         <button className="dossier-close" onClick={close} aria-label={t("Close (Esc)")}>
           ×
