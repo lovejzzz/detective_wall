@@ -285,7 +285,37 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [essentialsOn]);
+  // A find or the essentials is a look, not a move: the camera comes back to where the wall was
+  // being read when the lens closes, unless the user stepped to a card they went looking for.
+  // Opening the strip first nudges the view down if the strip would sit on a card.
+  const lensSession = useRef<{ start: Camera; stepped: boolean; essentials: boolean } | null>(null);
+  useEffect(() => {
+    const onWall = useStore.getState().view === "wall";
+    if (lensOpen) {
+      if (!onWall) return;
+      const k = { ...camRef.current };
+      lensSession.current = { start: k, stepped: false, essentials: false };
+      const covered = placed.some((n) => {
+        const top = toScreen({ x: n.x, y: n.y - NOTE_SIZE[n.type].h / 2 }, k);
+        const bottom = toScreen({ x: n.x, y: n.y + NOTE_SIZE[n.type].h / 2 }, k);
+        const half = (NOTE_SIZE[n.type].w / 2) * k.zoom;
+        return top.y < 112 && bottom.y > 64 && Math.abs(top.x - stage.cx) < 250 + half;
+      });
+      if (covered) flyTo({ ...k, y: k.y - 48 / k.zoom }, 350);
+      return;
+    }
+    const was = lensSession.current;
+    lensSession.current = null;
+    if (was && onWall && (was.essentials || !was.stepped)) flyTo(was.start, 800);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lensOpen]);
+  useEffect(() => {
+    if (lensSession.current && essentialsOn) lensSession.current.essentials = true;
+  }, [essentialsOn]);
   const lensAt = lens?.at ?? null;
+  useEffect(() => {
+    if (lensAt && lensSession.current) lensSession.current.stepped = true;
+  }, [lensAt]);
   useEffect(() => {
     const n = lensAt ? placedById.get(lensAt) : null;
     if (!n) return;
