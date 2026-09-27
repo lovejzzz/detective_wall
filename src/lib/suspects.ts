@@ -21,6 +21,19 @@ export function bySuspicion(subjects: Note[]): Note[] {
 }
 
 /**
+ * The most likely suspects' section: once the case ranks anyone, it holds the ranked files and the
+ * unknown offender's profile; everyone else on file (cleared, acquitted, a weak lead) is filed with
+ * the rest of the evidence, so the section never seems to count them among the suspects. With no
+ * ranking yet, every subject file stands together.
+ */
+export function suspectSection(subjects: Note[]): { section: Note[]; others: Note[] } {
+  const all = bySuspicion(subjects);
+  if (!all.some((n) => n.subject?.rank)) return { section: all, others: [] };
+  const section = all.filter((n) => n.subject?.rank || n.subject?.profile?.length);
+  return { section, others: all.filter((n) => !section.includes(n)) };
+}
+
+/**
  * Keeps the ranking a clean 1, 2, 3 among the pinned files: a file pinned (or re-ranked) into a
  * place already taken goes in there and pushes the others down; gaps close up.
  */

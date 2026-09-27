@@ -162,9 +162,11 @@ describe("the section on the wall and the timeline", () => {
     expect(bySuspicion(notes.filter((n) => n.type === "subject")).map((n) => n.id)).toEqual(["s5", "s4", "u3", "s2"]);
   });
 
-  it("arranges the files in that order, with room above them for the card", () => {
+  it("arranges the likeliest in that order, with room above them for the card, and files the rest with the evidence", () => {
     const at = arrangeWall(notes, []);
-    const row = ["s5", "s4", "u3", "s2"].map((id) => at.get(id)!);
+    const row = ["s5", "s4", "u3"].map((id) => at.get(id)!);
+    // someone looked at but not ranked is not shown among the suspects
+    expect(at.get("s2")!.y).toBeGreaterThan(row[0].y);
     expect(row.map((p) => p.x)).toEqual([...row.map((p) => p.x)].sort((a, b) => a - b));
     const answerBottom = at.get("c1")!.y + NOTE_SIZE.conclusion.h / 2;
     const filesTop = row[0].y - NOTE_SIZE.subject.h / 2;
@@ -176,11 +178,12 @@ describe("the section on the wall and the timeline", () => {
     expect(tl.suspects).not.toBeNull();
     expect(tl.aside).not.toBeNull();
     expect(tl.suspects!.y).toBeLessThan(tl.aside!.y);
-    for (const id of ["s5", "s4", "u3", "s2"]) expect(tl.slots.get(id)!.y).toBeLessThan(tl.aside!.y);
+    for (const id of ["s5", "s4", "u3"]) expect(tl.slots.get(id)!.y).toBeLessThan(tl.aside!.y);
+    expect(tl.slots.get("s2")!.y).toBeGreaterThan(tl.aside!.y);
     // the question and the answer have a section of their own, before the suspects, not in the undated pile
     expect(tl.answer).not.toBeNull();
     for (const id of ["q0", "c1"]) expect(tl.slots.get(id)!.y).toBeLessThan(tl.suspects!.y);
-    expect(tl.aside!.count).toBe(1);
+    expect(tl.aside!.count).toBe(2); // the undated fact, and s2 (looked at, not ranked)
     // without a ranking, the files wait with the rest of the undated evidence
     expect(layoutTimeline(notes.map((n) => (n.subject ? { ...n, subject: { ...n.subject, rank: undefined } } : n))).suspects).toBeNull();
   });

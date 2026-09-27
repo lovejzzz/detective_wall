@@ -5,7 +5,7 @@
 import type { Link, Note, Phase } from "./types.ts";
 import { NOTE_SIZE } from "./geometry.ts";
 import { byTime, chapters, groupByDay, hangers } from "./timeline.ts";
-import { bySuspicion, plaqueRoom, rankedSuspects } from "./suspects.ts";
+import { plaqueRoom, rankedSuspects, suspectSection } from "./suspects.ts";
 
 export const ARRANGE_COLS = 6;
 const CELL_W = 316; // the widest note (288) and a gap
@@ -34,10 +34,12 @@ export function arrangeWall(notes: Note[], links: Link[], phases?: Phase[]): Arr
   if (top.length) sections.push(top);
   // Then who: the most likely suspects in their order (under the card that lists them), then the
   // unknown offender's profile if it isn't ranked, then everyone else on file.
-  if (subjects.length || grids.length) sections.push([...bySuspicion(subjects), ...grids]);
+  const { section: suspectFiles, others } = suspectSection(subjects);
+  if (suspectFiles.length || grids.length) sections.push([...suspectFiles, ...grids]);
   const suspects = rankedSuspects(subjects).length;
   for (const ch of chapters(groupByDay(dated), phases)) sections.push(ch.groups.flat().flatMap((n) => [n, ...(hung.get(n.id) ?? [])]));
-  const evidence = loose.filter((n) => n.type !== "hypothesis");
+  // people looked at but not among the likeliest go with the evidence
+  const evidence = [...others, ...loose.filter((n) => n.type !== "hypothesis")];
   const hunches = loose.filter((n) => n.type === "hypothesis");
   if (evidence.length) sections.push(evidence);
   if (hunches.length) sections.push(hunches);
