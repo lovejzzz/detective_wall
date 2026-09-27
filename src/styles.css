@@ -565,6 +565,19 @@ kbd {
 .trail-read {
   color: #7d7568;
 }
+/* what came before the last few steps, while he's still at it: a count, fainter */
+.trail li.trail-earlier {
+  color: #9a9181;
+  font-size: 15px;
+}
+.trail li.trail-earlier::before {
+  content: "⋮";
+}
+/* in the header, the stop sits at the end of the partner's line */
+.partner-line .live-stop {
+  margin-left: auto;
+  line-height: 1;
+}
 /* a working note the partner wrote between searches: wraps, in pencil */
 .trail li.trail-note {
   white-space: normal;
@@ -994,14 +1007,15 @@ kbd {
   color: #5a4420;
 }
 .folder.is-new .folder-body {
-  min-height: 56px;
+  min-height: 118px;
   background-color: #cfb07a;
 }
 .folder.is-new .folder-spine {
-  rotate: 0deg;
-  writing-mode: horizontal-tb;
-  font-size: 24px;
   color: #6c5328;
+}
+.folder.is-new .folder-spine b {
+  margin-inline-end: 5px;
+  font-size: 19px;
 }
 .folder.is-new .folder-title {
   font-size: 18px;

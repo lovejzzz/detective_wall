@@ -205,6 +205,21 @@ describe("repeats of the wall", () => {
     expect(duplicateOf(fresh, wall)).toBeNull();
   });
 
+  it("tells two people apart however much they share, and knows one person under a new gloss", () => {
+    const globe = "https://www.bostonglobe.com/2025/03/18/metro/gardner-museum-heist-thieves-rembrandt-reward/";
+    const gardner = [
+      { id: "s-reiss", type: "subject", title: "George Reissfelder（假警察之一）", body: "Merlino的手下，FBI 2015年点名，1991年死于过量可卡因。DiMuzio是同伙。", url: globe },
+      { id: "f-fbi", type: "fact", title: "FBI称已高度确信认出两名窃贼", body: "FBI 2013年称已认出两名窃贼。", url: globe },
+    ];
+    // the same article, the same boss, the same year: still another man
+    expect(duplicateOf({ type: "subject", title: "Leonard DiMuzio（假警察之二）", body: "Merlino的手下，FBI 2015年点名，1991年被枪杀。Reissfelder是同伙。", url: globe }, gardner)).toBeNull();
+    // and another fact from that article is a fact of its own
+    expect(duplicateOf({ type: "fact", title: "Reissfelder之弟称见过马奈画挂在床头", body: "他哥哥说在他床头见过一幅像马奈的画。", url: globe }, gardner)).toBeNull();
+    // the same man again, glossed differently, is a repeat
+    expect(duplicateOf({ type: "subject", title: "George Reissfelder, the likelier of the two", body: "New words." }, gardner)).toBe("s-reiss");
+    expect(duplicateOf({ type: "subject", title: "george  reissfelder", body: "" }, gardner)).toBe("s-reiss");
+  });
+
   it("never takes a new answer, a grid or a picture for a repeat, nor a card of another kind", () => {
     const zodiac = [
       { id: "c-old", type: "conclusion", title: "Zodiac unidentified; Allen best named fit, but doubtful", body: "Best answer now: an unidentified Bay Area man. Arthur Leigh Allen is the strongest named candidate, but handwriting, prints and partial DNA all failed." },

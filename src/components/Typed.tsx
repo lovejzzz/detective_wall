@@ -69,8 +69,16 @@ export const withoutRefs = (s: string) => s.replace(/\s?[(（](?:n|ref|lead|note
 export function ledeCut(line: string): number {
   const cjk = /[\u3000-\u9fff]/.test(line);
   if (line.length <= (cjk ? 70 : 160)) return line.length;
-  const end = /[.!?](?=\s+[A-Z"“‘(])|[。！？]/.exec(line);
-  return end ? end.index + 1 : line.length;
+  // never inside a bold stretch or a link: an answer set in bold is struck to its end, whole
+  const spans = [...line.matchAll(/\*\*[^*\n]+\*\*|\[[^\]\n]+\]\([^)\s]+\)/g)].map((m) => [m.index, m.index + m[0].length]);
+  const inside = (i: number) => spans.find(([a, b]) => i > a && i < b);
+  for (const m of line.matchAll(/[.!?](?=\s+[A-Z"“‘(*])|[。！？](?!\*\*)|[。！？]\*\*/g)) {
+    let cut = m.index + m[0].length;
+    const span = inside(cut - 1) ?? inside(cut);
+    if (span) cut = span[1];
+    return cut;
+  }
+  return line.length;
 }
 
 /**

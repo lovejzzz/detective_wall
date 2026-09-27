@@ -196,6 +196,14 @@ export interface WallNote {
 }
 
 const words = (s: string) => new Set(s.toLowerCase().match(/[a-z0-9]{4,}/g) ?? []);
+/** The person a subject file is about: its title up to any gloss ("…, Vallejo's prime suspect",
+ *  "…（假警察之一）"), without spaces, marks or case. */
+const personOf = (title: string) =>
+  title
+    .replace(/[（(][^）)]*[）)]/g, "")
+    .split(/[,，;；—–]|\s-\s/)[0]
+    .replace(/[\s·・.:：'’"“”-]/g, "")
+    .toLowerCase();
 
 /** Cards that are meant to share words with what's on the wall: a picture (told apart by its file),
  *  a drawing (a comparison grid names the suspects and the tests), and an answer (a new conclusion
@@ -210,7 +218,14 @@ export function duplicateOf(n: Pick<ProposedNote, "type" | "title" | "body" | "u
   if (NEVER_A_REPEAT.has(n.type)) return null;
   // only a card of the same kind can be repeated: a fact about a man is not his subject file
   wall = wall.filter((w) => !w.type || w.type === n.type);
-  if (n.url) {
+  // A subject file is one person's: it repeats only a file under the same name. Two accomplices
+  // share an article and half their story, and each still gets a file.
+  if (n.type === "subject") {
+    const who = personOf(n.title);
+    return (who && wall.find((w) => personOf(w.title) === who)?.id) || null;
+  }
+  // A clipping is one page: the same page twice is a repeat. (One article gives several facts.)
+  if (n.url && n.type === "web") {
     const same = wall.find((w) => w.url === n.url);
     if (same) return same.id;
   }

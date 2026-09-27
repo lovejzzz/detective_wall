@@ -245,6 +245,8 @@ export const ZH: Record<string, string> = {
   "{n} leads waiting on the wall": "墙上有 {n} 条线索待定",
   "Pin what holds up, toss the rest.": "站得住的钉上，其余丢掉。",
   "Next lead:": "下一条线索：",
+  "1 step before this": "此前还有 1 步",
+  "{n} steps before this": "此前还有 {n} 步",
   "1 note to take down?": "1 张卡片建议取下",
   "{n} notes to take down?": "{n} 张卡片建议取下",
   "1 string to decide": "1 条连线待确认",
@@ -257,8 +259,8 @@ export const ZH: Record<string, string> = {
   "just now": "刚刚",
   thinking: "思考中",
   "Show “{title}” on the wall": "在墙上看“{title}”",
-  "I'm Dupin, your research partner. This is a real, unsolved case, set up as a demo. Ask me anything on the typewriter below. Drag from a pin to tie a string. Click a note to open its file.":
-    "我是杜宾，你的调查搭档。这是一桩真实的悬案，布置在这里作演示。在下面的打字机上尽管问我。从图钉拖出可以系线，点一张卡片可以打开它的档案。",
+  "I'm Dupin, your research partner. This is a real, unsolved case, worked up as a demo: click any card to open its file, or ask me about it on the typewriter below. For a case of your own, take a new folder from the left (+ New case) and type your question.":
+    "我是杜宾，你的调查搭档。这是一桩真实的悬案，已经查过一轮作演示：点任意一张卡片看它的档案，或者在下面的打字机上问我。想查你自己的案子，从左边抽一个新案卷（＋ 新案件），写下你的问题。",
   "Picking this back up. Last we had: “{title}”.": "接着查。上回查到：“{title}”。",
   "how I got here": "我是怎么查到的",
   ", ": "、",

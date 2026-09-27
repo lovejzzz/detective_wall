@@ -20,3 +20,12 @@ describe("the lede of a reply", () => {
     expect(zh.slice(0, ledeCut(zh))).toBe("至今无人被起诉；由于日本在2010年废除了杀人罪的追诉时效，此案始终不会结案。");
   });
 });
+
+describe("a lede in bold", () => {
+  it("is never cut inside its bold marks", () => {
+    const line = '**两名"假警察"很可能是 George Reissfelder 和 Leonard DiMuzio。我最怀疑 Reissfelder。** FBI 2015年点名的就是这两人，主办此案22年的探员在2025年和2026年也都这样说。两人都是 Merlino 的手下。';
+    expect(line.slice(0, ledeCut(line))).toBe('**两名"假警察"很可能是 George Reissfelder 和 Leonard DiMuzio。我最怀疑 Reissfelder。**');
+    const en = "**Most likely George Reissfelder and Leonard DiMuzio. I suspect Reissfelder most.** The FBI named both in 2015, and the agent who ran the case for 22 years said so again in 2025 and 2026. Both worked for Merlino.";
+    expect(en.slice(0, ledeCut(en))).toBe("**Most likely George Reissfelder and Leonard DiMuzio. I suspect Reissfelder most.**");
+  });
+});

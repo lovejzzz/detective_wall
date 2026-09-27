@@ -26,9 +26,14 @@ export function PhotoThumb({ note, size = 44 }: { note: Note; size?: number }) {
 
 /** The research trail, in pencil: what the partner searched and which pages it opened. */
 function Trail({ trail, live = false }: { trail: TrailStep[]; live?: boolean }) {
+  // While Dupin works, the last few steps show what he's on; the earlier ones fold into a count,
+  // so the page doesn't fill with search strings. (The full trail is in the reply's fold after.)
+  const LIVE_STEPS = 5;
+  const earlier = live ? Math.max(0, trail.length - LIVE_STEPS) : 0;
   return (
     <ol className={`trail ${live ? "is-live" : ""}`}>
-      {trail.map((step, i) => (
+      {earlier > 0 && <li className="trail-earlier">{t(earlier === 1 ? "1 step before this" : "{n} steps before this", { n: earlier })}</li>}
+      {trail.slice(earlier).map((step, i) => (
         <li key={i} className={`trail-${step.kind}`}>
           {step.kind === "search" ? (
             <>
@@ -266,7 +271,7 @@ export function Notepad({ c }: { c: Case }) {
   const resumeLine = busy || spokeThisVisit
     ? null
     : firstVisit && c.demo
-      ? t("I'm Dupin, your research partner. This is a real, unsolved case, set up as a demo. Ask me anything on the typewriter below. Drag from a pin to tie a string. Click a note to open its file.")
+      ? t("I'm Dupin, your research partner. This is a real, unsolved case, worked up as a demo: click any card to open its file, or ask me about it on the typewriter below. For a case of your own, take a new folder from the left (+ New case) and type your question.")
       : !firstVisit && c.messages.length > 0 && latestPinned && Date.now() - (previousOpen ?? 0) > 10 * 60_000
         ? t("Picking this back up. Last we had: “{title}”.", { title: latestPinned.title })
         : null;
@@ -294,6 +299,15 @@ export function Notepad({ c }: { c: Case }) {
           <h2 title={caseTitle(c.title)}>{caseTitle(c.title)}</h2>
           <div className={`partner-line mode-${partner.mode}`} title={partner.model?.replace(/\b(high|medium|low) effort$/, (e) => t(e))}>
             <span className="dot" /> {partnerLabel}
+            {/* while he works, the way to stop him stays in reach however far the trail runs */}
+            {busy && (
+              <button className="live-stop" onClick={stopAsking} title={t("Stop Dupin here (what's on the wall so far stays)")}>
+                <svg viewBox="0 0 10 10" aria-hidden>
+                  <rect x="1.5" y="1.5" width="7" height="7" rx="0.8" />
+                </svg>
+                {t("Stop")}
+              </button>
+            )}
           </div>
           {asks.length > 0 && (
             <button
@@ -368,12 +382,6 @@ export function Notepad({ c }: { c: Case }) {
                 <span className="live-status">
                   {t("Dupin")} · {live?.status ?? t("thinking")}
                 </span>
-                <button className="live-stop" onClick={stopAsking} title={t("Stop Dupin here (what's on the wall so far stays)")}>
-                  <svg viewBox="0 0 10 10" aria-hidden>
-                    <rect x="1.5" y="1.5" width="7" height="7" rx="0.8" />
-                  </svg>
-                  {t("Stop")}
-                </button>
               </div>
               {live?.trail && live.trail.length > 0 && <Trail trail={live.trail} live />}
               <div className="entry-text">

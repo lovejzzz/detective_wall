@@ -120,8 +120,12 @@ export function CaseTray() {
         <li className="folder is-new" style={{ ["--i" as string]: atHand.length }}>
           <button className="folder-body" onClick={newCase}>
             <span className="folder-title">{t("New case")}</span>
+            {/* spelled out on its spine, so a first-time visitor sees where their own case begins */}
             <span className="folder-spine" aria-hidden>
-              +
+              <span>
+                <b>+</b>
+                {t("New case")}
+              </span>
             </span>
           </button>
         </li>

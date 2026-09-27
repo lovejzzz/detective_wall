@@ -38,8 +38,8 @@ const MIN_Z = 0.2;
 /** Below this zoom the taped-on far labels start to shrink with the wall. */
 const LABEL_Z = 0.35;
 /** Zoomed out past FAR_NONE the far labels start to fade in over the cards; by FAR_FULL they're fully up. */
-const FAR_NONE = 0.58;
-const FAR_FULL = 0.54;
+const FAR_NONE = 0.72;
+const FAR_FULL = 0.68;
 /** How wide a key-moment label is in its own ems (spaced capitals, or CJK), so the labels can share one size that fits. */
 const labelEm = (label: string) => [...label].reduce((w, ch) => w + (/[\u3000-\u9fff\uac00-\ud7af]/.test(ch) ? 1.12 : 0.74), 0);
 /** A zoom the camera can come to rest at: never where the far labels are half faded over the cards. */
