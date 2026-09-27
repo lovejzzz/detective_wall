@@ -4138,10 +4138,11 @@ kbd {
   color: #8f1d15;
   white-space: nowrap;
 }
+/* a quiet line after the title: small enough to fit the narrowest card (one suspect) whole */
 .suspects-card small {
   overflow: hidden;
-  font: 20px/1 var(--typed);
-  letter-spacing: 0.06em;
+  font: 17px/1 var(--typed);
+  letter-spacing: 0.04em;
   color: rgba(59, 45, 23, 0.62);
   text-overflow: ellipsis;
   white-space: nowrap;

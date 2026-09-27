@@ -69,6 +69,15 @@ function recordTurn(raw: unknown, leads: ProposedNote[], update: { notes: Propos
   }
 }
 
+/**
+ * The sources the notepad lists: pages the partner opened, or cited in its reply or on a card.
+ * Search hits it only skimmed stay out, so the list never suggests it read what it didn't.
+ */
+function usedSources(all: Map<string, string>, fetched: Set<string>, reply: string, notes: ProposedNote[]) {
+  const cited = new Set([...notes.flatMap((n) => (n.url ? [n.url] : [])), ...(reply.match(/https?:\/\/[^\s)\]]+/g) ?? [])]);
+  return [...all].filter(([url]) => fetched.has(url) || cited.has(url)).slice(0, 8).map(([url, title]) => ({ url, title }));
+}
+
 /** The pin_lead tool, served to the CLI by a one-tool MCP server (see wall-mcp.mjs). */
 const PIN_LEAD = "mcp__wall__pin_lead";
 const FIND_PHOTOS = "mcp__wall__find_photos";
@@ -179,6 +188,8 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
   child.stdin.end(JSON.stringify({ type: "user", message: { role: "user", content } }) + "\n");
 
   const sources = new Map<string, string>();
+  /** Pages the partner opened itself (a search hit it never read is not a source it used). */
+  const fetched = new Set<string>();
   const seen: Seen = { pages: sources, photos: new Set() };
   const knownIds = new Set(req.notes.map((n) => n.id));
   const leads: ProposedNote[] = [];
@@ -233,6 +244,7 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
           if (b.name === "WebSearch") emit({ type: "status", kind: "searching", detail: String(b.input?.query ?? "") });
           if (b.name === "WebFetch" && typeof b.input?.url === "string") {
             sources.set(b.input.url, b.input.url);
+            fetched.add(b.input.url);
             try {
               emit({ type: "status", kind: "reading", detail: new URL(b.input.url).hostname });
             } catch {
@@ -298,7 +310,7 @@ export async function investigateViaCli(req: InvestigateRequest, emit: Emit, sig
     result: {
       reply: reply.reply || "I've put what I found on the wall.",
       update,
-      sources: [...sources].slice(0, 8).map(([url, title]) => ({ url, title })),
+      sources: usedSources(sources, fetched, reply.reply, update.notes),
       model: `${CLI_MODEL()} (Claude Code)`,
     },
   });

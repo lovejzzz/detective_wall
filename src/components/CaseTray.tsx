@@ -90,7 +90,8 @@ export function CaseTray() {
                 <span className="folder-meta">
                   {t(pinned === 1 ? "1 exhibit" : "{n} exhibits", { n: pinned })}
                 </span>
-                <span className="folder-spine" aria-hidden>
+                {/* a title in Chinese or Japanese stands upright on the spine, whatever the page's language */}
+                <span className="folder-spine" aria-hidden lang={/[\u3040-\u30ff\u4e00-\u9fff]/.test(caseTitle(c.title)) ? "zh-Hans" : undefined}>
                   {spineOf(c)}
                 </span>
               </button>

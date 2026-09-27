@@ -10,7 +10,7 @@ import { typeLabel, useStore } from "../store.ts";
 import { RELATION_INFO } from "../lib/relations.ts";
 import { plainText, withoutRefs } from "./Typed.tsx";
 import { paintKey, paintNote } from "../scene/paint.ts";
-import { isSettled } from "../lib/suspects.ts";
+import { isSettled, sayVerdict } from "../lib/suspects.ts";
 import { litBy } from "../lib/lens.ts";
 import { getLang, t } from "../lib/i18n.ts";
 
@@ -46,7 +46,7 @@ function SubjectSections({ file }: { file: SubjectFile }) {
           <b aria-hidden>{file.rank}</b>
           <span>
             <em>{t("Most likely suspect no. {n}", { n: file.rank })}</em>
-            {file.verdict && <> · {file.verdict}</>}
+            {file.verdict && <> · {sayVerdict(file.verdict)}</>}
           </span>
         </p>
       )}

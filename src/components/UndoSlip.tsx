@@ -11,6 +11,7 @@ export function undoLabel(label: string): string {
   let m: RegExpMatchArray | null;
   if ((m = label.match(/^Shredded “([\s\S]*)”$/))) return t("Shredded “{title}”", { title: caseTitle(m[1]) });
   if ((m = label.match(/^Took down ([\s\S]*)$/))) return t("Took down {what}", { what: quoted(m[1]) });
+  if ((m = label.match(/^Tossed ([\s\S]*)$/))) return t("Tossed {what}", { what: quoted(m[1]) });
   if ((m = label.match(/^Changed ([\s\S]*)$/))) return t("Changed {what}", { what: quoted(m[1]) });
   if ((m = label.match(/^Pinned (\d+) leads?$/))) return t(m[1] === "1" ? "Pinned 1 lead" : "Pinned {n} leads", { n: m[1] });
   if (label !== "Pinned a photo" && (m = label.match(/^Pinned ([\s\S]*)$/))) return t("Pinned {what}", { what: quoted(m[1]) });

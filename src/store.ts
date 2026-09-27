@@ -262,6 +262,15 @@ function firstSentences(text: string, max = 240) {
   return (stop > 80 ? cut.slice(0, stop + 1) : cut.trimEnd() + "…").trim();
 }
 
+/** Whether this browser has never saved a wall: read before the store first writes one. */
+export const FIRST_VISIT = (() => {
+  try {
+    return typeof localStorage !== "undefined" && !localStorage.getItem("detective-wall/v1");
+  } catch {
+    return false;
+  }
+})();
+
 export const useStore = create<Store>()(
   persist(
     (set, get) => {
@@ -309,7 +318,8 @@ export const useStore = create<Store>()(
         dossierId: null,
         busyCaseId: null,
         // on a tablet-sized window the notepad starts folded, so the wall has room
-        notepadOpen: typeof window === "undefined" || window.innerWidth >= 1100,
+        // (a phone's notepad is a sheet under the wall, with the intro and the typewriter: it starts open)
+        notepadOpen: typeof window === "undefined" || window.innerWidth >= 1100 || window.innerWidth < 760,
         cabinetOpen: false,
         setCabinetOpen(open) {
           set({ cabinetOpen: open });
@@ -644,8 +654,10 @@ export const useStore = create<Store>()(
           set({ view: "wall", arrangedAt: Date.now() });
         },
         tossNote(noteId) {
+          // a lead never pinned is tossed, not taken down
+          const proposed = get().cases[get().activeId ?? ""]?.notes.find((n) => n.id === noteId)?.status === "proposed";
           act(
-            `Took down ${noteTitle(noteId)}`,
+            `${proposed ? "Tossed" : "Took down"} ${noteTitle(noteId)}`,
             (c) => {
               c.notes = c.notes.filter((n) => n.id !== noteId);
               c.links = c.links.filter((l) => l.from !== noteId && l.to !== noteId);
@@ -888,6 +900,8 @@ export function ensureCases() {
     const present = Object.values(useStore.getState().cases).some((c) => c.demo === d.demo);
     if (!present && !had) fresh.push(d.make());
   }
+  // New demos are numbered in their shelf order (No. 001 is the first), the same in every browser.
+  fresh.forEach((c, i) => (c.createdAt -= (fresh.length - i) * 1000));
   if (fresh.length)
     useStore.setState((s2) => ({
       cases: { ...s2.cases, ...Object.fromEntries(fresh.map((c) => [c.id, c])) },

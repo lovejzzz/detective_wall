@@ -187,7 +187,7 @@ export const UPDATE_WALL_SCHEMA = {
               profile: { type: "array", items: { type: "string" }, description: "Unknown-offender profiles only: up to 6 inferences, each tied to the evidence it rests on." },
               settle: { type: "string", description: "The one test that would confirm or rule them out. At most 140 characters." },
               rank: { type: "integer", minimum: 1, maximum: MAX_RANK, description: "Only for the case's most likely suspects (one to three, the unknown offender's profile included): 1 is the most likely. Leave it out for everyone else." },
-              verdict: { type: "string", description: "With rank: one line on why they rank there, your own read of the evidence said as one (My read: …). At most 90 characters." },
+              verdict: { type: "string", description: "With rank: one line on why they rank there, your own read of the evidence said as one (My read: … / 我的判断：…, in the page's language). At most 90 characters." },
             },
           },
           diagram: {

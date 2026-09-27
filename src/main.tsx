@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
-import { ensureCases, useStore } from "./store.ts";
+import { FIRST_VISIT, ensureCases, useStore } from "./store.ts";
 import { installTextures } from "./lib/textures.ts";
 import { startBoot } from "./lib/boot.ts";
 import { getLang, onLangChange, useLang } from "./lib/i18n.ts";
@@ -27,8 +27,9 @@ installTextures();
 startBoot(fontsReady(activeText()));
 ensureCases();
 // On a phone the notepad is a sheet over half the screen: a case that already has a wall opens
-// with it folded, so the wall is what you see first.
-if (window.innerWidth < 760) {
+// with it folded, so the wall is what you see first. The very first visit is the exception: the
+// sheet's intro and the typewriter are what tell a newcomer what to do.
+if (window.innerWidth < 760 && !FIRST_VISIT) {
   const s = useStore.getState();
   const c = s.activeId ? s.cases[s.activeId] : undefined;
   if (c && c.notes.length > 1 && s.notepadOpen) useStore.setState({ notepadOpen: false });

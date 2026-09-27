@@ -1,5 +1,6 @@
 // The case's most likely suspects: the subject files ranked 1, 2, 3... and the section of the wall
 // (and of the timeline) that lists them in order, each with the one line on why.
+import { getLang } from "./i18n.ts";
 import type { Note } from "./types.ts";
 
 const byRank = (a: Note, b: Note) => a.subject!.rank! - b.subject!.rank! || b.createdAt - a.createdAt;
@@ -38,3 +39,11 @@ export const plaqueRoom = (count: number) => (count ? plaqueHeight(count) + PLAQ
 /** A settle line that says the matter is already settled ("Settled: the DNA…", "已有定论：…") reads on
  * its own; the "Settle it:" label would only repeat it. */
 export const isSettled = (settle: string) => /^(already settled|settled)\b/i.test(settle.trim()) || /^已(有定论|有结论|结论|了结|定案)/.test(settle.trim());
+
+/** A verdict in the page's language: the partner's "My read:" / 「我的判断：」 prefix follows the page. */
+export function sayVerdict(v: string): string {
+  const zh = getLang() === "zh";
+  return zh
+    ? v.replace(/^My read:\s*/i, "我的判断：").replace(/^My inference:\s*/i, "我的推断：")
+    : v.replace(/^我的判断[：:]\s*/, "My read: ").replace(/^我的推断[：:]\s*/, "My inference: ");
+}

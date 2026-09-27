@@ -170,7 +170,9 @@ function KeyPlaque() {
       onMouseLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)}
       onBlur={() => setOpen(false)}
-      onClick={() => setOpen((o) => !o)}
+      // With a mouse the pointer opens and closes it, so a click only keeps it open; on a touch
+      // screen a tap is the only way in or out.
+      onClick={() => (window.matchMedia("(hover: hover)").matches ? setOpen(true) : setOpen((o) => !o))}
     >
       <b className="plaque-label">{t("Keys")}</b>
       <span className="plaque-keys">

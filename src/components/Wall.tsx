@@ -4,7 +4,7 @@ import { markWallDrawn } from "../lib/boot.ts";
 import { livePose } from "../scene/live.ts";
 import * as THREE from "three";
 import { BEAT_LABEL, RELATIONS, type Camera, type Case, type Link, type Note } from "../lib/types.ts";
-import { PLAQUE, plaqueHeight, rankedSuspects } from "../lib/suspects.ts";
+import { PLAQUE, plaqueHeight, rankedSuspects, sayVerdict } from "../lib/suspects.ts";
 import { whenLabel } from "../lib/when.ts";
 import { NOTE_SIZE, pinPoint } from "../lib/geometry.ts";
 import { useStore } from "../store.ts";
@@ -245,7 +245,11 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       const left = Math.min(...notes.map((n) => n.x - NOTE_SIZE[n.type].w / 2));
       const right = Math.max(...notes.map((n) => n.x + NOTE_SIZE[n.type].w / 2));
       const zoom = settleZ(clampZ(Math.min(0.9, (stage.w - TRAY_W - 80) / (right - left))));
-      return { zoom, x: (left + right) / 2 - TRAY_W / 2 / zoom, y: top + (stage.cy - (lensOpen ? 140 : 100)) / zoom };
+      // too wide even so (a phone): start from the page's left edge, clear of the case folders,
+      // rather than centring it with both edges cut off and the left one under the folders
+      const fits = (right - left) * zoom <= stage.w - TRAY_W - 16;
+      const x = fits ? (left + right) / 2 - TRAY_W / 2 / zoom : left + (stage.w / 2 - TRAY_W - 12) / zoom;
+      return { zoom, x, y: top + (stage.cy - (lensOpen ? 140 : 100)) / zoom };
     },
     [framing, stage.w, stage.h, stage.cy, lensOpen],
   );
@@ -422,15 +426,15 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       if (timeline && (timeline.chapters.length || timeline.aside)) {
         const b = timeline.bounds;
         // Clear of the case folders on the left and the chapter index on the right. (On a phone the
-        // folders tuck into the corner and the index sits above the page: use the whole width.)
+        // index sits above the page, but the folders still stand at the left edge.)
         const phone = stage.w < 760;
-        const trayW = phone ? 0 : TRAY_W;
-        const room = phone ? stage.w - 24 : stage.w - TRAY_W - 80 - RAIL_W;
+        const trayW = TRAY_W;
+        const room = phone ? stage.w - TRAY_W - 12 : stage.w - TRAY_W - 80 - RAIL_W;
         // The page's full width at a size you can read, from the top; the rest is a scroll away.
         // (Capped where the taped-on labels are fully up, never halfway through their fade.)
         const zoom = clampZ(Math.min(0.5, room / (b.x1 - b.x0)));
         const fitsW = (b.x1 - b.x0) * zoom <= room;
-        const x = fitsW ? (b.x0 + b.x1) / 2 - trayW / 2 / zoom : b.x0 + (stage.w / 2 - trayW - 40) / zoom;
+        const x = fitsW ? (b.x0 + b.x1) / 2 - trayW / 2 / zoom : b.x0 + (stage.w / 2 - trayW - (phone ? 10 : 40)) / zoom;
         const fitsH = (b.y1 - b.y0) * zoom <= stage.h - 150;
         const y = fitsH ? (b.y0 + b.y1) / 2 - 10 / zoom : b.y0 + (stage.h / 2 - 100) / zoom;
         flyTo({ zoom, x, y }, 900);
@@ -1437,15 +1441,15 @@ function SuspectsCard({ list, at, width, zoom, onPick, dimmed }: { list: Note[];
     <section className={`suspects-card ${dimmed ? "is-dimmed" : ""}`} style={{ left: at.x, top: at.y, width: Math.max(PLAQUE.width, width), transform: `scale(${zoom})` }} aria-label={t("Most likely suspects")}>
       <header>
         <h3>{t("Most likely suspects")}</h3>
-        <small>{t("The partner's reading of the evidence, ranked")}</small>
+        <small>{t("The partner's read, ranked")}</small>
       </header>
       <ol>
         {list.map((n) => (
           <li key={n.id}>
-            <button onClick={() => onPick(n.id)} title={n.subject?.verdict ? t("{title}: {why}", { title: n.title, why: n.subject.verdict }) : n.title}>
+            <button onClick={() => onPick(n.id)} title={n.subject?.verdict ? t("{title}: {why}", { title: n.title, why: sayVerdict(n.subject.verdict) }) : n.title}>
               <b aria-hidden>{n.subject!.rank}</b>
               <span className="who">{keepTogether(n.title)}</span>
-              {n.subject?.verdict && <span className="why">{n.subject.verdict}</span>}
+              {n.subject?.verdict && <span className="why">{sayVerdict(n.subject.verdict)}</span>}
             </button>
           </li>
         ))}
