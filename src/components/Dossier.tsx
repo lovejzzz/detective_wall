@@ -287,7 +287,7 @@ export function Dossier({ c }: { c: Case }) {
       <div className="dossier" role="dialog" aria-modal="true" aria-label={t("Exhibit {n}: {title}", { n: exhibitNo, title: note.title })} tabIndex={-1} ref={panel}>
         <div className="dossier-tab">
           {t("Exhibit {n}", { n: String(exhibitNo).padStart(2, "0") })}
-          <span className="dossier-count">{pages === order ? ` / ${String(order.length).padStart(2, "0")}` : ` · ${t("{i} of {n} shown", { i: page + 1, n: pages.length })}`}</span> · {typeLabel(note.type)}
+          <span className="dossier-count">{pages === order ? ` / ${String(order.length).padStart(2, "0")}` : ` · ${t("{i} of {n} shown", { i: page + 1, n: pages.length })}`}</span> · {order[0]?.id === note.id && note.type === "hypothesis" ? t("The question") : typeLabel(note.type)}
         </div>
         <button className="dossier-close" onClick={close} aria-label={t("Close (Esc)")}>
           ×
@@ -506,7 +506,10 @@ export function LinkPicker() {
 function shortUrl(url: string): string {
   try {
     const u = new URL(url);
-    let path = decodeURIComponent(u.pathname).replace(/\/$/, "").replace(/_/g, " ");
+    // Wikipedia and Commons write spaces as underscores; everywhere else an underscore is an underscore
+    const wiki = /(^|\.)(wikipedia|wikimedia)\.org$/.test(u.hostname);
+    let path = decodeURIComponent(u.pathname).replace(/\/$/, "");
+    if (wiki) path = path.replace(/_/g, " ");
     if (path.length > 48) path = `${path.slice(0, 22)}…${path.slice(-22)}`;
     return `${u.hostname.replace(/^www\./, "")}${path}`;
   } catch {

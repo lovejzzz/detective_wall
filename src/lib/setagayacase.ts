@@ -17,7 +17,7 @@ import { SETAGAYA_ZH } from "./zh/setagayacase.zh.ts";
 
 export const SETAGAYA_DEMO = "setagaya-2000";
 /** Bumped when the demo's content changes, so walls saved with an older version get the new one. */
-export const SETAGAYA_VERSION = 7;
+export const SETAGAYA_VERSION = 8;
 
 export const SETAGAYA_PHASES: Phase[] = [
   { title: "A house in the park's path", from: "1990" },
@@ -200,7 +200,7 @@ export const SETAGAYA_SPEC: DemoSpec = {
     { from: "window", to: "sVisitor", relation: "contradicts", reason: "A climb fits a stranger" },
     { from: "hipBag", to: "profile", relation: "supports", reason: "The belt and the ink" },
     { from: "age", to: "profile", relation: "contradicts", reason: "Older than the clothes suggest" },
-    { from: "statute", to: "verdict", relation: "supports", reason: "The case cannot expire" },
+    { from: "statute", to: "verdict", relation: "references", reason: "Why the case can never expire" },
     { from: "unsub", to: "q", relation: "references", reason: "Who we're looking for" },
     { from: "sKnife", to: "unsub", relation: "references", reason: "Held against the profile" },
     { from: "sRunner", to: "unsub", relation: "references", reason: "Held against the profile" },

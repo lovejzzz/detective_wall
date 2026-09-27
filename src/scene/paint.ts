@@ -1,6 +1,6 @@
 // Paints each note's paper onto a canvas: stock, ink, typesetting, stamps, sketches.
 // The imperfections are deliberate and seeded by the note id, so a note always looks the same.
-import type { DiagramItem, DiagramSpec, Note, Relation, SubjectStatus } from "../lib/types.ts";
+import type { DiagramItem, DiagramSpec, GridMark, Note, Relation, SubjectStatus } from "../lib/types.ts";
 import { NOTE_SIZE } from "../lib/geometry.ts";
 import { hashString, mulberry32, paperGrain } from "./textures.ts";
 import { getLang, t } from "../lib/i18n.ts";
@@ -55,6 +55,10 @@ export function paintedWords(): string {
     "FOR",
     "AGAINST",
     "Settle it: {test}",
+    "fits",
+    "partly",
+    "doesn't",
+    "unknown",
     "HIGH",
     "MEDIUM",
     "LOW",
@@ -740,7 +744,9 @@ function paintMatrix(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: nu
   const nameW = Math.min(area.w * 0.4, Math.max(56 * u, ...rows.map((r) => g.measureText(r.label).width + 10 * u)));
   const cellW = (area.w - nameW) / cols.length;
   const headH = 30 * u;
-  const rowH = Math.min(38 * u, (area.h - headH) / rows.length);
+  // a one-line key at the foot, so a first-time reader knows what a wavy line or a "?" means
+  const keyH = 16 * u;
+  const rowH = Math.min(38 * u, (area.h - headH - keyH) / rows.length);
   const x0 = area.x + nameW;
   const y0 = area.y + headH;
   // headings, fitted to their column; two lines when a word runs long
@@ -758,27 +764,45 @@ function paintMatrix(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: nu
   for (let c = 1; c < cols.length; c++) penLine(g, [[x0 + c * cellW, area.y + 8 * u], [x0 + c * cellW, y0 + rowH * rows.length]], { color: "rgba(36,53,82,0.2)", width: 0.8 * u, rand, wobble: 0.4 });
   rows.forEach((it, r) => {
     const cy = y0 + r * rowH + rowH / 2;
-    const ls = fitHand(g, it.label, nameW - 10 * u, 15 * u, 10.5 * u, 2);
-    g.font = `600 ${ls}px ${HAND}`;
-    const two = wrapLines(g, it.label, nameW - 10 * u).length > 1;
-    handwrite(g, it.label, area.x, cy + ls * 0.34 - (two ? ls * 0.5 : 0), { size: ls, weight: 600, lineH: ls, maxW: nameW - 10 * u, maxLines: 2, color: ink, rand });
-    (it.marks ?? []).slice(0, cols.length).forEach((m, c) => {
-      const cx = x0 + c * cellW + cellW / 2;
-      const k = Math.min(cellW, rowH) * 0.26;
-      if (m === "yes") penLine(g, [[cx - k, cy], [cx - k * 0.25, cy + k * 0.75], [cx + k, cy - k * 0.9]], { color: ink, width: 1.8 * u, rand, wobble: 0.4 });
-      else if (m === "no") {
-        penLine(g, [[cx - k * 0.8, cy - k * 0.8], [cx + k * 0.8, cy + k * 0.8]], { color: red, width: 1.7 * u, rand, wobble: 0.4 });
-        penLine(g, [[cx + k * 0.8, cy - k * 0.8], [cx - k * 0.8, cy + k * 0.8]], { color: red, width: 1.7 * u, rand, wobble: 0.4 });
-      } else if (m === "partly") {
-        const pts: [number, number][] = [];
-        for (let i = 0; i <= 8; i++) pts.push([cx - k + (i / 8) * 2 * k, cy + Math.sin((i / 8) * Math.PI * 2) * k * 0.35]);
-        penLine(g, pts, { color: ink, width: 1.6 * u, rand, wobble: 0.3 });
-      } else {
-        const qs = Math.min(18 * u, rowH * 0.6);
-        handwrite(g, "?", cx - qs * 0.25, cy + qs * 0.35, { size: qs, weight: 600, lineH: qs, maxW: qs, maxLines: 1, color: pencil, rand });
-      }
-    });
+    // one line if it fits (a Chinese name shouldn't leave one character alone below), else two
+    const inner = nameW - 10 * u;
+    const one = fitHand(g, it.label, inner, 15 * u, 11 * u);
+    const fitsOne = ((g.font = `600 ${one}px ${HAND}`), g.measureText(it.label).width <= inner);
+    const ls = fitsOne ? one : fitHand(g, it.label, inner, 14 * u, 10 * u, 2);
+    handwrite(g, it.label, area.x, cy + ls * 0.34 - (fitsOne ? 0 : ls * 0.5), { size: ls, weight: 600, lineH: ls, maxW: inner, maxLines: fitsOne ? 1 : 2, color: ink, rand });
+    (it.marks ?? []).slice(0, cols.length).forEach((m, c) => mark(m, x0 + c * cellW + cellW / 2, cy, Math.min(cellW, rowH) * 0.26));
   });
+  // the key, in pencil under the grid
+  const ky = y0 + rowH * rows.length + keyH * 0.8;
+  const words: [GridMark, string][] = [
+    ["yes", t("fits")],
+    ["partly", t("partly")],
+    ["no", t("doesn't")],
+    ["unknown", t("unknown")],
+  ];
+  g.font = `600 ${11 * u}px ${HAND}`;
+  let kx = area.x;
+  for (const [m, word] of words) {
+    mark(m, kx + 5 * u, ky - 4 * u, 4.2 * u, 0.7);
+    handwrite(g, word, kx + 12 * u, ky, { size: 11 * u, weight: 600, lineH: 11 * u, maxW: 80 * u, maxLines: 1, color: pencil, rand });
+    kx += 12 * u + g.measureText(word).width + 12 * u;
+  }
+
+  /** One box's mark: a tick, a red cross, a wavy line for partly, a pencilled "?". */
+  function mark(m: GridMark, cx: number, cy: number, k: number, thin = 1) {
+    if (m === "yes") penLine(g, [[cx - k, cy], [cx - k * 0.25, cy + k * 0.75], [cx + k, cy - k * 0.9]], { color: ink, width: 1.8 * u * thin, rand, wobble: 0.4 });
+    else if (m === "no") {
+      penLine(g, [[cx - k * 0.8, cy - k * 0.8], [cx + k * 0.8, cy + k * 0.8]], { color: red, width: 1.7 * u * thin, rand, wobble: 0.4 });
+      penLine(g, [[cx + k * 0.8, cy - k * 0.8], [cx - k * 0.8, cy + k * 0.8]], { color: red, width: 1.7 * u * thin, rand, wobble: 0.4 });
+    } else if (m === "partly") {
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= 8; i++) pts.push([cx - k + (i / 8) * 2 * k, cy + Math.sin((i / 8) * Math.PI * 2) * k * 0.35]);
+      penLine(g, pts, { color: ink, width: 1.6 * u * thin, rand, wobble: 0.3 });
+    } else {
+      const qs = Math.min(18 * u, k * 2.6);
+      handwrite(g, "?", cx - qs * 0.25, cy + qs * 0.35, { size: qs, weight: 600, lineH: qs, maxW: qs, maxLines: 1, color: pencil, rand });
+    }
+  }
 }
 
 function paintMap(g: Ctx, d: DiagramSpec, area: { x: number; y: number; w: number; h: number }, u: number, rand: Rand) {

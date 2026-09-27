@@ -116,6 +116,12 @@ function hostOf(url: string) {
 }
 
 /** The conversation lives on a legal pad; you talk to the partner through a typewriter (SPEC §4). */
+/** How many typed lines a draft needs on the typewriter's paper (Chinese characters are twice as wide). */
+function paperRows(text: string): number {
+  const lines = text.split("\n").reduce((n, line) => n + Math.max(1, Math.ceil([...line].reduce((w, ch) => w + (/[\u2e80-\u9fff\uff00-\uffef]/.test(ch) ? 2 : 1), 0) / 40)), 0);
+  return Math.max(2, Math.min(4, lines));
+}
+
 export function Notepad({ c }: { c: Case }) {
   const open = useStore((s) => s.notepadOpen);
   const setOpen = useStore((s) => s.setNotepadOpen);
@@ -224,7 +230,7 @@ export function Notepad({ c }: { c: Case }) {
   // A lead from the partner goes onto the typewriter, ready to send or reword.
   const followLead = (lead: string) => {
     // Something already typed stays: the lead goes on the line after it (unless it's already there).
-    setDraft((d) => (!d.trim() || d.trim() === lead ? lead : `${d.trimEnd()}\n${lead}`));
+    setDraft((d) => (!d.trim() ? lead : d.includes(lead) ? d : `${d.trimEnd()}\n${lead}`));
     setOpen(true);
     requestAnimationFrame(() => {
       const el = input.current;
@@ -410,7 +416,8 @@ export function Notepad({ c }: { c: Case }) {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
-            rows={2}
+            // the paper feeds up with what's typed on it: two lines, up to four before it scrolls
+            rows={paperRows(draft)}
             placeholder={c.notes.length === 0 ? t("What's the question?") : t("Ask, add a lead, or push back…")}
             aria-label={t("Message Dupin, your research partner")}
             maxLength={2000}

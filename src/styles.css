@@ -2513,6 +2513,17 @@ kbd {
   font: 700 15px/1 var(--hand);
   color: #e7a08f;
 }
+/* the question and answer opens the group after the chapters; the undated evidence closes it */
+.tl-rail button.is-answer {
+  margin-top: 8px;
+}
+.tl-rail button.is-answer + button.is-suspects {
+  margin-top: 0;
+}
+.tl-rail button.is-answer b,
+.tl-rail button.is-undated b {
+  font: 700 17px/1 var(--hand);
+}
 /* the current chapter names itself only when you reach for the index: at rest the rail is
    numerals only, so it never covers the page (the chapter's own card names it) */
 .tl-rail:hover button.is-on span {
@@ -3015,6 +3026,13 @@ kbd {
   max-height: 46vh;
   object-fit: contain;
   background: #1c1b19;
+}
+/* a sketch is paper, not a print: no dark mat around it, just the sheet at its own width */
+.d-drawing img {
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+  background: none;
 }
 .d-photo-empty {
   display: grid;

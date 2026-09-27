@@ -406,6 +406,33 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   // Switching views: remember the wall's camera, frame the timeline, and come back to the same spot.
   const wallCam = useRef<Camera | null>(null);
   const [settling, setSettling] = useState(false);
+  /** The timeline framed like a page: the case's name at the top, every chapter's width in view if
+   *  that leaves the type readable (otherwise from the left edge, the rest a scroll away). */
+  const frameTimeline = () => {
+    const timeline = timelineLayout;
+    if (!(timeline.chapters.length || timeline.aside || timeline.answer || timeline.suspects)) return;
+    const b = timeline.bounds;
+    // Clear of the case folders on the left and the chapter index on the right. (On a phone the
+    // index sits above the page, but the folders still stand at the left edge.)
+    const phone = stage.w < 760;
+    const trayW = TRAY_W;
+    const room = phone ? stage.w - TRAY_W - 12 : stage.w - TRAY_W - 80 - RAIL_W;
+    // Capped where the taped-on labels are fully up; floored where the cord's type is still readable.
+    const zoom = clampZ(Math.min(0.5, Math.max(room / (b.x1 - b.x0), phone ? 0.22 : 0.3)));
+    const fitsW = (b.x1 - b.x0) * zoom <= room;
+    const x = fitsW ? (b.x0 + b.x1) / 2 - trayW / 2 / zoom : b.x0 + (stage.w / 2 - trayW - (phone ? 10 : 40)) / zoom;
+    const fitsH = (b.y1 - b.y0) * zoom <= stage.h - 150;
+    const y = fitsH ? (b.y0 + b.y1) / 2 - 10 / zoom : b.y0 + (stage.h / 2 - 100) / zoom;
+    flyTo({ zoom, x, y }, 900);
+  };
+  // the notepad opening or folding changes the page's width: frame the timeline for the new one
+  const stageW = useRef(stage.w);
+  useEffect(() => {
+    if (stageW.current === stage.w) return;
+    stageW.current = stage.w;
+    if (mode === "timeline") frameTimeline();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage.w]);
   const prevMode = useRef<typeof mode | null>(null);
   useEffect(() => {
     if (!settling) return;
@@ -422,23 +449,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     setSettling(true);
     if (mode === "timeline") {
       wallCam.current = from === null ? { ...c.camera } : { ...camRef.current };
-      // Read it like a page: the case's name at the top, every chapter's width in view, from the top down.
-      if (timeline && (timeline.chapters.length || timeline.aside)) {
-        const b = timeline.bounds;
-        // Clear of the case folders on the left and the chapter index on the right. (On a phone the
-        // index sits above the page, but the folders still stand at the left edge.)
-        const phone = stage.w < 760;
-        const trayW = TRAY_W;
-        const room = phone ? stage.w - TRAY_W - 12 : stage.w - TRAY_W - 80 - RAIL_W;
-        // The page's full width at a size you can read, from the top; the rest is a scroll away.
-        // (Capped where the taped-on labels are fully up, never halfway through their fade.)
-        const zoom = clampZ(Math.min(0.5, room / (b.x1 - b.x0)));
-        const fitsW = (b.x1 - b.x0) * zoom <= room;
-        const x = fitsW ? (b.x0 + b.x1) / 2 - trayW / 2 / zoom : b.x0 + (stage.w / 2 - trayW - (phone ? 10 : 40)) / zoom;
-        const fitsH = (b.y1 - b.y0) * zoom <= stage.h - 150;
-        const y = fitsH ? (b.y0 + b.y1) / 2 - 10 / zoom : b.y0 + (stage.h / 2 - 100) / zoom;
-        flyTo({ zoom, x, y }, 900);
-      }
+      frameTimeline();
     } else {
       flyTo(wallCam.current ?? c.camera, 900);
       wallCam.current = null;
@@ -588,16 +599,25 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
 
   // ---- Reading the timeline chapter by chapter ----
   const chapterStarts = useMemo(() => timelineLayout.chapters.filter((ch) => !ch.continued), [timelineLayout]);
-  /** The chapter under the upper part of the screen: the one being read. */
+  /** The timeline's sections in reading order, each a stop for [ ] and the index: the chapters, then
+   *  the question and answer (-3), the most likely suspects (-1) and the undated evidence (-2). */
+  const sections = useMemo(() => {
+    const t = timelineLayout;
+    const list: { key: number; y: number }[] = chapterStarts.map((ch, i) => ({ key: ch.n, y: i === 0 && t.heading ? t.heading.y : ch.y }));
+    if (t.answer) list.push({ key: -3, y: t.answer.y });
+    if (t.suspects) list.push({ key: -1, y: t.suspects.y });
+    if (t.aside) list.push({ key: -2, y: t.aside.y });
+    return list;
+  }, [timelineLayout, chapterStarts]);
+  /** The section under the upper part of the screen: the one being read. */
   const readingChapter = useMemo(() => {
-    const y = cam.y + (stage.h * 0.4 - stage.cy) / cam.zoom;
-    // past the chapters, in the suspects' tray: no chapter is the one being read (-1)
-    const tray = timelineLayout.suspects;
-    if (tray && y >= tray.y) return -1;
-    let n = chapterStarts[0]?.n ?? 0;
-    for (const ch of chapterStarts) if (ch.y <= y) n = ch.n;
-    return n;
-  }, [cam.y, cam.zoom, stage.h, stage.cy, chapterStarts, timelineLayout.suspects]);
+    // read from near the top of the screen (just under the tabs, where a section lands when you go to
+    // it), so a short section like the question and answer counts as read while it's up there
+    const y = cam.y + (150 - stage.cy) / cam.zoom;
+    let key = sections[0]?.key ?? 0;
+    for (const sec of sections) if (sec.y <= y) key = sec.key;
+    return key;
+  }, [cam.y, cam.zoom, stage.h, stage.cy, sections]);
   /** The key moments in time order, for the story line under the heading. */
   const story = useMemo(() => storyMoments(timelineLayout.moments), [timelineLayout]);
   const goToMoment = useCallback(
@@ -627,13 +647,22 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   const aimedChapter = useRef<{ n: number; until: number } | null>(null);
   const goToChapter = useCallback(
     (n: number) => {
-      const ch = chapterStarts.find((c2) => c2.n === n);
-      if (!ch) return;
+      const sec = sections.find((x) => x.key === n);
+      if (!sec) return;
       aimedChapter.current = { n, until: performance.now() + 800 };
       const k = camRef.current;
-      flyTo({ ...k, y: (n === chapterStarts[0].n && timelineLayout.heading ? timelineLayout.heading.y : ch.y) + (stage.cy - 110) / k.zoom }, 700);
+      flyTo({ ...k, y: sec.y + (stage.cy - 110) / k.zoom }, 700);
     },
-    [chapterStarts, timelineLayout, stage.cy, flyTo],
+    [sections, stage.cy, flyTo],
+  );
+  /** The section before or after one, in reading order. */
+  const stepSection = useCallback(
+    (from: number, by: 1 | -1) => {
+      const i = sections.findIndex((x) => x.key === from);
+      const next = sections[Math.max(0, Math.min(sections.length - 1, (i < 0 ? 0 : i) + by))];
+      if (next) goToChapter(next.key);
+    },
+    [sections, goToChapter],
   );
 
   useEffect(() => {
@@ -649,14 +678,14 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
       else if ((e.key === "]" || e.key === "PageDown" || e.key === "[" || e.key === "PageUp") && useStore.getState().view === "timeline") {
         e.preventDefault();
         const aimed = aimedChapter.current && performance.now() < aimedChapter.current.until ? aimedChapter.current.n : readingChapter;
-        goToChapter(aimed + (e.key === "]" || e.key === "PageDown" ? 1 : -1));
+        stepSection(aimed, e.key === "]" || e.key === "PageDown" ? 1 : -1);
       }
       else if (e.key === "+" || e.key === "=") zoomAt({ x: stage.cx, y: stage.cy }, clampZ(camRef.current.zoom * 1.2));
       else if (e.key === "-") zoomAt({ x: stage.cx, y: stage.cy }, clampZ(camRef.current.zoom / 1.2));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [placed, stage, zoomAt, flyTo, pageFrame, store, goToChapter, readingChapter]);
+  }, [placed, stage, zoomAt, flyTo, pageFrame, store, stepSection, readingChapter]);
 
   // ---- Grabbing notes and pins ----
   const [grab, setGrab] = useState<Grab | null>(null);
@@ -903,17 +932,24 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     const gaps: boolean[] = t.gaps.map(() => true);
     const k = cam.zoom;
     const span = (label: string) => ((label.length * 8.9 + 36) * tagScale) / k;
+    // A tag may drop its year only after a shown tag of the same year: when the one before it is
+    // hidden, it spells the year out (and is measured that way).
+    const labels: string[] = t.stops.map((st) => st.full);
     const order = t.stops.map((st, i) => ({ st, i })).sort((a, b) => a.st.y - b.st.y || a.st.x - b.st.x);
-    let prev: { x: number; y: number } | null = null;
+    let prev: (typeof t.stops)[number] | null = null;
     for (const { st, i } of order) {
-      if (prev && prev.y === st.y && st.x - span(st.label) - 11 * tagScale / k < prev.x + 4 / k) stops[i] = false;
-      else prev = st;
+      const label = prev && prev.y === st.y && prev.year === st.year ? st.label : st.full;
+      if (prev && prev.y === st.y && st.x - span(label) - 11 * tagScale / k < prev.x + 4 / k) stops[i] = false;
+      else {
+        prev = st;
+        labels[i] = label;
+      }
     }
     t.gaps.forEach((g, gi) => {
       const half = ((g.label.length * 8 + 30) * tagScale) / k / 2;
-      gaps[gi] = !t.stops.some((st, i) => stops[i] && st.y === g.y && st.x - span(st.label) < g.x + half && st.x > g.x - half);
+      gaps[gi] = !t.stops.some((st, i) => stops[i] && st.y === g.y && st.x - span(labels[i]) < g.x + half && st.x > g.x - half);
     });
-    return { stops, gaps };
+    return { stops, gaps, labels };
   }, [timelineLayout, cam.zoom, tagScale]);
   // Far away, the paper's own type is too small to read: tape a marker label over each note.
   // A short cross-fade, so a resting camera never shows both the label and the paper's own type.
@@ -1294,7 +1330,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                 )}
               </div>
             )}
-            {(chapterStarts.length > 1 || (timeline.suspects && timelineSuspects.length > 0)) && (
+            {sections.length > 1 && (
               <nav className="tl-rail" style={{ left: stage.cx + stage.w / 2 - 18, top: stage.cy }} aria-label={t("Chapters")}>
                 {chapterStarts.length > 1 &&
                   chapterStarts.map((ch) => (
@@ -1303,15 +1339,23 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                       <span>{ch.title ?? ch.range}</span>
                     </button>
                   ))}
+                {/* after the chapters: the question and answer, the suspects, the undated evidence */}
+                {timeline.answer && (
+                  <button className={`is-answer ${readingChapter === -3 ? "is-on" : ""}`} onClick={() => goToChapter(-3)} title={t("The question and the answer")}>
+                    <b aria-hidden>∴</b>
+                    <span>{t("The question and the answer")}</span>
+                  </button>
+                )}
                 {timeline.suspects && timelineSuspects.length > 0 && (
-                  // after the chapters, the most likely suspects' section
-                  <button
-                    className={`is-suspects ${readingChapter === -1 ? "is-on" : ""}`}
-                    onClick={() => flyTo({ ...camRef.current, y: timeline.suspects!.y + (stage.cy - 110) / camRef.current.zoom }, 700)}
-                    title={t("Most likely suspects")}
-                  >
+                  <button className={`is-suspects ${readingChapter === -1 ? "is-on" : ""}`} onClick={() => goToChapter(-1)} title={t("Most likely suspects")}>
                     <b aria-hidden>1</b>
                     <span>{t("Most likely suspects")}</span>
+                  </button>
+                )}
+                {timeline.aside && (
+                  <button className={`is-undated ${readingChapter === -2 ? "is-on" : ""}`} onClick={() => goToChapter(-2)} title={t("Undated evidence")}>
+                    <b aria-hidden>?</b>
+                    <span>{t("Undated evidence")}</span>
                   </button>
                 )}
               </nav>
@@ -1342,7 +1386,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
               const p = toScreen(st);
               return (
                 <div key={`stop-${i}`} className="tl-stop" style={{ left: p.x, top: p.y, transform: `scale(${tagScale}) translate(calc(-100% - 11px), -50%)` }}>
-                  {st.label}
+                  {cordVisible.labels[i]}
                 </div>
               );
             })}
@@ -1373,6 +1417,23 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
                 onPick={goToFile}
                 dimmed={timelineSuspects.every((n) => dim(n.id))}
               />
+            )}
+            {timeline.answer && (
+              <div
+                className="tl-chapter is-aside is-answer"
+                style={{ left: toScreen({ x: timeline.answer.x + 70, y: timeline.answer.y + 44 }).x, top: toScreen({ x: 0, y: timeline.answer.y + 44 }).y, transform: `scale(${cam.zoom})` }}
+              >
+                <div className="tl-ch-no">
+                  <small>{t("The case")}</small>
+                  <b>∴</b>
+                </div>
+                <div className="tl-ch-text">
+                  <h3>{t("The question and the answer")}</h3>
+                  <p>
+                    <span>{t("where the evidence leads, so far")}</span>
+                  </p>
+                </div>
+              </div>
             )}
             {timeline.aside && (
               <div

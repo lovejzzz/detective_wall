@@ -177,6 +177,10 @@ describe("the section on the wall and the timeline", () => {
     expect(tl.aside).not.toBeNull();
     expect(tl.suspects!.y).toBeLessThan(tl.aside!.y);
     for (const id of ["s5", "s4", "u3", "s2"]) expect(tl.slots.get(id)!.y).toBeLessThan(tl.aside!.y);
+    // the question and the answer have a section of their own, before the suspects, not in the undated pile
+    expect(tl.answer).not.toBeNull();
+    for (const id of ["q0", "c1"]) expect(tl.slots.get(id)!.y).toBeLessThan(tl.suspects!.y);
+    expect(tl.aside!.count).toBe(1);
     // without a ranking, the files wait with the rest of the undated evidence
     expect(layoutTimeline(notes.map((n) => (n.subject ? { ...n, subject: { ...n.subject, rank: undefined } } : n))).suspects).toBeNull();
   });

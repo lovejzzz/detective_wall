@@ -325,7 +325,7 @@ export const SETAGAYA_ZH: DemoTranslation = {
     "window>sVisitor": "攀爬符合陌生人作案",
     "hipBag>profile": "腰带与墨迹",
     "age>profile": "比衣物显示的年龄大",
-    "statute>verdict": "此案不会过时效",
+    "statute>verdict": "为什么此案永远不会过时效",
     "unsub>q": "我们要找的人",
     "sKnife>unsub": "与画像对照",
     "sRunner>unsub": "与画像对照",

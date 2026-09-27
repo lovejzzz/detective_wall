@@ -40,7 +40,9 @@ export interface TimelineChapter {
 export interface TimelineLayout {
   slots: Map<string, TimelineSlot>;
   /** One label per date on a cord. */
-  stops: { x: number; y: number; label: string }[];
+  /** Date tags on the cord. `label` drops the year when the tag before it shares it; `full` keeps it,
+   *  for when the tag before it is hidden (the page decides which tags fit, see Wall's cordVisible). */
+  stops: { x: number; y: number; label: string; full: string; year: string }[];
   /** Times of day, shown at a note's anchor when known. */
   times: { x: number; y: number; label: string; above: boolean }[];
   /** Long silences between dated groups in the same row. */
@@ -53,6 +55,9 @@ export interface TimelineLayout {
   threads: { from: { x: number; y: number }; to: { x: number; y: number } }[];
   /** The tray of undated evidence after the last chapter: its band's top-left corner and size. */
   aside: { x: number; y: number; w: number; h: number; count: number } | null;
+  /** The case's question, its current answer and the comparison grid: undated, but not "evidence
+   * without a date". They get their own tray after the chapters, before the suspects. */
+  answer: { x: number; y: number; w: number; h: number; count: number } | null;
   /** When the case ranks its most likely suspects, the subject files get their own tray before the
    * undated evidence, headed by the card that lists them: its top-left corner and size. */
   suspects: { x: number; y: number; w: number; h: number } | null;
@@ -248,7 +253,14 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
   // With a ranking, the subject files are a section of their own (the most likely first).
   const ranked = rankedSuspects(loose).length;
   const files = ranked ? bySuspicion(loose.filter((n) => n.type === "subject")) : [];
-  const undated = loose.filter((n) => !files.includes(n));
+  // the question (the first card up, an undated hunch), the answer and the grid read together
+  const first = [...notes].sort((a, b) => a.createdAt - b.createdAt)[0];
+  const answerCards = [
+    ...loose.filter((n) => n === first && n.type === "hypothesis"),
+    ...loose.filter((n) => n.type === "conclusion"),
+    ...loose.filter((n) => n.diagram?.kind === "matrix"),
+  ];
+  const undated = loose.filter((n) => !files.includes(n) && !answerCards.includes(n));
 
   const groups = groupByDay(dated);
 
@@ -405,7 +417,7 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
       group.forEach((n, i) => {
         const { cx, side } = place(n, i === 0 ? minAnchor : row.maxAnchor);
         if (i === 0) {
-          row.stops.push({ x: cx, y: 0, label });
+          row.stops.push({ x: cx, y: 0, label, full: whenLabel(day, group.every((g) => g.approx), false), year });
           row.tagEnd = cx;
           row.tagYear = year;
         }
@@ -461,6 +473,7 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
     nextTop = bottom + ROW_GAP + PAD;
     return { x: left, y: sectionTop, w: Math.max(right - left, span + PAD * 2), h: bottom - sectionTop + PAD };
   };
+  const answer: TimelineLayout["answer"] = answerCards.length ? { ...tray(answerCards, CHAPTER_HEAD), count: answerCards.length } : null;
   const suspects: TimelineLayout["suspects"] = files.length ? tray(files, plaqueRoom(ranked) + PAD) : null;
   const aside: TimelineLayout["aside"] = undated.length ? { ...tray(undated, CHAPTER_HEAD), count: undated.length } : null;
 
@@ -490,12 +503,13 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
     heading,
     threads,
     aside,
+    answer,
     suspects,
     moments,
     bounds: {
       x0: left,
       y0: heading ? heading.y : 0,
-      x1: Math.max(right, aside ? aside.x + aside.w : right, suspects ? suspects.x + suspects.w : right, heading ? left + Math.max(headingWidth(heading.title), storyN * heading.step + 130) : right),
+      x1: Math.max(right, aside ? aside.x + aside.w : right, answer ? answer.x + answer.w : right, suspects ? suspects.x + suspects.w : right, heading ? left + Math.max(headingWidth(heading.title), storyN * heading.step + 130) : right),
       y1: bottom,
     },
   };
