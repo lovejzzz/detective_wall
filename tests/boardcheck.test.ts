@@ -158,3 +158,38 @@ describe("the wall as the partner reads it", () => {
     expect(text).toContain("Board check: in order.");
   });
 });
+
+describe("the answer's people have files", () => {
+  it("asks for a file for a name in the conclusion that none carries, and only for names", async () => {
+    const { namesIn } = await import("../server/prompt.ts");
+    expect(namesIn("McAvoy 与 Robinson 策划；余金多半已熔售洗白")).toEqual(["McAvoy", "Robinson"]);
+    expect(namesIn("Most likely: one man who knew the house, on no Japanese file")).toEqual([]);
+    expect(namesIn("Reissfelder and DiMuzio for Merlino; O'Brien cleared")).toEqual(["Reissfelder", "DiMuzio", "Merlino", "O'Brien"]);
+    const wall = (title: string, files: string[]) =>
+      renderWallState({
+        caseTitle: "Brink's-Mat",
+        notes: [
+          note("q", "hypothesis", { by: "user", title: "Brink's-Mat: who planned it?" }),
+          note("c", "conclusion", { title, stamp: "LIKELY" }),
+          ...files.map((t, i) => note(`s${i}`, "subject", { title: t, rank: i + 1 })),
+        ],
+        links: [],
+        messages: [],
+      });
+    expect(wall("McAvoy 与 Robinson 策划", ["Micky McAvoy：劫案首领"])).toContain("c names Robinson, with no subject file");
+    expect(wall("McAvoy 与 Robinson 策划", ["Micky McAvoy", "Brian Robinson"])).not.toContain("with no subject file");
+  });
+});
+
+describe("a question about who", () => {
+  it("is answered with files this turn", async () => {
+    const { asksWho } = await import("../server/prompt.ts");
+    expect(asksWho("Brink's-Mat 金砖劫案：谁策划的？剩下那一半金子去了哪里？")).toBe(true);
+    expect(asksWho("Who killed the Miyazawa family?")).toBe(true);
+    expect(asksWho("那两个假扮警察的人到底是谁？")).toBe(true);
+    expect(asksWho("找几张现场照片")).toBe(false);
+    expect(asksWho("What happened on the pass?")).toBe(false);
+    const text = renderWallState({ caseTitle: "X", notes: [], links: [], messages: [{ role: "user", text: "谁策划的？" }] });
+    expect(text).toContain("This question asks who");
+  });
+});

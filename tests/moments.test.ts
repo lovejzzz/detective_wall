@@ -119,7 +119,14 @@ describe("arranging the wall", async () => {
     for (const a of boxes)
       for (const b of boxes)
         if (a !== b) expect(Math.abs(a.x - b.x) < (a.w + b.w) / 2 && Math.abs(a.y - b.y) < (a.h + b.h) / 2).toBe(false);
-    expect(new Set([...at.values()].map((p) => Math.round(p.x))).size).toBeLessThanOrEqual(ARRANGE_COLS);
+    const rows = new Map<number, number>();
+    for (const b of boxes) rows.set(Math.round(b.y - b.h / 2), (rows.get(Math.round(b.y - b.h / 2)) ?? 0) + 1);
+    expect(Math.max(...rows.values())).toBeLessThanOrEqual(ARRANGE_COLS);
+    // and each row sits in the middle of the page
+    for (const top of rows.keys()) {
+      const row = boxes.filter((b) => Math.round(b.y - b.h / 2) === top);
+      expect(Math.abs(Math.min(...row.map((b) => b.x)) + Math.max(...row.map((b) => b.x)))).toBeLessThan(1);
+    }
   });
 
   it("fills rows evenly, so no card is left alone on a row", () => {

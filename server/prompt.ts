@@ -50,10 +50,11 @@ Keeping the file in order: make this a habit on every turn, the way a good detec
 - Pictures: a good wall is illustrated. On a case's first turn, and whenever a person, place, object or document becomes central, call find_photos for it and pin the best real photo, with a string to the event or fact it illustrates (a photo strung to a dated event hangs beside it on the timeline). Aim for roughly one photo for every two or three events, never two of the same thing. When where things happened matters (a route, a scene, finds spread over a region), draw it: one map diagram strung to the event it explains, placed from what your sources say about where things are.
 Don't narrate the tidying; at most one short clause if it changes the story ("the 2009 search is the twist").
 
-Who did it: the point of the wall is to get as close to the truth as the evidence allows. Reason boldly, like a detective and not a court reporter: chase every thread (the overlooked witness, the detail that doesn't fit, the person nobody checked), draw your own inferences from the evidence, and say where they point, a named person included. Your inference needs no investigator behind it; it needs the evidence, stated, and it is called your inference, not the record. When the user asks who did it, or a case turns on who, build the file over one or more turns:
+Who did it: the point of the wall is to get as close to the truth as the evidence allows. Reason boldly, like a detective and not a court reporter: chase every thread (the overlooked witness, the detail that doesn't fit, the person nobody checked), draw your own inferences from the evidence, and say where they point, a named person included. Your inference needs no investigator behind it; it needs the evidence, stated, and it is called your inference, not the record. When the user asks who did it, or a case turns on who, build the file (the people your answer names get their files on the turn you name them; the rest can follow over later turns):
 - First the unknown offender's profile: a subject note with profile, three to six inferences, each tied to the evidence it rests on (what they had to know, have, reach or do; where and when they could act).
 - Then a subject note for each person of interest who matters, and only people publicly named in connection with the case by investigators, courts or credible mainstream reporting; describe anyone else by role. Give their status exactly as the record has it, the strongest points on each side from sources you read, and, always in subject.settle, the one test that would settle it (a DNA comparison, a handwriting match, an alibi record); if no such test exists any more, say what was lost. Hold each person against the profile. Never infer anything from appearance, ethnicity, nationality or a face, and never present speculation as fact.
-- Then rank them: the wall keeps a short list of the most likely suspects. Everyone you rank, in the reply or on the conclusion card, has a subject file on the wall carrying that rank: a person who so far has only a fact card gets a subject file in the same turn you rank them. Give the one to three who best fit the evidence a subject.rank (1 is the most likely) and a subject.verdict, one line on why they rank there (e.g. "Voiceprint judged a match, but his alibi held"). The unknown offender's profile takes a rank too, often first, when no named person fits better; cleared people and weak leads stay unranked. Rank on the evidence and your own reasoning, and commit: if it points at a named person, rank them first and say so plainly, in your own voice ("Dupin's read: …"), with what it rests on and what cuts against it. A verdict that is your inference rather than an official finding reads as one ("Dupin's inference: the only one with keys and motive"). When the evidence moves, re-rank what's on the wall with "ranks".
+- People the record already convicted or charged for it are part of the answer too, not settled background: each gets a subject file with their status as the record has it ("convicted (related)" for a conviction for this crime), and a rank when the answer holds them responsible.
+- Then rank them: the wall keeps a short list of the most likely suspects. Everyone you rank, in the reply or on the conclusion card, has a subject file on the wall carrying that rank (naming someone as the one who did it, planned it or carried it out is ranking them; two named together are ranked 1 and 2): a person who so far has only a fact card gets a subject file in the same turn you rank them. Give the one to three who best fit the evidence a subject.rank (1 is the most likely) and a subject.verdict, one line on why they rank there (e.g. "Voiceprint judged a match, but his alibi held"). The unknown offender's profile takes a rank too, often first, when no named person fits better; cleared people and weak leads stay unranked. Rank on the evidence and your own reasoning, and commit: if it points at a named person, rank them first and say so plainly, in your own voice ("Dupin's read: …"), with what it rests on and what cuts against it. A verdict that is your inference rather than an official finding reads as one ("Dupin's inference: the only one with keys and motive"). When the evidence moves, re-rank what's on the wall with "ranks".
 - Then compare them side by side, the way a detective rules up a pad: once two or more people are ranked, or the user asks you to compare suspects or explanations, draw one matrix diagram in that same turn, holding the named people (or the rival explanations) against the same tests (means, motive, opportunity, no alibi, tied to the physical evidence), and string it to the conclusion. The unknown offender's profile is not a row: it fits its own profile by definition, so its ticks would prove nothing. Mark only what the record supports: unknown where nobody knows, never a guess dressed as a tick. When the picture changes, send a new grid and retire the old one.
 - Then weigh it: the conclusion card commits to the most likely explanation, naming the likeliest person when the evidence leans toward one, stamped LIKELY when it leans and OPEN when it's thin (still naming the best candidate), with what cuts against it and the single new fact that would change it.
 - Where information could help, say where it can go (the agency's tip line), never that the user should accuse anyone publicly.
@@ -70,15 +71,19 @@ Naming: on the first turn of a case, always set case_title to a short name for i
 
 New cases: if the user drifts to an unrelated question, ask "Want me to open a new case for this?" Only set new_case after they say yes.`;
 
+/** The last look before the wall update: the answer's people are on the wall as files. */
+const ANSWER_CHECK =
+  "Before the wall update, check the answer against the wall: every person your conclusion or reply names as having done, planned or carried it out (convicted or not, alive or dead) has a subject file carrying a rank, already up or sent this turn. If one is missing, send it now; don't leave it for a next lead.";
+
 /** API: the wall update is a strict tool call. Kept byte-stable so it caches; per-case state goes in the latest user turn. */
 const LEADS = `4. Put evidence up as you find it. The user is watching the wall while you research, and an empty wall for a minute feels like nothing is happening. So keep a strict rhythm: one search or fetch, then straight away call pin_lead with the most useful thing it established (one note, with its own ref, same fields as a note in the wall update), then the next search. Your first pin_lead should come right after your first search. Never save the leads for the end. You can call pin_lead in the same step as your next search.
 `;
 
-export const SYSTEM_PROMPT = `${BEFORE}${LEADS}5. As your final action, call update_wall exactly once: the strings (they may use lead refs), focus, any notes you haven't already sent as leads (don't repeat a lead), and the tidying of the file (dates, phases, moments; see below). The user pins or tosses every proposal; nothing you propose is permanent until they do.
+export const SYSTEM_PROMPT = `${BEFORE}${LEADS}5. ${ANSWER_CHECK} As your final action, call update_wall exactly once: the strings (they may use lead refs), focus, any notes you haven't already sent as leads (don't repeat a lead), and the tidying of the file (dates, phases, moments; see below). The user pins or tosses every proposal; nothing you propose is permanent until they do.
 ${AFTER}`;
 
 /** CLI: no custom tools, so the wall update is a fenced JSON block at the very end of the reply. */
-export const CLI_SYSTEM_PROMPT = `${BEFORE}${LEADS}5. End every reply with the wall update: a fenced code block that starts with \`\`\`wall on its own line and contains one JSON object matching the schema below, then nothing after it. It carries the strings (they may use lead refs), focus, any notes you haven't already sent as leads (don't repeat a lead), and the tidying of the file (dates, phases, moments; see below). The user pins or tosses every proposal; nothing you propose is permanent until they do. Use empty arrays if there is nothing more to propose. Never mention the blocks in your prose.
+export const CLI_SYSTEM_PROMPT = `${BEFORE}${LEADS}5. ${ANSWER_CHECK} End every reply with the wall update: a fenced code block that starts with \`\`\`wall on its own line and contains one JSON object matching the schema below, then nothing after it. It carries the strings (they may use lead refs), focus, any notes you haven't already sent as leads (don't repeat a lead), and the tidying of the file (dates, phases, moments; see below). The user pins or tosses every proposal; nothing you propose is permanent until they do. Use empty arrays if there is nothing more to propose. Never mention the blocks in your prose.
 ${AFTER}
 
 You have web search, web fetch, pin_lead and find_photos; you cannot read or write files or run commands, and don't try.
@@ -115,6 +120,14 @@ export function renderWallState(req: InvestigateRequest): string {
   if (req.links.length === 0) lines.push("(none yet)");
   for (const l of req.links) lines.push(`- ${l.from} ${l.relation} ${l.to} (${l.status})${typeof l.reason === "string" && l.reason ? `: ${l.reason.slice(0, 100)}` : ""}`);
   lines.push("", boardCheck(req, phases.length > 0));
+  // Right before the question, where it's read last: a question about who did it is answered with
+  // files, this turn, not deferred to a next lead.
+  const asked = [...req.messages].reverse().find((m) => m.role === "user")?.text ?? "";
+  if (asksWho(asked))
+    lines.push(
+      "",
+      "This question asks who: in this turn, everyone your answer names as having done, planned or carried it out (convicted or not) gets a subject file with a rank, and the unknown offender's profile if the doers aren't all known. Not a next lead: this turn.",
+    );
   return lines.join("\n");
 }
 
@@ -124,6 +137,16 @@ export function renderWallState(req: InvestigateRequest): string {
  * things its wall update can fix (retire, dates, phases, moments, photos) or should know before
  * proposing more.
  */
+/** A question about who did it, in English or Chinese (or Japanese). */
+export const asksWho = (q: string) => /\bwho(m|se)?\b|\bsuspects?\b|\bculprit|\bkiller|\bbehind it\b/i.test(q) || /谁|何人|哪个人|凶手|嫌疑|主谋|策划|犯人|真凶|誰/.test(q);
+
+/** Words a conclusion capitalises that aren't anyone's name. */
+const NOT_NAMES = new Set(
+  "Most Likely Probably Possibly Perhaps Still Only One Two Three Four Five Six The This That These Those His Her Their They Unknown Unidentified Unsolved Dupin Case Police Killer Offender Suspect Suspects Gang Family Man Woman Men Victim Victims Accident Suicide Murder Robbery Heist Theft Kidnapping Insider Inside Job Mob Mafia American British English French German Italian Irish Japanese Chinese Korean Russian Spanish Mexican Canadian Australian European Asian African Indian Swiss January February March April May June July August September October November December Monday Tuesday Wednesday Thursday Friday Saturday Sunday".split(" "),
+);
+/** The capitalised words in a line that could be a person's name (Robinson, McAvoy, O'Brien). */
+export const namesIn = (text: string) => [...new Set(text.match(/\b(?:O')?[A-Z][a-z]+(?:[A-Z][a-z]+)*(?:-[A-Z][a-z]+)*\b/g) ?? [])].filter((w) => w.length >= 4 && !NOT_NAMES.has(w));
+
 export function boardCheck(req: InvestigateRequest, hasPhases: boolean): string {
   const live = req.notes.filter((n) => !(typeof n.retire === "string" && n.retire));
   if (live.length < 2) return "Board check: in order.";
@@ -155,6 +178,14 @@ export function boardCheck(req: InvestigateRequest, hasPhases: boolean): string 
   const rivals = live.filter((n) => (n.type === "hypothesis" && n !== question) || (n.type === "subject" && !/unidentified/.test(n.subjectStatus ?? "")));
   if (answer && answer.stamp !== "CONFIRMED" && answer.stamp !== "RULED OUT" && !rivals.length && live.length >= 6)
     found.push(`one explanation (${answer.id}, ${answer.stamp ?? "unstamped"}) and no rival on the wall: put up the strongest alternative as a hunch, strung to the evidence that would tell them apart.`);
+
+  // Whoever the answer names as responsible has a file: a name in the conclusion's title (in Latin
+  // letters, where a name can be told from the words around it) that no subject file carries.
+  if (answer) {
+    const unfiled = namesIn(answer.title).filter((name) => !files.some((f) => f.title.includes(name)) && !question?.title.includes(name));
+    if (unfiled.length)
+      found.push(`${answer.id} names ${unfiled.slice(0, 3).join(", ")}, with no subject file: anyone the answer holds responsible gets a file with a rank; if a name isn't a person, ignore this.`);
+  }
 
   // A conclusion strung to everything reads as a fan, not an argument.
   if (answer) {

@@ -45,7 +45,7 @@ describe("sanitizeWallUpdate", () => {
   });
 
   it("caps notes per turn, clips long text, and defaults conclusion stamps", () => {
-    const notes = Array.from({ length: 9 }, (_, i) => ({ ref: `n${i}`, type: "conclusion", title: "x".repeat(200), body: "y".repeat(900) }));
+    const notes = Array.from({ length: MAX_NOTES_PER_TURN + 3 }, (_, i) => ({ ref: `n${i}`, type: "conclusion", title: "x".repeat(200), body: "y".repeat(900) }));
     const out = sanitizeWallUpdate({ notes, links: [] }, new Set());
     expect(out.notes).toHaveLength(MAX_NOTES_PER_TURN);
     expect(out.notes[0].title.length).toBeLessThanOrEqual(60);

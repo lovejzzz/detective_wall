@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useStore } from "../store.ts";
 import { BEAT_LABEL, type Case, type GridMark, type Note } from "../lib/types.ts";
-import { rankedSuspects, sayVerdict, isSettled } from "../lib/suspects.ts";
+import { plaqueSuspects, sayVerdict, isSettled } from "../lib/suspects.ts";
 import { caseNumbers, caseStats, caseTitle, fileNo } from "../lib/cases.ts";
 import { whenLabel } from "../lib/when.ts";
 import { byTime } from "../lib/timeline.ts";
@@ -57,7 +57,8 @@ export function CaseBrief({ c }: { c: Case }) {
     const byAge = [...c.notes].sort((a, b) => a.createdAt - b.createdAt);
     const question = byAge[0]?.type === "hypothesis" ? byAge[0] : null;
     const answer = newest(pinned.filter((n) => n.type === "conclusion"));
-    const ranked = rankedSuspects(pinned);
+    // the ranking as Dupin has it, the files still waiting on the wall marked as such
+    const ranked = plaqueSuspects(c.notes.filter((n) => !n.retire));
     const grid = newest(pinned.filter((n) => n.diagram?.kind === "matrix"));
     const moments = pinned
       .filter((n) => n.beat && n.when)
@@ -127,8 +128,11 @@ export function CaseBrief({ c }: { c: Case }) {
             <h2>{t("Most likely suspects")}</h2>
             <ol className="brief-suspects">
               {ranked.map((n) => (
-                <li key={n.id}>
-                  <b>{n.title}</b>
+                <li key={n.id} data-rank={n.subject!.rank} className={n.status === "proposed" ? "is-waiting" : ""}>
+                  <b>
+                    {n.title}
+                    {n.status === "proposed" && <i className="brief-waiting">{t("waiting")}</i>}
+                  </b>
                   {n.subject?.verdict && <span>{sayVerdict(n.subject.verdict)}</span>}
                   {n.subject?.settle && <small>{isSettled(n.subject.settle) ? n.subject.settle : t("Settle it: {test}", { test: n.subject.settle })}</small>}
                 </li>

@@ -5,7 +5,7 @@
 import type { Link, Note, Phase } from "./types.ts";
 import { NOTE_SIZE } from "./geometry.ts";
 import { byTime, chapters, groupByDay, hangers } from "./timeline.ts";
-import { plaqueRoom, rankedSuspects, suspectSection } from "./suspects.ts";
+import { plaqueRoom, plaqueSuspects, suspectSection } from "./suspects.ts";
 
 export const ARRANGE_COLS = 6;
 const CELL_W = 316; // the widest note (288) and a gap
@@ -36,7 +36,7 @@ export function arrangeWall(notes: Note[], links: Link[], phases?: Phase[]): Arr
   // unknown offender's profile if it isn't ranked, then everyone else on file.
   const { section: suspectFiles, others } = suspectSection(subjects);
   if (suspectFiles.length || grids.length) sections.push([...suspectFiles, ...grids]);
-  const suspects = rankedSuspects(subjects).length;
+  const suspects = plaqueSuspects(subjects).length;
   for (const ch of chapters(groupByDay(dated), phases)) sections.push(ch.groups.flat().flatMap((n) => [n, ...(hung.get(n.id) ?? [])]));
   // people looked at but not among the likeliest go with the evidence
   const evidence = [...others, ...loose.filter((n) => n.type !== "hypothesis")];
@@ -53,17 +53,23 @@ export function arrangeWall(notes: Note[], links: Link[], phases?: Phase[]): Arr
   }
 
   const out: Arrangement = new Map();
-  const x0 = (-(ARRANGE_COLS - 1) / 2) * CELL_W;
+  // Rows are filled evenly (seven cards read as 4 + 3, not 6 + 1), so no card sits alone.
+  const rowsOf = (section: Note[]) => {
+    const perRow = Math.ceil(section.length / Math.ceil(section.length / ARRANGE_COLS));
+    const rows: Note[][] = [];
+    for (let i = 0; i < section.length; i += perRow) rows.push(section.slice(i, i + perRow));
+    return rows;
+  };
   let y = 0;
   sections.forEach((section, si) => {
     if (si) y += SECTION_GAP;
     // the most likely suspects' section opens with its index card: leave room for it
     if (suspects && section[0]?.type === "subject") y += plaqueRoom(suspects);
-    // Rows are filled evenly (seven cards read as 4 + 3, not 6 + 1), so no card sits alone.
-    const perRow = Math.ceil(section.length / Math.ceil(section.length / ARRANGE_COLS));
-    for (let i = 0; i < section.length; i += perRow) {
-      const row = section.slice(i, i + perRow);
+    for (const row of rowsOf(section)) {
       const h = Math.max(...row.map((n) => NOTE_SIZE[n.type].h));
+      // every row centred on the page's axis, so a short row sits in the middle of the widest one:
+      // a small wall reads as a balanced page, not a column down its left edge with bare cork beside
+      const x0 = (-(row.length - 1) / 2) * CELL_W;
       row.forEach((n, col) => {
         // tops line up along the row, the way you'd pin a row of cards
         out.set(n.id, { x: x0 + col * CELL_W, y: y + NOTE_SIZE[n.type].h / 2, rotation: Math.max(-2.5, Math.min(2.5, n.rotation * 0.6)) });

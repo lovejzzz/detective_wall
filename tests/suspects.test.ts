@@ -129,6 +129,26 @@ describe("the partner ranks and re-ranks", () => {
     expect(byTitle("A").subject?.verdict).toBeUndefined();
   });
 
+  it("counts the files still waiting: one demoted below two new ones reads 3 until they're decided", async () => {
+    const { useStore } = await import("../src/store.ts");
+    const { plaqueSuspects } = await import("../src/lib/suspects.ts");
+    const s = () => useStore.getState();
+    s().newCase("Gardner");
+    const id = s().activeId!;
+    const file = (ref: string, title: string, rank: number) => ({ ref, type: "subject" as const, title, body: "", subject: { status: ["never charged" as const], for: ["x"], rank, verdict: title } });
+    s().applyTurn(id, { reply: "ok", update: { notes: [file("m", "Merlino", 1)], links: [] } });
+    const byTitle = (t: string) => s().cases[id].notes.find((n) => n.title === t)!;
+    s().pinAll([byTitle("Merlino").id]);
+    // the second turn: two new files above him, and he's moved down to 3
+    s().applyTurn(id, { reply: "ok", update: { notes: [file("r", "Reissfelder", 1), file("d", "DiMuzio", 2)], links: [], ranks: [{ note: byTitle("Merlino").id, rank: 3 }] } });
+    const plaque = () => plaqueSuspects(s().cases[id].notes).map((n) => `${n.subject!.rank} ${n.title} ${n.status}`);
+    expect(plaque()).toEqual(["1 Reissfelder proposed", "2 DiMuzio proposed", "3 Merlino pinned"]);
+    // tossing one closes the gap; pinning the other keeps the order
+    s().tossNote(byTitle("DiMuzio").id);
+    s().pinAll([byTitle("Reissfelder").id]);
+    expect(plaque()).toEqual(["1 Reissfelder pinned", "2 Merlino pinned"]);
+  });
+
   it("reads the ranking on the wall, and the board check asks for one", () => {
     const subject = (id: string, extra: object = {}) => ({ id, type: "subject" as const, status: "pinned", title: id, body: "", subjectStatus: "person of interest", ...extra });
     const unranked = renderWallState({ caseTitle: "X", notes: [subject("s1"), subject("s2")], links: [{ from: "s1", to: "s2", relation: "references", status: "pinned" }], messages: [] });

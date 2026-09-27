@@ -20,9 +20,11 @@ import {
   type Stamp,
 } from "./types.ts";
 
-export const MAX_NOTES_PER_TURN = 9;
-/** Places in a turn kept for the answer: evidence can't take them, only a conclusion or a subject file. */
-export const ANSWER_ROOM = 2;
+export const MAX_NOTES_PER_TURN = 11;
+/** Places in a turn kept for the answer: evidence can't take them, only a conclusion or a subject
+ *  file. Room for the conclusion and the files of the two or three people it names, so a turn that
+ *  answers who never has to choose between the answer and the people in it. */
+export const ANSWER_ROOM = 4;
 export const isAnswer = (type: unknown) => type === "conclusion" || type === "subject";
 export const MAX_LINKS_PER_TURN = 9;
 

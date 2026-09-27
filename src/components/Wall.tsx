@@ -4,7 +4,7 @@ import { markWallDrawn } from "../lib/boot.ts";
 import { livePose } from "../scene/live.ts";
 import * as THREE from "three";
 import { BEAT_LABEL, RELATIONS, type Camera, type Case, type Link, type Note } from "../lib/types.ts";
-import { PLAQUE, plaqueHeight, rankedSuspects, sayVerdict } from "../lib/suspects.ts";
+import { PLAQUE, plaqueHeight, plaqueSuspects, sayVerdict } from "../lib/suspects.ts";
 import { whenLabel } from "../lib/when.ts";
 import { NOTE_SIZE, pinPoint } from "../lib/geometry.ts";
 import { useStore } from "../store.ts";
@@ -327,7 +327,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     if (!n) return;
     const k = { x: n.x, y: n.y + 20, zoom: Math.max(camRef.current.zoom, 0.9) };
     // a file under the most likely suspects' card is shown with the card above it, clear of the tabs
-    const plaqueTop = n.type === "subject" && wallSuspects && rankedSuspects(placed).some((r) => r.id === n.id) ? wallSuspects.at.y : null;
+    const plaqueTop = n.type === "subject" && wallSuspects && wallSuspects.list.some((r) => r.id === n.id) ? wallSuspects.at.y : null;
     if (plaqueTop !== null) {
       const top = plaqueTop - 20;
       const bottom = n.y + NOTE_SIZE[n.type].h / 2 + 30;
@@ -896,14 +896,16 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   // (an arranged wall always does); in the timeline it heads their tray.
   const wallSuspects = (() => {
     if (timeline) return null;
-    const list = rankedSuspects(placed);
+    const list = plaqueSuspects(placed);
     if (!list.length) return null;
     const files = placed.filter((n) => n.type === "subject").map(live);
     const top = Math.min(...files.map((n) => n.y - NOTE_SIZE[n.type].h / 2));
     const row = files.filter((n) => n.y - NOTE_SIZE[n.type].h / 2 < top + 60);
-    const at = { x: Math.min(...row.map((n) => n.x - NOTE_SIZE[n.type].w / 2)), y: top - PLAQUE.gap - plaqueHeight(list.length) };
-    // as wide as the row of files it heads
-    const width = Math.max(PLAQUE.width, Math.max(...row.map((n) => n.x + NOTE_SIZE[n.type].w / 2)) - at.x);
+    const left = Math.min(...row.map((n) => n.x - NOTE_SIZE[n.type].w / 2));
+    const right = Math.max(...row.map((n) => n.x + NOTE_SIZE[n.type].w / 2));
+    // as wide as the row of files it heads, and over its middle when the row is the narrower
+    const width = Math.max(PLAQUE.width, right - left);
+    const at = { x: (left + right) / 2 - width / 2, y: top - PLAQUE.gap - plaqueHeight(list.length) };
     const box = { x0: at.x, y0: at.y, x1: at.x + width, y1: top - PLAQUE.gap / 2 };
     const clash = placed.some((n) => {
       if (n.type === "subject") return false;
@@ -913,7 +915,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
     });
     return clash ? null : { list, at, width };
   })();
-  const timelineSuspects = timeline?.suspects ? rankedSuspects(placed) : [];
+  const timelineSuspects = timeline?.suspects ? plaqueSuspects(placed) : [];
   // Whether the wall is being walked by keyboard (Tab), so the focused note shows where you are.
   const [kbFocus, setKbFocus] = useState(false);
   useEffect(() => {
@@ -1086,7 +1088,7 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
           <Timeline3D layout={timelineLayout} />
         </group>
         <group visible={!timeline}>
-          <Strings3D notes={essentials ? placed : c.notes} links={shownLinks} lit={hoverNet?.links ?? null} faded={fadedLinks} draft={draft} onOpenTag={timeline ? undefined : onOpenTag} />
+          <Strings3D notes={essentials ? placed : c.notes} links={shownLinks} lit={hoverNet?.links ?? null} faded={fadedLinks} quiet={farOpacity > 0.5} draft={draft} onOpenTag={timeline ? undefined : onOpenTag} />
         </group>
         <Dust view={view} rig={rig} />
         <Lens />
@@ -1511,10 +1513,14 @@ function SuspectsCard({ list, at, width, zoom, onPick, dimmed }: { list: Note[];
       </header>
       <ol>
         {list.map((n) => (
-          <li key={n.id}>
+          // a file Dupin ranked that's still waiting on the wall keeps its place, faded and marked
+          <li key={n.id} className={n.status === "proposed" ? "is-waiting" : ""}>
             <button onClick={() => onPick(n.id)} title={n.subject?.verdict ? t("{title}: {why}", { title: n.title, why: sayVerdict(n.subject.verdict) }) : n.title}>
               <b aria-hidden>{n.subject!.rank}</b>
-              <span className="who">{keepTogether(n.title)}</span>
+              <span className="who">
+                {keepTogether(n.title)}
+                {n.status === "proposed" && <i className="waiting">{t("waiting")}</i>}
+              </span>
               {n.subject?.verdict && <span className="why">{sayVerdict(n.subject.verdict)}</span>}
             </button>
           </li>

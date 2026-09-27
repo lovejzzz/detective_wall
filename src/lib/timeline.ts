@@ -2,7 +2,7 @@
 // the top, then one chapter per row, each with its own cord. Dated notes hang above and below
 // their chapter's cord in order, a photo strung to an event hangs with that event, long silences
 // are marked, and anything else undated waits in a tray at the end.
-import { plaqueRoom, rankedSuspects, suspectSection } from "./suspects.ts";
+import { plaqueRoom, plaqueSuspects, suspectSection } from "./suspects.ts";
 import type { Beat, Link, Note, Phase } from "./types.ts";
 import { NOTE_SIZE } from "./geometry.ts";
 import { isWhen, precisionOf, whenDay, whenKey, whenLabel, whenYears } from "./when.ts";
@@ -251,7 +251,7 @@ export function layoutTimeline(notes: Note[], links: Link[] = [], opts: { title?
   const hungIds = new Set([...hung.values()].flat().map((n) => n.id));
   const loose = undatedAll.filter((n) => !hungIds.has(n.id));
   // With a ranking, the subject files are a section of their own (the most likely first).
-  const ranked = rankedSuspects(loose).length;
+  const ranked = plaqueSuspects(loose).length;
   // (people looked at but not among the likeliest wait with the undated evidence)
   const files = ranked ? suspectSection(loose.filter((n) => n.type === "subject")).section : [];
   // the question (the first card up, an undated hunch), the answer and the grid read together

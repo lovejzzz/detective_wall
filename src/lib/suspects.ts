@@ -11,13 +11,12 @@ export function rankedSuspects(notes: Note[]): Note[] {
   return notes.filter((n) => n.type === "subject" && n.status === "pinned" && n.subject?.rank).sort(byRank);
 }
 
-/** Every subject file in reading order: the ranked ones by rank (proposals after the pinned), then
- * the unknown offender's profile, then the rest. */
+/** Every subject file in reading order: the ranked ones by rank (a file still waiting on the wall
+ * in its place, as the plaque lists it), then the unknown offender's profile, then the rest. */
 export function bySuspicion(subjects: Note[]): Note[] {
-  const ranked = rankedSuspects(subjects);
-  const proposed = subjects.filter((n) => n.status !== "pinned" && n.subject?.rank).sort(byRank);
-  const rest = subjects.filter((n) => !ranked.includes(n) && !proposed.includes(n));
-  return [...ranked, ...proposed, ...rest.filter((n) => n.subject?.profile?.length), ...rest.filter((n) => !n.subject?.profile?.length)];
+  const ranked = subjects.filter((n) => n.subject?.rank).sort(byRank);
+  const rest = subjects.filter((n) => !ranked.includes(n));
+  return [...ranked, ...rest.filter((n) => n.subject?.profile?.length), ...rest.filter((n) => !n.subject?.profile?.length)];
 }
 
 /**
@@ -34,13 +33,27 @@ export function suspectSection(subjects: Note[]): { section: Note[]; others: Not
 }
 
 /**
- * Keeps the ranking a clean 1, 2, 3 among the pinned files: a file pinned (or re-ranked) into a
- * place already taken goes in there and pushes the others down; gaps close up.
+ * The ranking as Dupin has it: every ranked file, pinned or still waiting on the wall, most likely
+ * first. The plaque lists these (the waiting ones marked), but only once a ranked file is pinned.
+ */
+export function plaqueSuspects(notes: Note[]): Note[] {
+  if (!rankedSuspects(notes).length) return [];
+  return notes.filter((n) => n.type === "subject" && n.subject?.rank).sort(byRank);
+}
+
+/**
+ * Keeps the ranking a clean 1, 2, 3, counting the files still waiting on the wall: when Dupin puts
+ * two new people above one already pinned, that one reads 3, not 1, while the user decides. A file
+ * ranked into a place already taken goes in there and pushes the others down; gaps close up (a
+ * waiting file tossed, a file taken down).
  */
 export function normalizeRanks(notes: Note[]): void {
-  rankedSuspects(notes).forEach((n, i) => {
-    n.subject!.rank = i + 1;
-  });
+  notes
+    .filter((n) => n.type === "subject" && n.subject?.rank)
+    .sort(byRank)
+    .forEach((n, i) => {
+      n.subject!.rank = i + 1;
+    });
 }
 
 /** The index card that heads the section, in wall units: a heading, then one line per ranked suspect. */

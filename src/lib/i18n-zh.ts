@@ -245,6 +245,7 @@ export const ZH: Record<string, string> = {
   "{n} leads waiting on the wall": "墙上有 {n} 条线索待定",
   "Pin what holds up, toss the rest.": "站得住的钉上，其余丢掉。",
   "Next lead:": "下一条线索：",
+  "waiting": "待定",
   "1 step before this": "此前还有 1 步",
   "{n} steps before this": "此前还有 {n} 步",
   "1 note to take down?": "1 张卡片建议取下",

@@ -22,7 +22,7 @@ function endpoints(a: Note, b: Note) {
   return [toThree(pa.x, pa.y, PIN_Z), toThree(pb.x, pb.y, PIN_Z)] as const;
 }
 
-function StringTube({ from, to, relation, proposed, lit, faded }: { from: THREE.Vector3; to: THREE.Vector3; relation: Relation; proposed: boolean; lit: boolean | null; faded?: boolean }) {
+function StringTube({ from, to, relation, proposed, lit, faded, quiet }: { from: THREE.Vector3; to: THREE.Vector3; relation: Relation; proposed: boolean; lit: boolean | null; faded?: boolean; quiet?: boolean }) {
   const { stringNormal, dash } = sharedTextures();
   const plain = useTier() === 2;
   const look = LOOK[relation];
@@ -56,7 +56,8 @@ function StringTube({ from, to, relation, proposed, lit, faded }: { from: THREE.
   // Hovering a note lights up its web a touch.
   material.emissiveIntensity = lit ? 0.35 : 0;
   // A string between cards the user isn't looking at fades with them.
-  material.color.set(proposed ? "#2a2826" : look.color).multiplyScalar(faded ? 0.3 : 1);
+  // Seen from afar the strings step back behind the labels (a card's own web still lights on hover).
+  material.color.set(proposed ? "#2a2826" : look.color).multiplyScalar(faded ? 0.3 : quiet && !lit ? 0.55 : 1);
   useEffect(() => () => geometry.dispose(), [geometry]);
   useEffect(() => () => material.dispose(), [material]);
   return <mesh geometry={geometry} material={material} castShadow />;
@@ -124,11 +125,13 @@ interface Props {
   lit: Set<string> | null;
   /** Strings to fade: both ends are outside what the user is looking at. */
   faded?: Set<string> | null;
+  /** The wall seen from afar, its labels up: every string a shade quieter. */
+  quiet?: boolean;
   draft: { from: Note; to: { x: number; y: number } } | null;
   onOpenTag?: (id: string) => void;
 }
 
-export const Strings3D = memo(function Strings3D({ notes, links, lit, faded, draft, onOpenTag }: Props) {
+export const Strings3D = memo(function Strings3D({ notes, links, lit, faded, quiet, draft, onOpenTag }: Props) {
   const byId = new Map(notes.map((n) => [n.id, n]));
   return (
     <group>
@@ -139,7 +142,7 @@ export const Strings3D = memo(function Strings3D({ notes, links, lit, faded, dra
         const [from, to] = endpoints(a, b);
         return (
           <group key={l.id}>
-            <StringTube from={from} to={to} relation={l.relation} proposed={l.status === "proposed"} lit={lit ? lit.has(l.id) : null} faded={faded?.has(l.id)} />
+            <StringTube from={from} to={to} relation={l.relation} proposed={l.status === "proposed"} lit={lit ? lit.has(l.id) : null} faded={faded?.has(l.id)} quiet={quiet} />
             {l.status === "pinned" && <Tag link={l} from={from} to={to} onOpen={onOpenTag} faded={faded?.has(l.id)} />}
           </group>
         );

@@ -4333,6 +4333,25 @@ kbd {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* ranked by Dupin, still waiting on the wall for the user to pin or toss: its place kept, faded */
+.suspects-card li.is-waiting .who,
+.suspects-card li.is-waiting .why {
+  opacity: 0.55;
+}
+.suspects-card li.is-waiting b {
+  border-style: dashed;
+  opacity: 0.6;
+}
+.suspects-card .waiting {
+  margin-left: 16px;
+  padding: 2px 10px 1px;
+  border: 1.5px dashed rgba(59, 45, 23, 0.5);
+  font: 17px/1 var(--typed);
+  font-style: normal;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  vertical-align: 4px;
+}
 .suspects-card button:hover .who,
 .suspects-card button:focus-visible .who {
   text-decoration: underline;
@@ -4518,7 +4537,7 @@ kbd {
   counter-increment: rank;
 }
 .brief-suspects li::before {
-  content: counter(rank);
+  content: attr(data-rank);
   position: absolute;
   top: 1px;
   left: 0;
@@ -4533,6 +4552,21 @@ kbd {
 }
 .brief-suspects b {
   font: 700 18px/1.4 var(--news-face);
+}
+.brief-suspects li.is-waiting {
+  opacity: 0.6;
+}
+.brief-suspects li.is-waiting::before {
+  border-style: dashed;
+}
+.brief-waiting {
+  margin-left: 10px;
+  padding: 1px 6px;
+  border: 1px dashed rgba(59, 45, 23, 0.5);
+  font: normal 10.5px/1.4 var(--typed);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  vertical-align: 2px;
 }
 .brief-suspects span {
   font: 600 17px/1.35 var(--hand);
