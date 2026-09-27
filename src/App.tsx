@@ -11,6 +11,7 @@ import { UndoSlip } from "./components/UndoSlip.tsx";
 import { useBooted } from "./lib/boot.ts";
 import { ViewTabs } from "./components/ViewTabs.tsx";
 import { FindStrip } from "./components/FindStrip.tsx";
+import { CaseBrief } from "./components/CaseBrief.tsx";
 import { t } from "./lib/i18n.ts";
 import { caseTitle } from "./lib/cases.ts";
 
@@ -64,6 +65,11 @@ function useWallKeys() {
       if (e.key === "c" || e.key === "C") {
         e.preventDefault();
         s.setCabinetOpen(true);
+        return;
+      }
+      if ((e.key === "b" || e.key === "B") && !s.dossierId) {
+        e.preventDefault();
+        s.setBriefOpen(!s.briefOpen);
         return;
       }
       const c = s.activeId ? s.cases[s.activeId] : undefined;
@@ -124,6 +130,7 @@ export function App() {
       <KeyPlaque />
       <UndoSlip left={stage.cx} />
       <Dossier c={c} />
+      <CaseBrief c={c} />
       <LinkPicker />
     </div>
   );
@@ -153,6 +160,7 @@ function KeyPlaque() {
     ["F", t("find")],
     ["E", t("essentials")],
     ["C", t("cabinet")],
+    ["B", t("brief")],
     ["P / X", t("pin / toss a lead")],
     [/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘Z" : "Ctrl Z", t("undo")],
     ["M", t("sound")],

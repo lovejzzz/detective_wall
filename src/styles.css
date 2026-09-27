@@ -4257,3 +4257,314 @@ kbd {
     inset: -12px -6px;
   }
 }
+
+/* ───────────────────────── Case brief ─────────────────────────
+   Dupin's one-page report: a typed sheet over the dimmed wall. Calm and plain: serif to read,
+   typewriter for the labels, his reads in his hand, one red rule per section. */
+.brief-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  padding: 64px 16px 48px;
+  overflow-y: auto;
+  background: rgba(12, 8, 5, 0.74);
+  backdrop-filter: blur(2px);
+  animation: cab-fade 0.25s ease;
+}
+.brief {
+  position: relative;
+  width: min(760px, 100%);
+  padding: 56px 64px 44px;
+  color: #2b261e;
+  background: #f3ebd6 var(--grain);
+  box-shadow:
+    0 30px 60px -20px rgba(0, 0, 0, 0.85),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+  font: 16px/1.7 var(--news-face);
+  outline: none;
+  animation: settings-in 0.3s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.brief-tools {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+}
+.brief-tools button {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid rgba(59, 45, 23, 0.4);
+  border-radius: 2px;
+  background: none;
+  font: 11.5px/1 var(--typed);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #3b2d17;
+  cursor: pointer;
+}
+.brief-tools button:hover {
+  background: rgba(59, 45, 23, 0.08);
+}
+.brief-tools .brief-close {
+  width: 28px;
+  padding: 0;
+  border: 0;
+  font-size: 20px;
+  letter-spacing: 0;
+}
+.brief-tools button:focus-visible,
+.brief a:focus-visible {
+  outline: 2px solid #b9892f;
+  outline-offset: 2px;
+}
+.brief-kicker {
+  margin: 0 0 10px;
+  font: 12px/1 var(--typed);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #8f1d15;
+}
+.brief h1 {
+  margin: 0;
+  font: 700 34px/1.2 var(--news-face);
+  color: #1f1a13;
+}
+.brief-meta {
+  margin: 10px 0 0;
+  font: 12.5px/1.5 var(--typed);
+  letter-spacing: 0.04em;
+  color: #6f6040;
+}
+.brief section {
+  margin-top: 30px;
+}
+.brief h2 {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 12px;
+  padding-bottom: 7px;
+  border-bottom: 1.5px solid rgba(143, 29, 21, 0.4);
+  font: 12.5px/1 var(--typed);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #8f1d15;
+}
+.brief p {
+  margin: 0 0 10px;
+}
+.brief-question {
+  font: 600 24px/1.35 var(--hand);
+  color: #2a3a5c;
+}
+.brief-answer {
+  font: 700 19px/1.45 var(--news-face);
+}
+.brief-stamp {
+  margin-left: auto;
+  padding: 4px 9px 3px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  font: 11px/1 var(--typed);
+  letter-spacing: 0.16em;
+  rotate: -3deg;
+  opacity: 0.85;
+}
+.brief-stamp.stamp-likely { color: #9b5a12; }
+.brief-stamp.stamp-confirmed { color: #2f6b36; }
+.brief-stamp.stamp-open { color: #6f6040; }
+.brief-stamp.stamp-ruled-out { color: #8f1d15; }
+.brief-empty {
+  margin-top: 30px;
+  font: 600 21px/1.4 var(--hand);
+  color: #6f6040;
+}
+.brief-suspects {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: rank;
+}
+.brief-suspects li {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  margin-bottom: 14px;
+  padding-left: 40px;
+  counter-increment: rank;
+}
+.brief-suspects li::before {
+  content: counter(rank);
+  position: absolute;
+  top: 1px;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid rgba(143, 29, 21, 0.75);
+  border-radius: 52% 48% 55% 45% / 48% 55% 45% 52%;
+  font: 700 17px/1 var(--hand);
+  color: #8f1d15;
+}
+.brief-suspects b {
+  font: 700 17px/1.4 var(--news-face);
+}
+.brief-suspects span {
+  font: 600 19px/1.35 var(--hand);
+  color: #2a3a5c;
+}
+.brief-suspects small {
+  font: 12px/1.5 var(--typed);
+  color: #8f1d15;
+}
+.brief-grid {
+  border-collapse: collapse;
+  font: 14px/1.3 var(--news-face);
+}
+.brief-grid th,
+.brief-grid td {
+  padding: 7px 12px;
+  border-bottom: 1px solid rgba(59, 45, 23, 0.15);
+}
+.brief-grid thead th {
+  font: 11.5px/1.3 var(--typed);
+  letter-spacing: 0.06em;
+  color: #6f6040;
+  text-align: center;
+}
+.brief-grid tbody th {
+  padding-right: 20px;
+  text-align: left;
+  font-weight: 700;
+}
+.brief-grid td {
+  text-align: center;
+  font: 700 18px/1 var(--hand);
+}
+.brief .is-yes { color: #243552; }
+.brief .is-partly { color: #243552; }
+.brief .is-no { color: #8a2a1f; }
+.brief .is-unknown { color: #9a8f78; }
+.brief-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 14px;
+  font: 12px/1 var(--typed);
+}
+.brief-moments {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.brief-moments li {
+  display: grid;
+  grid-template-columns: 11em 7.5em 1fr;
+  gap: 12px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px dotted rgba(59, 45, 23, 0.2);
+}
+.brief-moments time {
+  font: 12.5px/1.4 var(--typed);
+  color: #6f6040;
+}
+.brief-moments em {
+  font: normal 10.5px/1.4 var(--typed);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8f1d15;
+}
+.brief-leads,
+.brief-sources {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.brief-leads li {
+  position: relative;
+  padding-left: 22px;
+  margin-bottom: 6px;
+}
+.brief-leads li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: #8f1d15;
+}
+.brief-sources li {
+  font: 12.5px/1.6 var(--typed);
+  color: #6f6040;
+  overflow-wrap: anywhere;
+}
+.brief-sources a {
+  color: #4a3a1c;
+  text-underline-offset: 3px;
+}
+.brief-caution {
+  margin-top: 30px !important;
+  padding-top: 12px;
+  border-top: 1px dotted rgba(59, 45, 23, 0.35);
+  font: italic 12.5px/1.6 var(--news-face);
+  color: #6f6040;
+}
+:lang(zh-Hans) .brief-kicker,
+:lang(zh-Hans) .brief h2 {
+  letter-spacing: 0.1em;
+}
+@media (max-width: 640px) {
+  .brief-backdrop {
+    padding: 56px 8px 32px;
+  }
+  .brief {
+    padding: 48px 22px 32px;
+  }
+  .brief h1 {
+    font-size: 26px;
+  }
+  .brief-moments li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+/* Printed, the brief is the page: nothing of the wall comes with it. */
+@page {
+  margin: 18mm 16mm;
+}
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .brief,
+  .brief * {
+    visibility: visible;
+  }
+  .brief-backdrop {
+    position: static;
+    padding: 0;
+    background: none;
+    backdrop-filter: none;
+  }
+  .brief {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0;
+    background: #fff;
+    box-shadow: none;
+    animation: none;
+  }
+  .brief-tools {
+    display: none;
+  }
+}

@@ -40,6 +40,9 @@ interface State {
   /** The filing cabinet of every case, pulled open over the wall. */
   cabinetOpen: boolean;
   setCabinetOpen(open: boolean): void;
+  /** The case brief: Dupin's one-page report of the case, over the wall. */
+  briefOpen: boolean;
+  setBriefOpen(open: boolean): void;
   /** Finding on the wall, or keeping only its essentials: the rest dims. Null when neither. */
   lens: Lens | null;
   setLens(lens: Lens | null): void;
@@ -332,6 +335,10 @@ export const useStore = create<Store>()(
         // (a phone's notepad is a sheet under the wall, with the intro and the typewriter: it starts open)
         notepadOpen: typeof window === "undefined" || window.innerWidth >= 1100 || window.innerWidth < 760,
         cabinetOpen: false,
+        briefOpen: false,
+        setBriefOpen(open) {
+          set({ briefOpen: open });
+        },
         setCabinetOpen(open) {
           set({ cabinetOpen: open });
         },

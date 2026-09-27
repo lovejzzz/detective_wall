@@ -9,6 +9,7 @@ import { checkPhotoSources, usePhotoReach } from "../lib/photocheck.ts";
 export function ViewTabs({ left }: { left: number }) {
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
+  const brief = useStore((s) => s.briefOpen);
   return (
     <div className="view-tabs" style={{ left }} role="tablist" aria-label={t("Layout")}>
       {(
@@ -17,10 +18,24 @@ export function ViewTabs({ left }: { left: number }) {
           ["timeline", t("Timeline")],
         ] as const
       ).map(([v, label]) => (
-        <button key={v} role="tab" aria-selected={view === v} className={view === v ? "is-on" : ""} onClick={() => setView(v)} title={t("{label} (T)", { label })}>
+        <button
+          key={v}
+          role="tab"
+          aria-selected={!brief && view === v}
+          className={!brief && view === v ? "is-on" : ""}
+          onClick={() => {
+            useStore.getState().setBriefOpen(false);
+            setView(v);
+          }}
+          title={t("{label} (T)", { label })}
+        >
           {label}
         </button>
       ))}
+      {/* the third way to read a case: Dupin's one-page report of it */}
+      <button role="tab" aria-selected={brief} className={brief ? "is-on" : ""} onClick={() => useStore.getState().setBriefOpen(!brief)} title={t("Case brief (B)")}>
+        {t("Brief")}
+      </button>
       <button className="arrange-switch" onClick={() => useStore.getState().arrangeWall()} title={t("Arrange the wall in reading order (A)")} aria-label={t("Arrange the wall")}>
         <svg viewBox="0 0 18 14" aria-hidden>
           <rect x="1" y="1" width="4" height="5" rx="0.6" />

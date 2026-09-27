@@ -50,6 +50,16 @@ const LEAD = /^\s*(?:[–-]\s*)?(?:\*\*)?((?:next|first|second|third|another|one
 /** The same in Chinese: "下一条线索：…", "线索一：…", "另一条线索：…". */
 const LEAD_ZH = /^\s*(?:[–-]\s*)?(?:\*\*)?((?:下一条|下条|第[一二三]条|另一条|再一条)?线索[一二三123]?)(?:\*\*)?\s*[:：]\s*(?:\*\*)?\s*(.{4,})$/;
 
+/** The next leads a reply ends with, as plain sentences. */
+export function leadsIn(text: string): string[] {
+  return withoutRefs(text)
+    .split("\n")
+    .flatMap((line) => {
+      const m = LEAD.exec(line) ?? LEAD_ZH.exec(line);
+      return m ? [plainText(m[2])] : [];
+    });
+}
+
 /** Plain words for the typewriter: Markdown marks and link targets stripped. */
 export const plainText = (s: string) => s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\*\*?([^*]+)\*\*?/g, "$1").trim();
 /** The partner's internal note refs, "(n3)" or "（n1、n4）", which mean nothing to a reader. */
