@@ -37,11 +37,21 @@ export function findOnWall(notes: Note[], query: string): Note[] {
     .sort((a, b) => Math.round(a.y / 240) - Math.round(b.y / 240) || a.x - b.x);
 }
 
+/** The case's question: the first card up, an undated hunch. */
+export function questionOf(notes: Note[]): Note | null {
+  const first = notes.reduce<Note | null>((a, n) => (!a || n.createdAt < a.createdAt ? n : a), null);
+  return first?.type === "hypothesis" && !first.when ? first : null;
+}
+
+/** Dupin's current answer: the newest conclusion pinned up and not on its way down. */
+export function answerOf(notes: Note[]): Note | null {
+  return notes.filter((n) => n.type === "conclusion" && n.status === "pinned" && !n.retire).reduce<Note | null>((a, n) => (!a || n.createdAt > a.createdAt ? n : a), null);
+}
+
 /** The case at a glance: the cards a reader needs first. */
 export function essentialsOf(notes: Note[], links: Link[]): Set<string> {
   const pinned = notes.filter((n) => n.status === "pinned");
-  const byAge = [...notes].sort((a, b) => a.createdAt - b.createdAt);
-  const question = byAge[0]?.type === "hypothesis" && !byAge[0].when ? byAge[0] : null;
+  const question = questionOf(notes);
   const answers = pinned.filter((n) => n.type === "conclusion");
   const keep = new Set<string>([
     ...(question ? [question.id] : []),

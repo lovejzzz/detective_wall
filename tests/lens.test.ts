@@ -1,6 +1,6 @@
 // Finding on the wall, and the essentials of a case.
 import { describe, expect, it } from "vitest";
-import { essentialsOf, findOnWall, litBy } from "../src/lib/lens.ts";
+import { answerOf, essentialsOf, findOnWall, litBy, questionOf } from "../src/lib/lens.ts";
 import type { Link, Note } from "../src/lib/types.ts";
 
 const note = (id: string, type: Note["type"], extra: Partial<Note> = {}): Note => ({
@@ -58,5 +58,19 @@ describe("the essentials", () => {
     expect(litBy({ query: "", essentials: false }, notes, links)).toBeNull();
     expect([...litBy({ query: "e5", essentials: true }, notes, links)!]).toEqual(["e5"]);
     expect([...litBy({ query: "e6", essentials: true }, notes, links)!]).toEqual([]);
+  });
+});
+
+describe("the question and the answer", () => {
+  it("the question is the first card up, when it's an undated hunch", () => {
+    expect(questionOf([note("f2", "fact"), note("q1", "hypothesis")])?.id).toBe("q1");
+    expect(questionOf([note("q1", "hypothesis", { when: "2000-12-30" }), note("f2", "fact")])).toBeNull();
+    expect(questionOf([note("f1", "fact"), note("q2", "hypothesis")])).toBeNull();
+    expect(questionOf([])).toBeNull();
+  });
+  it("the answer is the newest conclusion pinned up and not on its way down", () => {
+    const notes = [note("c1", "conclusion"), note("c5", "conclusion", { retire: "Superseded" }), note("c4", "conclusion", { status: "proposed" }), note("c3", "conclusion"), note("f9", "fact")];
+    expect(answerOf(notes)?.id).toBe("c3");
+    expect(answerOf([note("f1", "fact")])).toBeNull();
   });
 });

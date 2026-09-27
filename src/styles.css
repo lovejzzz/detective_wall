@@ -490,6 +490,7 @@ kbd {
   color: #6f6040; /* 4.5:1 on the pad */
 }
 .entry-text {
+  position: relative;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -519,6 +520,25 @@ kbd {
 .entry-text a:hover {
   color: #a61e17;
   text-decoration-color: currentColor;
+}
+/* The answer a reply leads with: struck twice, the typewriter's bold, so it reads before the evidence. */
+.entry-text .t-lede {
+  color: #14120e;
+  text-shadow: 0.45px 0 0 currentColor;
+}
+/* A next lead: a red-pen arrow in place of its "Next lead:" label, so the leads read as a list. */
+.entry-text .t-lead::before {
+  content: "→ ";
+  font-weight: 700;
+  color: #a61e17;
+}
+.t-lead-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .entry.is-resume .entry-text {
   color: #5a4f3c;
@@ -671,8 +691,20 @@ kbd {
   list-style: none;
   font: 11.5px/28px var(--mono);
 }
+/* where it came from: there when wanted, quieter than what it says */
 .entry-sources a {
-  color: #5a4a2c;
+  color: #7a6a4c;
+  text-decoration: underline dotted rgba(122, 106, 76, 0.55);
+  text-underline-offset: 3px;
+}
+.entry-sources a:hover {
+  color: #3c3322;
+  text-decoration: underline solid;
+}
+/* once every card from a reply is on the wall, its line is a record, not a call to act */
+.entry-notes-row.is-settled .entry-notes {
+  color: #7a6a4c;
+  font-size: 17px;
 }
 .source-count {
   font: 600 14px/1 var(--hand);
@@ -1231,11 +1263,19 @@ kbd {
   box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.5);
   rotate: -0.4deg;
 }
-.type-tabs {
+/* the kind of card: the chips wrap under themselves, not under their label */
+.d-row.type-tabs {
+  align-items: start;
+}
+.type-tabs .d-label {
+  padding-top: 5px;
+}
+.d-chips {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 16px;
+  gap: 6px;
 }
 .type-tabs button,
 .mini-stamp {
@@ -1280,6 +1320,9 @@ kbd {
   color: #2e2a24;
   outline: none;
 }
+.d-body:not(:placeholder-shown) {
+  min-height: 2em;
+}
 .d-title:focus,
 .d-body:focus {
   background: rgba(255, 230, 160, 0.18);
@@ -1300,6 +1343,33 @@ kbd {
 }
 .d-label {
   margin-right: 6px;
+}
+/* the filing rows (stamp, when, moment, kind) share one label column, so their choices line up */
+.dossier-sheet {
+  --d-label-w: 84px;
+}
+.d-row > .d-label:first-child {
+  flex: none;
+  width: var(--d-label-w);
+  margin-right: 0;
+}
+/* Unchosen options stay quiet (a faint outline, a lighter ink) so the one that's chosen reads
+   at a glance; hovering one brings it up to full strength. */
+.type-tabs button:not(.is-on),
+.mini-stamp:not(.is-on) {
+  color: rgba(70, 58, 44, 0.62);
+  border-color: rgba(60, 50, 38, 0.16);
+}
+.mini-beat:not(.is-on) {
+  color: color-mix(in srgb, var(--beat) 72%, #f6f1e4);
+  border-color: color-mix(in srgb, var(--beat) 22%, transparent);
+}
+:is(.type-tabs button, .mini-stamp, .mini-beat):not(.is-on):is(:hover, :focus-visible) {
+  color: #2b261e;
+  border-color: currentColor;
+}
+.mini-beat:not(.is-on):is(:hover, :focus-visible) {
+  color: var(--beat);
 }
 .swatch {
   width: 26px;
@@ -1650,7 +1720,7 @@ kbd {
   border: 0;
   background: none;
   text-align: left;
-  font: 600 18px/1.15 var(--hand);
+  font: 600 17px/1.15 var(--hand);
   color: #a61e17;
 }
 .leads-waiting:hover {
@@ -1731,27 +1801,25 @@ kbd {
   :root {
     --notepad-w: 100vw;
   }
-  .type-tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    margin-right: -8px;
-    padding-bottom: 2px;
-    /* the row scrolls sideways: its right end fades, so a cut chip reads as "more this way" */
-    mask-image: linear-gradient(to right, #000 84%, transparent);
-  }
-  .type-tabs button {
-    flex: none;
+  /* the kinds wrap under their label, so the chosen one is always in view */
+  .type-tabs .d-chips {
+    flex-basis: 100%;
   }
   .d-title {
     font-size: 19px;
   }
-  .d-beats {
-    grid-template-columns: repeat(3, max-content);
+  /* too narrow for a label column: each filing row's label goes above its choices */
+  .dossier-sheet .d-row > .d-label:first-child {
+    flex-basis: 100%;
+    width: auto;
+    padding-top: 0;
   }
-  .d-beats .d-label {
-    grid-row: auto;
-    grid-column: 1 / -1;
+  .dossier-sheet .d-row {
+    row-gap: 6px;
+  }
+  .dossier-sheet .d-beats {
+    display: flex;
+    flex-wrap: wrap;
   }
   .notepad {
     top: auto;
@@ -1892,16 +1960,50 @@ kbd {
   background: rgba(236, 224, 188, 0.93) var(--grain);
   box-shadow: 0 3px 8px -3px rgba(0, 0, 0, 0.6);
   clip-path: polygon(1% 6%, 5% 0, 96% 3%, 100% 10%, 98% 94%, 94% 100%, 3% 96%, 0 90%);
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.far-label > span {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
   text-wrap: balance;
 }
 .far-label.far-conclusion {
   color: #7a1c14;
+}
+/* The question and Dupin's answer: the first two things a reader looks for, so they read first —
+   a typed heading, a larger hand and a third line. */
+.far-label.is-headline {
+  padding: 7px 14px 6px;
+  background-color: rgba(244, 234, 204, 0.96);
+  box-shadow: 0 5px 12px -4px rgba(0, 0, 0, 0.7);
+}
+.far-label.is-headline > small {
+  display: block;
+  margin: 0 auto 4px;
+  padding-bottom: 3px;
+  width: fit-content;
+  font: 600 9.5px/1 var(--typed);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(80, 58, 40, 0.75);
+  border-bottom: 1px solid rgba(122, 28, 20, 0.35);
+}
+.far-label.is-headline > span {
+  -webkit-line-clamp: 3;
+  font-size: 20px;
+  line-height: 1.08;
+}
+/* the question's sticky is small and square: a size down, a line more */
+.far-label.is-headline.far-hypothesis > span {
+  -webkit-line-clamp: 4;
+  font-size: 18px;
+}
+:lang(zh-Hans) .far-label.is-headline > small {
+  letter-spacing: 0.1em;
+  font-size: 10.5px;
 }
 .far-label.is-focus {
   background-color: rgba(255, 236, 190, 0.97);
@@ -2795,7 +2897,7 @@ kbd {
 /* the seven moments in two even rows beside their label, not six and a straggler */
 .d-beats {
   display: grid;
-  grid-template-columns: auto repeat(4, max-content);
+  grid-template-columns: var(--d-label-w) repeat(4, max-content);
   justify-content: start;
   gap: 6px;
 }
@@ -4357,12 +4459,16 @@ kbd {
 .brief p {
   margin: 0 0 10px;
 }
+/* the question in the asker's hand; the answer, set largest on the page, is what the brief is for */
 .brief-question {
-  font: 600 24px/1.35 var(--hand);
+  font: 600 21px/1.35 var(--hand);
   color: #2a3a5c;
 }
 .brief-answer {
-  font: 700 19px/1.45 var(--news-face);
+  margin-bottom: 12px !important;
+  font: 700 25px/1.3 var(--news-face);
+  color: #1f1a13;
+  text-wrap: balance;
 }
 .brief-stamp {
   margin-left: auto;
@@ -4412,10 +4518,10 @@ kbd {
   color: #8f1d15;
 }
 .brief-suspects b {
-  font: 700 17px/1.4 var(--news-face);
+  font: 700 18px/1.4 var(--news-face);
 }
 .brief-suspects span {
-  font: 600 19px/1.35 var(--hand);
+  font: 600 17px/1.35 var(--hand);
   color: #2a3a5c;
 }
 .brief-suspects small {
@@ -4497,9 +4603,15 @@ kbd {
   left: 0;
   color: #8f1d15;
 }
+/* the sources are there to check, not to read: small, muted, in two columns */
+.brief-sources {
+  columns: 2;
+  column-gap: 32px;
+}
 .brief-sources li {
-  font: 12.5px/1.6 var(--typed);
-  color: #6f6040;
+  break-inside: avoid;
+  font: 11.5px/1.6 var(--typed);
+  color: #857656;
   overflow-wrap: anywhere;
 }
 .brief-sources a {
@@ -4518,6 +4630,12 @@ kbd {
   letter-spacing: 0.1em;
 }
 @media (max-width: 640px) {
+  .brief-sources {
+    columns: 1;
+  }
+  .brief-answer {
+    font-size: 21px;
+  }
   .brief-backdrop {
     padding: 56px 8px 32px;
   }

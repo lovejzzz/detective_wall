@@ -68,7 +68,7 @@ function TurnNotes({ c, noteIds }: { c: Case; noteIds: string[] }) {
   const waiting = notes.filter((n) => n.status === "proposed");
   const n = noteIds.length;
   return (
-    <div className="entry-notes-row">
+    <div className={`entry-notes-row ${waiting.length ? "" : "is-settled"}`}>
       <button
         className="entry-notes"
         onClick={() => {
@@ -303,11 +303,11 @@ export function Notepad({ c }: { c: Case }) {
                 const i = asks.indexOf(c.focusNoteId ?? "");
                 useStore.getState().setFocus(asks[(i + 1) % asks.length]);
               }}
-              title={t("Show the next one on the wall")}
+              title={`${t("Pin what holds up, toss the rest.")} ${t("Show the next one on the wall")}`}
             >
               {[
-                proposals.length === 1 && t("1 lead waiting on the wall: pin it if it holds up, or toss it"),
-                proposals.length > 1 && t("{n} leads waiting on the wall: pin what holds up, toss the rest", { n: proposals.length }),
+                proposals.length === 1 && t("1 lead waiting on the wall"),
+                proposals.length > 1 && t("{n} leads waiting on the wall", { n: proposals.length }),
                 retiring.length > 0 && t(retiring.length === 1 ? "1 note to take down?" : "{n} notes to take down?", { n: retiring.length }),
                 ties.length > 0 && t(ties.length === 1 ? "1 string to decide" : "{n} strings to decide", { n: ties.length }),
               ]
@@ -339,11 +339,11 @@ export function Notepad({ c }: { c: Case }) {
                     ))}
                 </div>
               )}
-              <div className="entry-text">{m.role === "assistant" ? <Typed text={m.text} onLead={followLead} /> : m.text}</div>
+              <div className="entry-text">{m.role === "assistant" ? <Typed text={m.text} onLead={followLead} lede /> : m.text}</div>
               {m.trail && m.trail.length > 0 && <TrailFold trail={m.trail} />}
               {m.noteIds && m.noteIds.length > 0 && m.role === "assistant" && <TurnNotes c={c} noteIds={m.noteIds} />}
               {m.sources && m.sources.length > 0 && (
-                <ul className="entry-sources">
+                <ul className="entry-sources" aria-label={t("Sources")}>
                   {bySite(m.sources).slice(0, 4).map(({ host, first, count, titles }) => (
                     <li key={host}>
                       <a href={first} target="_blank" rel="noreferrer" title={titles.join("\n")}>

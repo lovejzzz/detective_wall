@@ -22,7 +22,7 @@ import { caseTitle } from "../lib/cases.ts";
 import { Timeline3D } from "../scene/Timeline3D.tsx";
 import { layoutTimeline, storyMoments } from "../lib/timeline.ts";
 import { importPhoto, isPhotoFile } from "../lib/images.ts";
-import { essentialsOf, litBy } from "../lib/lens.ts";
+import { answerOf, essentialsOf, litBy, questionOf } from "../lib/lens.ts";
 import { isCaseFile, queueImport } from "../lib/casefile.ts";
 import { arrangeWall } from "../lib/arrange.ts";
 
@@ -156,6 +156,8 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
   // reading order of their own; the rest step off the wall until the view is closed.
   const lens = useStore((s) => s.lens);
   const lensOpen = !!lens;
+  // the two cards a reader wants first, marked out on the far labels
+  const headline = useMemo(() => ({ question: questionOf(c.notes)?.id, answer: answerOf(c.notes)?.id }), [c.notes]);
   const essentialIds = useMemo(() => (lens?.essentials ? essentialsOf(c.notes, c.links) : null), [lens?.essentials, c.notes, c.links]);
   const essentials = useMemo(
     () =>
@@ -1198,15 +1200,18 @@ export function Wall({ c, stage }: { c: Case; stage: Stage }) {
             const p = toScreen(n.type === "photo" ? { x: n.x, y: n.y + NOTE_SIZE.photo.h / 2 - 26 } : n);
             // Zoomed out past the wall's usual limit (a phone), the labels shrink with the notes.
             const shrink = Math.min(1, cam.zoom / LABEL_Z);
-            const w = Math.max(96 * shrink, NOTE_SIZE[n.type].w * cam.zoom * 1.1) / shrink;
+            // The question and Dupin's answer lead: a heading over them, and room for a third line.
+            const head = n.status === "pinned" ? (n.id === headline.answer ? "Dupin's answer" : n.id === headline.question ? "The question" : null) : null;
+            const w = Math.max(96 * shrink, NOTE_SIZE[n.type].w * cam.zoom * (head ? 1.35 : 1.1)) / shrink;
             return (
               <div
                 key={`far-${n.id}`}
-                className={`far-label far-${n.type} ${n.status === "proposed" ? "is-proposed" : ""} ${n.id === c.focusNoteId ? "is-focus" : ""} ${dim(n.id) ? "is-dimmed" : ""}`}
+                className={`far-label far-${n.type} ${head ? "is-headline" : ""} ${n.status === "proposed" ? "is-proposed" : ""} ${n.id === c.focusNoteId ? "is-focus" : ""} ${dim(n.id) ? "is-dimmed" : ""}`}
                 style={{ left: p.x, top: p.y, maxWidth: w, opacity: farOpacity, transform: `translate(-50%, -50%) rotate(${n.rotation}deg) scale(${shrink})` }}
                 aria-hidden
               >
-                {keepTogether(n.title)}
+                {head && <small>{t(head)}</small>}
+                <span>{keepTogether(n.title)}</span>
               </div>
             );
           })}

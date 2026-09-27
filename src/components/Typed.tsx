@@ -65,8 +65,23 @@ export const plainText = (s: string) => s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1"
 /** The partner's internal note refs, "(n3)" or "（n1、n4）", which mean nothing to a reader. */
 export const withoutRefs = (s: string) => s.replace(/\s?[(（](?:n|ref|lead|note)\d{1,3}(?:\s*[,，、]\s*(?:n|ref|lead|note)\d{1,3})*[)）]/g, "");
 
-export function Typed({ text, onLead }: { text: string; onLead?: (lead: string) => void }) {
+/** Where a lede stops being struck: the whole of a short paragraph, or the end of a long one's first sentence. */
+export function ledeCut(line: string): number {
+  const cjk = /[\u3000-\u9fff]/.test(line);
+  if (line.length <= (cjk ? 70 : 160)) return line.length;
+  const end = /[.!?](?=\s+[A-Z"“‘(])|[。！？]/.exec(line);
+  return end ? end.index + 1 : line.length;
+}
+
+/**
+ * A reply set in type. With `lede`, a reply of more than one paragraph sets its first (the answer,
+ * which the partner leads with) struck a little darker, so it reads before the evidence. A lead
+ * loses its "Next lead:" label for an arrow in the margin, so the leads read as a list of their own.
+ */
+export function Typed({ text, onLead, lede = false }: { text: string; onLead?: (lead: string) => void; lede?: boolean }) {
   const lines = withoutRefs(text).split("\n");
+  const firstBreak = lines.findIndex((l, i) => i > 0 && !l.trim() && lines.slice(0, i).some((x) => x.trim()));
+  const ledeEnd = lede && firstBreak > 0 && lines.slice(firstBreak).some((l) => l.trim() && !(LEAD.test(l) || LEAD_ZH.test(l))) ? firstBreak : 0;
   let inLeads = false; // under a "Next leads" heading, each bullet is a lead
   return (
     <>
@@ -84,9 +99,29 @@ export function Typed({ text, onLead }: { text: string; onLead?: (lead: string) 
         let lead = onLead ? (LEAD.exec(line) ?? LEAD_ZH.exec(line))?.[2] : undefined;
         if (onLead && inLeads && bullet && !lead) lead = line.replace(/^\s*–\s+/, "");
         if (/^\s*(?:\*\*)?(?:next\s+)?leads(?:\*\*)?:?(?:\*\*)?\s*$/i.test(line) || /^\s*(?:\*\*)?(?:下一步)?线索(?:\*\*)?[:：]?(?:\*\*)?\s*$/.test(line)) inLeads = true;
+        const words = heading ? <u className="t-em">{line}</u> : lead ? (
+          <span className="t-lead">
+            <span className="t-lead-label">{t("Next lead:")} </span>
+            {/* its label gone, a lead reads as a sentence of its own: capital first letter */}
+            {inline(lead.charAt(0).toUpperCase() + lead.slice(1), String(i))}
+          </span>
+        ) : inline(line, String(i));
+        // the lede is the answer: a long opening paragraph is struck darker only through its first sentence
+        let struck: ReactNode = words;
+        if (i < ledeEnd && !heading && !lead) {
+          const cut = ledeCut(line);
+          struck = cut < line.length ? (
+            <>
+              <span className="t-lede">{inline(line.slice(0, cut), `${i}a`)}</span>
+              {inline(line.slice(cut), `${i}b`)}
+            </>
+          ) : (
+            <span className="t-lede">{words}</span>
+          );
+        }
         return (
           <Fragment key={i}>
-            {heading ? <u className="t-em">{line}</u> : inline(line, String(i))}
+            {struck}
             {lead && (
               <button className="t-follow" onClick={() => onLead!(plainText(lead))} title={t("Put this lead on the typewriter")}>
                 {t("follow")}&nbsp;↵

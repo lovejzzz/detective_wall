@@ -295,21 +295,6 @@ export function Dossier({ c }: { c: Case }) {
 
 
         <div className={`dossier-sheet ${turned.current ? `from-${turned.current}` : ""}`} key={note.id}>
-          <div className="type-tabs" role="radiogroup" aria-label={t("Note type")}>
-            {NOTE_TYPES.map((type: NoteType) => (
-              <button
-                key={type}
-                role="radio"
-                aria-checked={note.type === type}
-                className={note.type === type ? "is-on" : ""}
-                onClick={() => s.updateNote(note.id, { type })}
-              >
-                {/* the chips fit one row: the subject file's is just "Subject" */}
-                {type === "subject" ? t("Subject") : typeLabel(type)}
-              </button>
-            ))}
-          </div>
-
           {note.type === "photo" && <PhotoPrint note={note} caseId={c.id} />}
           {note.type === "diagram" && note.diagram && <DiagramPrint note={note} />}
           <textarea
@@ -377,6 +362,25 @@ export function Dossier({ c }: { c: Case }) {
                 {t(BEAT_LABEL[b])}
               </button>
             ))}
+          </div>
+
+          {/* what kind of card: the header already says it, so the choice sits with the other filing controls, after what the card says */}
+          <div className="d-row type-tabs" role="radiogroup" aria-label={t("Note type")}>
+            <span className="d-label">{t("Kind")}</span>
+            <span className="d-chips">
+            {NOTE_TYPES.map((type: NoteType) => (
+              <button
+                key={type}
+                role="radio"
+                aria-checked={note.type === type}
+                className={note.type === type ? "is-on" : ""}
+                onClick={() => s.updateNote(note.id, { type })}
+              >
+                {/* the chips fit one row: the subject file's is just "Subject" */}
+                {type === "subject" ? t("Subject") : typeLabel(type)}
+              </button>
+            ))}
+            </span>
           </div>
 
           <section className="d-section">
