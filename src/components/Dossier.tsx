@@ -201,7 +201,7 @@ function PhotoPrint({ note, caseId }: { note: Note; caseId: string }) {
             void ask(caseId, t("What can you tell from the photo “{title}”?", { title: note.title }), { photoNoteIds: [note.id] });
           }}
         >
-          {t("Ask the partner about this photo")}
+          {t("Ask Dupin about this photo")}
         </button>
       </figcaption>
     </figure>
@@ -269,7 +269,7 @@ export function Dossier({ c }: { c: Case }) {
     .filter((x) => x.other);
 
   const originWho =
-    note.origin.kind === "user" && !c.demo ? t("You") : seeded || note.origin.kind === "user" ? t("Case file") : note.origin.kind === "web" ? t("Partner, from the web") : t("Partner");
+    note.origin.kind === "user" && !c.demo ? t("You") : seeded || note.origin.kind === "user" ? t("Case file") : note.origin.kind === "web" ? t("Dupin, from the web") : t("Dupin");
 
   return (
     <div className="dossier-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>

@@ -187,7 +187,7 @@ export const UPDATE_WALL_SCHEMA = {
               profile: { type: "array", items: { type: "string" }, description: "Unknown-offender profiles only: up to 6 inferences, each tied to the evidence it rests on." },
               settle: { type: "string", description: "The one test that would confirm or rule them out. At most 140 characters." },
               rank: { type: "integer", minimum: 1, maximum: MAX_RANK, description: "Only for the case's most likely suspects (one to three, the unknown offender's profile included): 1 is the most likely. Leave it out for everyone else." },
-              verdict: { type: "string", description: "With rank: one line on why they rank there, your own read of the evidence said as one (My read: … / 我的判断：…, in the page's language). At most 90 characters." },
+              verdict: { type: "string", description: "With rank: one line on why they rank there, your own read of the evidence, signed with your name in the page's language (Dupin's read: … / 杜宾的判断：…). At most 100 characters." },
             },
           },
           diagram: {
@@ -279,7 +279,7 @@ export const UPDATE_WALL_SCHEMA = {
         properties: {
           note: { type: "string", description: "The id of a subject note on the wall." },
           rank: { type: "integer", minimum: 0, maximum: MAX_RANK },
-          verdict: { type: "string", description: "At most 90 characters." },
+          verdict: { type: "string", description: "At most 100 characters." },
         },
       },
     },
@@ -518,7 +518,7 @@ export function sanitizeWallUpdate(input: unknown, knownIds: Set<string>): WallU
       if (typeof note !== "string" || !knownIds.has(note) || ranks.some((x) => x.note === note)) continue;
       const n = rank === 0 || rank === null ? null : toRank(rank);
       if (n === undefined) continue;
-      ranks.push({ note, rank: n, ...(isStr(verdict) && verdict.trim() ? { verdict: clip(verdict.trim(), 90) } : {}) });
+      ranks.push({ note, rank: n, ...(isStr(verdict) && verdict.trim() ? { verdict: clip(verdict.trim(), 100) } : {}) });
     }
     if (ranks.length) out.ranks = ranks;
   }
@@ -574,7 +574,7 @@ export function sanitizeSubject(raw: unknown): SubjectFile | null {
   const rank = toRank(r.rank);
   if (rank !== undefined) {
     out.rank = rank;
-    if (isStr(r.verdict) && r.verdict.trim()) out.verdict = clip(r.verdict.trim(), 90);
+    if (isStr(r.verdict) && r.verdict.trim()) out.verdict = clip(r.verdict.trim(), 100);
   }
   return out;
 }

@@ -180,7 +180,7 @@ function SettingsSwitch() {
               ))}
             </div>
           </div>
-          <p className="settings-hint">{depth === "quick" ? t("Quick: a few searches, an answer in about a minute.") : t("Thorough: the partner reads widely, three or four minutes a turn.")}</p>
+          <p className="settings-hint">{depth === "quick" ? t("Quick: a few searches, an answer in about a minute.") : t("Thorough: Dupin reads widely, three or four minutes a turn.")}</p>
           <div className="settings-row">
             <span className="settings-label">{t("Sound")}</span>
             <div className="settings-choice" role="radiogroup" data-group="sound" aria-label={t("Sound")}>

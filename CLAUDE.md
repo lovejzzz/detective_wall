@@ -6,7 +6,11 @@
   (ranking them first) when the evidence points there, in its own voice. It does not need an
   investigator or a court behind a view. (The earlier "only attribute views to investigators"
   rule was removed at the owner's request.)
-- What stays: an inference is labelled as the partner's inference, with what it rests on and
+- **The partner is called Dupin (杜宾)**, after Poe's C. Auguste Dupin, who reasoned out a real
+  unsolved case from newspaper reports. Cards on the wall are unsigned, so an inference on one is
+  signed with his name ("Dupin's read: …" / 「杜宾的判断：」), never "my"/「我的」 (the owner reads
+  "我的判断" as their own). His notepad replies are signed, so there he says "I".
+- What stays: an inference is labelled as Dupin's inference, with what it rests on and
   what cuts against it; facts, inferences and third-party claims are kept apart; nothing is
   inferred from a face, ethnicity or nationality.
 - The owner cares a lot about UI/UX and visual taste: minimal, calm, readable walls. Check

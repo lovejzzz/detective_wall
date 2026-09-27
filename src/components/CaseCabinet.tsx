@@ -257,7 +257,7 @@ function Drawer({ close, closing }: { close: () => void; closing: boolean }) {
         {slip && (
           <p className={`drawer-slip ${slip.error ? "is-error" : ""}`} role="status">
             {slip.text}
-            {slip.caution && <small>{t("The ranked suspects in it are the partner's inferences, not findings. Share it with that in mind.")}</small>}
+            {slip.caution && <small>{t("The ranked suspects in it are Dupin's inferences, not findings. Share it with that in mind.")}</small>}
           </p>
         )}
         {dropping && <p className="drawer-drop">{t("Drop a case file to file it here")}</p>}

@@ -55,7 +55,7 @@ export async function packCases(cases: Case[]): Promise<CaseFile> {
     format: FORMAT,
     version: 1,
     exportedAt: new Date().toISOString(),
-    ...(hasInferences(cases) ? { caution: t("The ranked suspects in this file are the partner's inferences from the evidence, not findings of any court or investigation.") } : {}),
+    ...(hasInferences(cases) ? { caution: t("The ranked suspects in this file are the inferences of Dupin, the wall's research partner, from the evidence, not findings of any court or investigation.") } : {}),
     cases: cases.map(({ frameOnOpen: _f, ...c }) => (void _f, c)),
     photos,
   };

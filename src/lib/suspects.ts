@@ -40,10 +40,23 @@ export const plaqueRoom = (count: number) => (count ? plaqueHeight(count) + PLAQ
  * its own; the "Settle it:" label would only repeat it. */
 export const isSettled = (settle: string) => /^(already settled|settled)\b/i.test(settle.trim()) || /^已(有定论|有结论|结论|了结|定案)/.test(settle.trim());
 
-/** A verdict in the page's language: the partner's "My read:" / 「我的判断：」 prefix follows the page. */
+/**
+ * Dupin's inferences, signed with his name, as walls from before he had one wrote them in the
+ * first person ("My read:", 「我的判断」). Only for his cards: the user's own "my" stays theirs.
+ */
+export function signInferences(text: string): string {
+  return text
+    .replace(/\bMy read:/g, "Dupin's read:")
+    .replace(/\bMy inference:/g, "Dupin's inference:")
+    .replace(/\(my inference\)/gi, "(Dupin's inference)")
+    .replace(/我的判断/g, "杜宾的判断")
+    .replace(/我的推断/g, "杜宾的推断");
+}
+
+/** A verdict in the page's language, signed: 「杜宾的判断：」 on a Chinese page, "Dupin's read:" on an English one. */
 export function sayVerdict(v: string): string {
-  const zh = getLang() === "zh";
-  return zh
-    ? v.replace(/^My read:\s*/i, "我的判断：").replace(/^My inference:\s*/i, "我的推断：")
-    : v.replace(/^我的判断[：:]\s*/, "My read: ").replace(/^我的推断[：:]\s*/, "My inference: ");
+  const s = signInferences(v);
+  return getLang() === "zh"
+    ? s.replace(/^Dupin's read:\s*/i, "杜宾的判断：").replace(/^Dupin's inference:\s*/i, "杜宾的推断：")
+    : s.replace(/^杜宾的判断[：:]\s*/, "Dupin's read: ").replace(/^杜宾的推断[：:]\s*/, "Dupin's inference: ");
 }

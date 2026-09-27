@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { normalizeRanks } from "./lib/suspects.ts";
+import { signInferences, normalizeRanks } from "./lib/suspects.ts";
 import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 import { SINGLE_BEATS, type Beat, type Camera, type Case, type Link, type Message, type Note, type NoteType, type Relation, type StickyColor, type TrailStep } from "./lib/types.ts";
 import type { ProposedNote, WallUpdate } from "./lib/contract.ts";
@@ -197,8 +197,9 @@ function proposeNote(c: Case, p: ProposedNote, _nearId: string | undefined, mess
     id: uid(),
     type: p.type,
     status: "proposed",
-    title: p.title,
-    body: p.body,
+    // Dupin's cards are unsigned: any "my read" on one is his, and says so
+    title: signInferences(p.title),
+    body: signInferences(p.body),
     x: spot.x,
     y: spot.y,
     rotation: naturalTilt(2.5),
@@ -206,7 +207,17 @@ function proposeNote(c: Case, p: ProposedNote, _nearId: string | undefined, mess
     ...(p.confidence ? { confidence: p.confidence } : {}),
     ...(p.stamp ? { stamp: p.stamp } : {}),
     ...(p.diagram ? { diagram: p.diagram } : {}),
-    ...(p.subject ? { subject: p.subject } : {}),
+    ...(p.subject
+      ? {
+          subject: {
+            ...p.subject,
+            ...(p.subject.verdict ? { verdict: signInferences(p.subject.verdict) } : {}),
+            ...(p.subject.for ? { for: p.subject.for.map(signInferences) } : {}),
+            ...(p.subject.against ? { against: p.subject.against.map(signInferences) } : {}),
+            ...(p.subject.profile ? { profile: p.subject.profile.map(signInferences) } : {}),
+          },
+        }
+      : {}),
     ...(p.when ? { when: p.when, ...(p.approx ? { approx: true } : {}) } : {}),
     // A photo the partner found on Wikimedia Commons: loaded and credited from the file itself.
     ...(p.image ? { imageUrl: `commons:${p.image}` } : {}),
@@ -425,7 +436,7 @@ export const useStore = create<Store>()(
 
         addLead(caseId, { turnId, note: p, placed, anchorId }) {
           // The first find of a turn marks the undo point for everything the turn proposes.
-          if (!placed.size && caseId === get().activeId) get().checkpoint("Partner's proposals");
+          if (!placed.size && caseId === get().activeId) get().checkpoint("Dupin's proposals");
           let id: string | null = null;
           mutateCase(caseId, (c) => {
             const resolve = (ref: string) => placed.get(ref) ?? (c.notes.some((n) => n.id === ref) ? ref : undefined);
@@ -442,7 +453,7 @@ export const useStore = create<Store>()(
         applyTurn(caseId, { reply, update, sources, trail, offline, turnId, placed }) {
           const msgId = turnId ?? uid();
           const early = placed ?? new Map<string, string>();
-          if (!early.size && (update.notes.length || update.links.length) && caseId === get().activeId) get().checkpoint("Partner's proposals");
+          if (!early.size && (update.notes.length || update.links.length) && caseId === get().activeId) get().checkpoint("Dupin's proposals");
           let newCaseQuestion: string | undefined;
           let arranged = false;
           mutateCase(caseId, (c) => {
@@ -544,7 +555,7 @@ export const useStore = create<Store>()(
                 delete n.subject.verdict;
               } else {
                 n.subject.rank = r.rank;
-                if (r.verdict) n.subject.verdict = r.verdict;
+                if (r.verdict) n.subject.verdict = signInferences(r.verdict);
               }
             }
             // Tidying the board at the end of the turn, in the same undo step as the turn's cards.
@@ -917,6 +928,26 @@ export function ensureCases() {
     const next = d.make();
     // same folder, same place in the numbering: it keeps its id and the day it was opened
     useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...next, id: c.id, createdAt: c.createdAt, lastOpenedAt: c.lastOpenedAt } } }));
+  }
+
+  // Dupin's inferences on walls saved before he had a name were written "My read" / 我的判断: sign
+  // them with his name (his cards only; the user's own words are left as they are).
+  for (const c of Object.values(useStore.getState().cases)) {
+    if (c.demo) continue;
+    const sign = (s: string | undefined) => (s === undefined ? s : signInferences(s));
+    const notes = c.notes.map((n) => {
+      if (n.origin.kind === "user") return n;
+      const next = {
+        ...n,
+        title: sign(n.title)!,
+        body: sign(n.body)!,
+        ...(n.subject
+          ? { subject: { ...n.subject, verdict: sign(n.subject.verdict), for: n.subject.for?.map((x) => sign(x)!), against: n.subject.against?.map((x) => sign(x)!), profile: n.subject.profile?.map((x) => sign(x)!), settle: sign(n.subject.settle) } }
+          : {}),
+      };
+      return JSON.stringify(next) === JSON.stringify(n) ? n : next;
+    });
+    if (notes.some((n, i) => n !== c.notes[i])) useStore.setState((s2) => ({ cases: { ...s2.cases, [c.id]: { ...c, notes } } }));
   }
 
   // Never a page with no case at all (every folder shredded): start a blank one.

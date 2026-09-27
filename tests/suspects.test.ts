@@ -56,14 +56,14 @@ describe.each(CASES)("%s: its most likely suspects", (_name, spec, zh) => {
     expect(ranked.map((n) => n.subject!.rank)).toEqual(ranked.map((_, i) => i + 1));
     for (const n of ranked) {
       expect(n.subject!.verdict, n.key).toBeTruthy();
-      expect(n.subject!.verdict!.length, n.key).toBeLessThanOrEqual(90);
+      expect(n.subject!.verdict!.length, n.key).toBeLessThanOrEqual(100);
       // the card keeps its rank through the same checks the partner's cards pass
       expect(sanitizeSubject(n.subject)?.rank).toBe(n.subject!.rank);
     }
   });
 
-  it("says each rank as the partner's own read, not the record's", () => {
-    for (const n of ranked) expect(n.subject!.verdict, n.key).toMatch(/^My (read|inference):/);
+  it("says each rank as Dupin's own read, signed, not the record's", () => {
+    for (const n of ranked) expect(n.subject!.verdict, n.key).toMatch(/^Dupin's (read|inference):/);
   });
 
   it("holds its candidates side by side in a comparison grid, in both languages", () => {
@@ -81,11 +81,18 @@ describe.each(CASES)("%s: its most likely suspects", (_name, spec, zh) => {
 
   it("gives every verdict in Chinese too", () => {
     const local = localize(spec, zh);
-    for (const n of local.notes.filter((x) => x.subject?.rank)) expect(n.subject!.verdict, n.key).toMatch(/^我的(判断|推断)：/);
+    for (const n of local.notes.filter((x) => x.subject?.rank)) expect(n.subject!.verdict, n.key).toMatch(/^杜宾的(判断|推断)：/);
   });
 });
 
 describe("the partner ranks and re-ranks", () => {
+  it("signs a first-person read with Dupin's name, in the page's language", async () => {
+    const { signInferences, sayVerdict } = await import("../src/lib/suspects.ts");
+    expect(signInferences("My read: the relative. (my inference)")).toBe("Dupin's read: the relative. (Dupin's inference)");
+    expect(signInferences("我的判断：亲属作案（我的推断）")).toBe("杜宾的判断：亲属作案（杜宾的推断）");
+    expect(sayVerdict("杜宾的推断：只有他有钥匙")).toBe("Dupin's inference: 只有他有钥匙");
+  });
+
   it("keeps a rank of 1 to 5 with its verdict, and drops a rank it can't read", () => {
     expect(sanitizeSubject({ status: ["person of interest"], for: ["a"], rank: 2, verdict: "Why" })).toMatchObject({ rank: 2, verdict: "Why" });
     expect(sanitizeSubject({ status: ["person of interest"], for: ["a"], rank: 9, verdict: "Why" })?.rank).toBeUndefined();

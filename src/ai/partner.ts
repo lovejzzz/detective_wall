@@ -247,7 +247,7 @@ export async function ask(caseId: string, text: string, opts: { photoNoteIds?: s
     if (!finished) useStore.getState().addAssistantNote(caseId, t("(The line dropped mid-sentence. Ask again?)"));
   } catch {
     if (abort.signal.aborted) stopped(caseId);
-    else useStore.getState().addAssistantNote(caseId, t("(Couldn't reach the partner. Check the connection and try again.)"));
+    else useStore.getState().addAssistantNote(caseId, t("(Couldn't reach Dupin. Check the connection and try again.)"));
   } finally {
     if (inFlight === abort) inFlight = null;
     useStore.getState().setLive(null);

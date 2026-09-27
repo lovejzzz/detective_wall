@@ -260,7 +260,7 @@ export function Notepad({ c }: { c: Case }) {
   const resumeLine = busy || spokeThisVisit
     ? null
     : firstVisit && c.demo
-      ? t("This is a real, unsolved case, set up as a demo. Ask me anything on the typewriter below. Drag from a pin to tie a string. Click a note to open its file.")
+      ? t("I'm Dupin, your research partner. This is a real, unsolved case, set up as a demo. Ask me anything on the typewriter below. Drag from a pin to tie a string. Click a note to open its file.")
       : !firstVisit && c.messages.length > 0 && latestPinned && Date.now() - (previousOpen ?? 0) > 10 * 60_000
         ? t("Picking this back up. Last we had: “{title}”.", { title: latestPinned.title })
         : null;
@@ -273,7 +273,7 @@ export function Notepad({ c }: { c: Case }) {
   const asks = [...new Set([...proposals.map((n) => n.id), ...retiring.map((n) => n.id), ...ties.map((l) => l.from)])];
 
   const partnerLabel =
-    partner.mode === "live" ? (partner.provider === "claude-cli" ? t("Claude · your subscription") : t("Claude · on the line")) : partner.mode === "offline" ? t("offline partner (demo)") : t("dialing…");
+    partner.mode === "live" ? (partner.provider === "claude-cli" ? t("Claude · your subscription") : t("Claude · on the line")) : partner.mode === "offline" ? t("Dupin, offline (demo)") : t("dialing…");
 
   return (
     <aside className={`notepad ${open ? "is-open" : "is-folded"}`} aria-label={t("Case notes and conversation")}>
@@ -314,12 +314,12 @@ export function Notepad({ c }: { c: Case }) {
 
         <div className="pad-lines" ref={scroller}>
           {c.messages.length === 0 && !busy && (
-            <p className="pad-hint">{t("Every question becomes a case. Ask it below and your partner will start pinning evidence to the wall.")}</p>
+            <p className="pad-hint">{t("Every question becomes a case. Ask it below and Dupin, your research partner, will start pinning evidence to the wall.")}</p>
           )}
           {c.messages.map((m) => (
             <div key={m.id} className={`entry entry-${m.role}`}>
               <div className="entry-meta">
-                {m.role === "user" ? t("you") : m.offline ? t("partner (offline)") : t("partner")} · {timeOf(m.createdAt)}
+                {m.role === "user" ? t("you") : m.offline ? t("Dupin (offline)") : t("Dupin")} · {timeOf(m.createdAt)}
               </div>
               {m.role === "user" && m.noteIds?.some((id) => c.notes.find((n) => n.id === id)?.type === "photo") && (
                 <div className="entry-photos">
@@ -352,7 +352,7 @@ export function Notepad({ c }: { c: Case }) {
           ))}
           {resumeLine && (
             <div className="entry entry-assistant is-resume">
-              <div className="entry-meta">{t("partner")} · {t("just now")}</div>
+              <div className="entry-meta">{t("Dupin")} · {t("just now")}</div>
               <div className="entry-text">{resumeLine}</div>
             </div>
           )}
@@ -360,9 +360,9 @@ export function Notepad({ c }: { c: Case }) {
             <div className="entry entry-assistant is-live" aria-live="polite">
               <div className="entry-meta">
                 <span className="live-status">
-                  {t("partner")} · {live?.status ?? t("thinking")}
+                  {t("Dupin")} · {live?.status ?? t("thinking")}
                 </span>
-                <button className="live-stop" onClick={stopAsking} title={t("Stop the partner here (what it has pinned so far stays)")}>
+                <button className="live-stop" onClick={stopAsking} title={t("Stop Dupin here (what's on the wall so far stays)")}>
                   <svg viewBox="0 0 10 10" aria-hidden>
                     <rect x="1.5" y="1.5" width="7" height="7" rx="0.8" />
                   </svg>
@@ -412,7 +412,7 @@ export function Notepad({ c }: { c: Case }) {
             onKeyDown={onKeyDown}
             rows={2}
             placeholder={c.notes.length === 0 ? t("What's the question?") : t("Ask, add a lead, or push back…")}
-            aria-label={t("Message your research partner")}
+            aria-label={t("Message Dupin, your research partner")}
             maxLength={2000}
           />
           <button
